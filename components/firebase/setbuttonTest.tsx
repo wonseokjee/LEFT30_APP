@@ -1,12 +1,16 @@
 import { TouchableOpacity, View, Text } from 'react-native';
 import DB from '@/firebaseConfig';
-import { collection, getDocs } from '@firebase/firestore';
-export default function GetButton() {
+import { doc, setDoc } from '@firebase/firestore';
+export default function SetButton() {
   const onPress = async () => {
     try {
       console.log('inner');
-      const data = await getDocs(collection(DB, 'test'));
-      data.forEach((result) => console.log(result.data()));
+      const date = new Date().toString();
+      await setDoc(doc(DB, 'test', 'user2'), {
+        user: 2,
+        todo: 'work',
+        date: date,
+      });
     } catch (error) {
       console.log('error', error);
     }
@@ -15,7 +19,7 @@ export default function GetButton() {
   return (
     <TouchableOpacity onPress={onPress}>
       <View>
-        <Text>여기는 firestore 확인</Text>
+        <Text>여기는 firestore set기능 확인</Text>
       </View>
     </TouchableOpacity>
   );
