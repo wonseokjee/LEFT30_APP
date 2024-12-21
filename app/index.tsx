@@ -2,6 +2,7 @@ import GetButton from '@/components/firebase/getbutton';
 import SetButton from '@/components/firebase/setbuttonTest';
 import Timer from '@/components/timer/timer';
 import AlertButton from '@/hooks/alarm/AlertButton';
+import ModalButton from '@/hooks/alarm/modalButton';
 import { Alert, Button, Text, View } from 'react-native';
 
 export default function Index() {
@@ -18,6 +19,7 @@ export default function Index() {
       <GetButton />
       <SetButton />
       <AlertButton />
+      <ModalButton />
     </View>
   );
 }
