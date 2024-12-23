@@ -1,10 +1,9 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function Graph() {
-  
+export default function Tab() {
   return (
     <View style={styles.container}>
-      <Text>Tab [Home|Settings|graph]</Text>
+      <Text>Tab [Home|Settings]</Text>
     </View>
   );
 }
