@@ -10,19 +10,33 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
+import CheckBox from './checkbox';
+
+export interface checkProps {
+  checkValue: (str: string) => void;
+}
 
 const ModalButton = () => {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [inputValue, setInputValue] = useState('');
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [inputValue, setInputValue] = useState<string>('');
+  const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
+
+  const checkboxHandler = (str: string) => {
+    setCheckboxValue(str);
+    // console.log('여기는 부모:' + str);
+  };
 
   const handleConfirm = async () => {
-    console.log('입력된 값:', inputValue);
+    // console.log('입력된 값:', inputValue);
+    //action이 null 값인 경우 경고 or 버튼 안눌리게
     const date = new Date().toString();
     await setDoc(doc(DB, 'test', date), {
-      todo: inputValue,
+      action: checkboxValue,
+      detail: inputValue,
       date: date,
     });
     setModalVisible(false);
+    setCheckboxValue(null);
   };
 
   const handleCancel = () => {
@@ -31,7 +45,7 @@ const ModalButton = () => {
 
   return (
     <View style={styles.container}>
-      <Button title='Alert 열기' onPress={() => setModalVisible(true)} />
+      <Button title='Modal 열기' onPress={() => setModalVisible(true)} />
       <Modal
         transparent={true}
         visible={modalVisible}
@@ -41,6 +55,7 @@ const ModalButton = () => {
         <View style={styles.overlay}>
           <View style={styles.alertBox}>
             <Text style={styles.alertTitle}>입력 요청</Text>
+            <CheckBox checkValue={checkboxHandler} />
             <TextInput
               style={styles.input}
               placeholder='여기에 입력하세요'
@@ -70,7 +85,7 @@ const ModalButton = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    // flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },

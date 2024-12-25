@@ -22,6 +22,9 @@ export default function GetButton() {
       <TouchableOpacity onPress={onPress}>
         <View>
           <Text>여기는 firestore 확인</Text>
+          {doc?.map((x) => (
+            <Text>{x['action']}</Text>
+          ))}
         </View>
       </TouchableOpacity>
     </View>

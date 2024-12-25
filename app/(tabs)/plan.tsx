@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function Settings() {
-  //setting은 상단에서 들어갈 수 있게게
+export default function Plan() {
+  //plan에서는 일정을 짤 수 있게
   return (
     <View style={styles.container}>
       <Text>Tab [Home|Settings|graph]</Text>
