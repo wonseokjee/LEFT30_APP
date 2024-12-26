@@ -71,9 +71,9 @@ const CheckBox = (props: checkProps) => {
     <View style={styles.appContainer}>
       {/* <Text style={styles.title}>Checkbox List</Text> */}
       <CheckboxList items={checkboxItems} onChange={handleCheckboxChange} />
-      <Text style={styles.selectedItemText}>
+      {/* <Text style={styles.selectedItemText}>
         Selected: {selectedItem ? selectedItem.label : 'None'}
-      </Text>
+      </Text> */}
     </View>
   );
 };
