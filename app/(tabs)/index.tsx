@@ -1,4 +1,3 @@
-import SetButton from '@/components/firebase/setbuttonTest';
 import Timer from '@/components/timer/timer';
 import ModalButton from '@/hooks/alarm/modal';
 import { Alert, Button, Text, View } from 'react-native';
@@ -14,7 +13,6 @@ export default function Index() {
     >
       <Text>Edit app/index.tsx to edit this screen.</Text>
       <Timer />
-      <SetButton />
       <ModalButton />
     </View>
   );
