@@ -1,6 +1,6 @@
 import useInterval from '@/hooks/timer/useInterval';
 import useTimer from '@/hooks/timer/useTimer';
-import { Text, View } from 'react-native';
+import { Text, View, StyleSheet } from 'react-native';
 
 export default function Timer() {
   const { time, leftMinute, leftSecond } = useTimer();
@@ -12,9 +12,20 @@ export default function Timer() {
   return (
     <View>
       <Text>{time}</Text>
-      <Text>
-        {leftMinute}:{leftSecond}
-      </Text>
+      <View style={styles.timerContainer}>
+        <Text style={styles.timer}>
+          {leftMinute}:{leftSecond}
+        </Text>
+      </View>
     </View>
   );
 }
+const styles = StyleSheet.create({
+  timerContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timer: {
+    fontSize: 110,
+  },
+});

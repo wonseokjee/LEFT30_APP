@@ -23,7 +23,9 @@ export default function GetButton() {
         <View>
           <Text>여기는 firestore 확인</Text>
           {doc?.map((x) => (
-            <Text>{x['action']}</Text>
+            <Text key={x['date']}>
+              {x['action']}:{x['date']}
+            </Text>
           ))}
         </View>
       </TouchableOpacity>

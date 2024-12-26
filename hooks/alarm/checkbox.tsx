@@ -48,7 +48,7 @@ const CheckBox = (props: checkProps) => {
     { id: 3, label: '운동', checked: false },
     { id: 4, label: '관계', checked: false },
     { id: 5, label: '자기개발', checked: false },
-    { id: 6, label: '일', checked: false },
+    { id: 6, label: '업무', checked: false },
   ]);
   const [selectedItem, setSelectedItem] = useState<CheckboxItem | null>();
 
