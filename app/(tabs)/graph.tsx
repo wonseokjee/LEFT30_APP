@@ -4,7 +4,7 @@ import { View, Text, StyleSheet } from 'react-native';
 export default function Graph() {
   return (
     <View style={styles.container}>
-      <Text>Tab [Home|Settings]</Text>
+      <Text style={styles.text}>Tab [Home|Settings]</Text>
       <GetButton />
     </View>
   );
@@ -15,5 +15,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'black',
   },
+  text: { color: 'white' },
 });

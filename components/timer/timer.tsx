@@ -14,8 +14,8 @@ export default function Timer() {
   }, 1000);
   return (
     <View>
-      <Text>{time}</Text>
       <View style={styles.timerContainer}>
+        <Text style={styles.clock}>{time}</Text>
         <Text style={styles.timer}>
           {leftMinute}:{leftSecond}
         </Text>
@@ -29,6 +29,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timer: {
+    color: 'white',
     fontSize: 110,
   },
+  clock: { color: 'white' },
 });

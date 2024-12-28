@@ -1,24 +1,42 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Entypo from '@expo/vector-icons/Entypo';
 import { Tabs } from 'expo-router';
 
 export default function TabLayout() {
   return (
-    <Tabs screenOptions={{ tabBarActiveTintColor: 'blue' }}>
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: 'white',
+        tabBarStyle: { backgroundColor: '#101010', borderColor: 'black' },
+
+        headerStyle: { backgroundColor: 'black' },
+        headerTintColor: 'white',
+      }}
+    >
+      <Tabs.Screen
+        name='graph'
+        options={{
+          title: 'graph',
+          tabBarIcon: ({ color }) => (
+            <Entypo size={28} name='pie-chart' color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name='index'
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name='home' color={color} />
+            <Entypo size={28} name='home' color={color} />
           ),
         }}
       />
+
       <Tabs.Screen
-        name='settings'
+        name='plan'
         options={{
-          title: 'Settings',
+          title: 'plan',
           tabBarIcon: ({ color }) => (
-            <FontAwesome size={28} name='cog' color={color} />
+            <Entypo size={28} name='check' color={color} />
           ),
         }}
       />
