@@ -1,12 +1,15 @@
 import useInterval from '@/hooks/timer/useInterval';
 import useTimer from '@/hooks/timer/useTimer';
+import useNumStore from '@/store/timerStore';
 import { Text, View, StyleSheet } from 'react-native';
 
 export default function Timer() {
   const { time, leftMinute, leftSecond } = useTimer();
+  const { setModalOpen } = useNumStore();
   useInterval(() => {
     if (leftSecond == '00' && leftMinute == '00') {
-      console.log('dddddd');
+      console.log('30분 타이머 초기화');
+      setModalOpen();
     }
   }, 1000);
   return (

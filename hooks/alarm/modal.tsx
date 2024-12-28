@@ -1,27 +1,25 @@
-import DB from '@/firebaseConfig';
-import { doc, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
 import {
   Modal,
   View,
   Text,
   TextInput,
-  Button,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
 import CheckBox from './checkbox';
 import { setFirebaseCollection_Test } from '@/api/firebase';
 import { setCollection_Test } from '@/@types/firebase/collections';
+import useNumStore from '@/store/timerStore';
 
 export interface checkProps {
   checkValue: (str: string) => void;
 }
 
 const ModalButton = () => {
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [inputValue, setInputValue] = useState<string>('');
   const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
+  const { timerModalOpen, setModalClose } = useNumStore();
 
   const checkboxHandler = (str: string) => {
     setCheckboxValue(str);
@@ -40,7 +38,7 @@ const ModalButton = () => {
       };
       //firebase에 입력
       setFirebaseCollection_Test('test', testValue);
-      setModalVisible(false);
+      setModalClose();
     } else {
       //확인버튼 눌렀을때 checkbox 체크 안되어 있으면 '한 일을 체크해주세요' 문구가 떨리는 effect추가하기
     }
@@ -49,19 +47,18 @@ const ModalButton = () => {
 
   //취소하면 이전 행동 지속하게 or 이전행동 지속 버튼 만들기??
   const handleCancel = () => {
-    setModalVisible(false);
+    setModalClose();
     setCheckboxValue(null);
     setInputValue('');
   };
 
   return (
     <View style={styles.container}>
-      <Button title='Modal 열기' onPress={() => setModalVisible(true)} />
       <Modal
         transparent={true}
-        visible={modalVisible}
+        visible={timerModalOpen}
         animationType='fade'
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => setModalClose()}
       >
         <View style={styles.overlay}>
           <View style={styles.alertBox}>
