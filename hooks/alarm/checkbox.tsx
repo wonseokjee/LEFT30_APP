@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { checkProps } from './modal';
+import { checkProps } from './actionTrackerModal';
 
 type CheckboxItem = {
   id: number;

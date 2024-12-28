@@ -16,7 +16,7 @@ export interface checkProps {
   checkValue: (str: string) => void;
 }
 
-const ModalButton = () => {
+const ActionTrackerModal = () => {
   const [inputValue, setInputValue] = useState<string>('');
   const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
   const { timerModalOpen, setModalClose, modalOpenDate } = useNumStore();
@@ -147,4 +147,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ModalButton;
+export default ActionTrackerModal;
