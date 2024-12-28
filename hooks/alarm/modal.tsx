@@ -19,8 +19,7 @@ export interface checkProps {
 const ModalButton = () => {
   const [inputValue, setInputValue] = useState<string>('');
   const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
-  const { timerModalOpen, setModalClose } = useNumStore();
-
+  const { timerModalOpen, setModalClose, modalOpenDate } = useNumStore();
   const checkboxHandler = (str: string) => {
     setCheckboxValue(str);
     // console.log('여기는 부모:' + str);
@@ -32,7 +31,7 @@ const ModalButton = () => {
     if (checkboxValue) {
       //firebase collection 'test'에 들어갈 value
       const testValue: setCollection_Test = {
-        date: Date().toString(),
+        date: modalOpenDate,
         action: checkboxValue,
         detail: inputValue,
       };
