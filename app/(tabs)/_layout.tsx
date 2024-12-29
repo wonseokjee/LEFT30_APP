@@ -13,9 +13,9 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name='graph'
+        name='calendar'
         options={{
-          title: 'graph',
+          title: 'calendar',
           tabBarIcon: ({ color }) => (
             <Entypo size={28} name='pie-chart' color={color} />
           ),
