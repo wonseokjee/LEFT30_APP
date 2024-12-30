@@ -16,6 +16,7 @@ export default function GetButton() {
       const qData = await getDocs(q);
       const qDatas = qData.docs.map((doc) => ({ ...doc.data() }));
       console.log(qDatas);
+      //new Date().toISOString().split('T')[0]
       setDoc(qDatas);
     } catch (error) {
       console.log('error', error);
@@ -29,7 +30,7 @@ export default function GetButton() {
           <Text style={{ color: 'white' }}>여기는 firestore 확인</Text>
           {doc?.map((x) => (
             <Text key={x['date']} style={{ color: 'white' }}>
-              {x['action']}:{x['date']}
+              {x['action']}:{x['detail']} [{x['date']}]
             </Text>
           ))}
         </View>

@@ -1,7 +1,7 @@
-import GetButton from '@/components/firebase/getbutton';
+import GetButton from '@/components/firebase/getTimeTable';
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function Graph() {
+export default function Calendar() {
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Tab [Home|Settings]</Text>
