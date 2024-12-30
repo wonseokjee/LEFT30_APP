@@ -49,6 +49,8 @@ const ActionTrackerModal = () => {
     setModalClose();
     setCheckboxValue(null);
     setInputValue('');
+    const insDate = new Date().toLocaleString();
+    console.log(insDate);
   };
 
   return (

@@ -12,7 +12,10 @@ const useNumStore = create<numStore>((set) => ({
   timerModalOpen: false,
   modalOpenDate: '',
   setModalOpen: () =>
-    set(() => ({ timerModalOpen: true, modalOpenDate: Date().toString() })),
+    set(() => ({
+      timerModalOpen: true,
+      modalOpenDate: new Date().toLocaleString(),
+    })),
   setModalClose: () => set(() => ({ timerModalOpen: false })),
 }));
 
