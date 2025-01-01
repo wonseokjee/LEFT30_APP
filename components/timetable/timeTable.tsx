@@ -23,6 +23,8 @@ type TimetableProps = {
 
 const generateFullDaySlots = (slots: TimeSlot[]): TimeSlot[] => {
   const fullDaySlots: TimeSlot[] = [];
+  //15분단위로 쪼개질 수 있게 수정. 하지만 화면에 나오는 것은 30분단위
+  // 해당 시간대 클릭하면 하이라이트 되면서 같은 분류도 하이라이트. 총합 하단에 계산.
   for (let hour = 0; hour < 24; hour++) {
     for (let minute = 0; minute < 60; minute += 30) {
       const timeLabel = `${hour.toString().padStart(2, '0')}:${minute
@@ -31,7 +33,7 @@ const generateFullDaySlots = (slots: TimeSlot[]): TimeSlot[] => {
       const slot = slots.find((s) => s.time === timeLabel);
       fullDaySlots.push({
         time: timeLabel,
-        activity: slot ? slot.activity : '',  
+        activity: slot ? slot.activity : '',
       });
     }
   }
@@ -49,6 +51,9 @@ const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.horizontalContainer}>
+      {/* <View key={slotIndex}>
+        {slot.time.endsWith(':00') && <View style={styles.hourLine} />}
+      </View> */}
       {schedule.map((daySchedule, index) => (
         <View key={index} style={styles.dayContainer}>
           <Text style={styles.dayText}>{daySchedule.day}</Text>
@@ -88,6 +93,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 8,
     textAlign: 'center',
+    color: 'white',
   },
   slotContainer: {
     flexDirection: 'row',
