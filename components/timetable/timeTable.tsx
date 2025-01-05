@@ -72,7 +72,15 @@ const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
           <View key={index} style={styles.dayContainer}>
             <Text style={styles.dayText}>{daySchedule.day}</Text>
             {generateFullDaySlots(daySchedule.slots).map((slot, slotIndex) => (
-              <View key={slotIndex}>
+              <View key={slotIndex} style={styles.fullSlotContainer}>
+                {slotIndex % 6 === 5 ? (
+                  <TouchableOpacity style={styles.absoluteSlot}>
+                    <Text>허허허</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <></>
+                )}
+
                 <TouchableOpacity
                   onPress={() => slot && handlePress(slot.activity)}
                   style={[
@@ -84,9 +92,10 @@ const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
                   ]}
                 >
                   <Text style={styles.slotIndexText}>Slot {slotIndex + 1}</Text>
-                  <Text style={styles.activityText}>
+                  {/* <Text style={styles.activityText}>
                     {slot?.activity || ''}
-                  </Text>
+                  </Text> */}
+                  {/* <Text> </Text> */}
                 </TouchableOpacity>
               </View>
             ))}
@@ -128,10 +137,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: 'white',
   },
+  fullSlotContainer: {
+    backgroundColor: 'blue',
+    height: '0.5%',
+    // flex: 1,
+  },
+  absoluteSlot: {
+    position: 'absolute',
+    backgroundColor: 'yellow',
+    height: '200%',
+    zIndex: 101,
+    borderRadius: 5,
+    width: '99%',
+  },
   slotContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    // justifyContent: 'space-between',
     color: 'white',
+    borderColor: 'white',
+    borderWidth: 1,
+    // height: '100%',
   },
   highlightedSlot: {
     backgroundColor: 'grey',
@@ -142,11 +167,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   slotIndexText: {
-    fontSize: 10,
+    // fontSize: 15,
     color: 'white',
   },
   activityText: {
-    fontSize: 10,
+    // fontSize: 10,
     color: 'white',
   },
 });
