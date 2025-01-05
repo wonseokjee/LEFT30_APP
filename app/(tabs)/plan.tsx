@@ -2,10 +2,10 @@ import Timetable from '@/components/timetable/timeTable';
 import { View, Text, StyleSheet } from 'react-native';
 
 type TimeSlot = {
-  index: number;
+  startIndex: number;
+  endIndex: number;
   activity: string;
 };
-
 type DaySchedule = {
   day: string;
   slots: TimeSlot[];
@@ -17,17 +17,17 @@ export default function Plan() {
     {
       day: 'Monday',
       slots: [
-        { index: 10, activity: 'Math Class' },
-        { index: 20, activity: 'Break' },
-        { index: 30, activity: 'Science Class' },
+        { startIndex: 10, endIndex: 20, activity: 'Math Class' },
+        { startIndex: 30, endIndex: 40, activity: 'Math Class' },
+        { startIndex: 80, endIndex: 100, activity: 'Science Class' },
       ],
     },
     {
       day: 'Tuesday',
       slots: [
-        { index: 50, activity: 'History Class' },
-        { index: 70, activity: 'Art Class' },
-        { index: 10, activity: 'Physical Education' },
+        { startIndex: 21, endIndex: 27, activity: 'History Class' },
+        { startIndex: 50, endIndex: 55, activity: 'Art Class' },
+        { startIndex: 10, endIndex: 20, activity: 'Physical Education' },
       ],
     },
   ];
@@ -41,8 +41,8 @@ export default function Plan() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    // justifyContent: 'center',
+    // alignItems: 'center',
     backgroundColor: 'black',
   },
   text: { color: 'white' },

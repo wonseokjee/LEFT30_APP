@@ -8,7 +8,8 @@ import {
 } from 'react-native';
 
 type TimeSlot = {
-  index: number;
+  startIndex: number;
+  endIndex: number;
   activity: string;
 };
 
@@ -21,52 +22,48 @@ type TimetableProps = {
   schedule: DaySchedule[];
 };
 
-type TimeIndex = {
-  hour: string;
-};
+const generateFullDaySlots = (slots: TimeSlot[]): (TimeSlot | null)[] => {
+  const totalSlots = 144;
+  const fullDaySlots: (TimeSlot | null)[] = new Array(totalSlots).fill(null);
 
-const generateFullDaySlots = (slots: TimeSlot[]): TimeSlot[] => {
-  const totalSlots = 144; // 144칸
-  const fullDaySlots: TimeSlot[] = [];
-  for (let i = 1; i <= totalSlots; i++) {
-    const slot = slots.find((s) => s.index === i);
-    fullDaySlots.push({
-      index: i,
-      activity: slot ? slot.activity : '',
-    });
-  }
+  slots.forEach((slot) => {
+    for (let i = slot.startIndex; i <= slot.endIndex; i++) {
+      fullDaySlots[i - 1] = { ...slot };
+    }
+  });
+
   return fullDaySlots;
 };
 
 const generateTimeIndex = () => {
-  const HOUR = 12; // 144칸
-  const totalHour: string[] = [];
+  const HOUR = 12;
+  const totalHour: string[] = [''];
   const AMPM = ['AM', 'PM'];
   for (let j = 0; j < 2; j++) {
     for (let i = 1; i <= HOUR; i++) {
       totalHour.push(i + AMPM[j]);
     }
   }
-  //12PM삭제위해 마지막 pop
   totalHour.pop();
   return totalHour;
 };
 
 const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
-  const [highlightedSlot, setHighlightedSlot] = useState<number | null>(null);
+  const [highlightedActivity, setHighlightedActivity] = useState<string | null>(
+    null
+  );
 
-  const handlePress = (index: number, activity: string) => {
-    if (activity) {
-      setHighlightedSlot(index);
-    }
+  const handlePress = (activity: string) => {
+    setHighlightedActivity(activity || null);
   };
 
   return (
     <ScrollView contentContainerStyle={styles.horizontalContainer}>
       <View style={styles.timeIndexContainer}>
+        <Text style={styles.timelocalarea}></Text>
         {generateTimeIndex().map((x, idx) => (
           <View key={idx} style={styles.timeContainer}>
-            <Text>{x}</Text>
+            <Text style={styles.timeIndexText}>{x}</Text>
           </View>
         ))}
       </View>
@@ -74,20 +71,22 @@ const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
         {schedule.map((daySchedule, index) => (
           <View key={index} style={styles.dayContainer}>
             <Text style={styles.dayText}>{daySchedule.day}</Text>
-
             {generateFullDaySlots(daySchedule.slots).map((slot, slotIndex) => (
               <View key={slotIndex}>
                 <TouchableOpacity
-                  onPress={() => handlePress(slot.index, slot.activity)}
+                  onPress={() => slot && handlePress(slot.activity)}
                   style={[
                     styles.slotContainer,
-                    highlightedSlot === slot.index && slot.activity
+                    highlightedActivity === slot?.activity && slot?.activity
                       ? styles.highlightedSlot
                       : null,
+                    slotIndex % 6 === 5 ? styles.sixthSlotBorder : null,
                   ]}
                 >
-                  <Text style={styles.slotIndexText}>Slot {slot.index}</Text>
-                  <Text style={styles.activityText}>{slot.activity}</Text>
+                  <Text style={styles.slotIndexText}>Slot {slotIndex + 1}</Text>
+                  <Text style={styles.activityText}>
+                    {slot?.activity || ''}
+                  </Text>
                 </TouchableOpacity>
               </View>
             ))}
@@ -100,48 +99,47 @@ const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
 
 const styles = StyleSheet.create({
   horizontalContainer: {
-    flexDirection: 'row',
-    // padding: 1,
     flexGrow: 1,
-    // backgroundColor: 'yellow',
+    flexDirection: 'row',
   },
   timeIndexContainer: {
-    backgroundColor: 'grey',
     flex: 1,
   },
-  timeContainer: { flex: 1 },
+  timelocalarea: { fontSize: 5.5 },
+  timeContainer: {
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  timeIndexText: {
+    textAlign: 'right',
+    paddingRight: 8,
+    color: 'white',
+  },
   tableContainer: {
     flexDirection: 'row',
-    // backgroundColor: 'blue',
-    flex: 1,
+    flex: 7,
   },
   dayContainer: {
-    // marginRight: 24,
-    // flex: 1,
-    // backgroundColor: 'yellow',
+    flex: 1,
   },
   dayText: {
     fontSize: 15,
     fontWeight: 'bold',
-    // marginBottom: 8,
     textAlign: 'center',
     color: 'white',
   },
-
   slotContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    // paddingVertical: 4,
-    // flex: 1,
-    // height: '100%',
     color: 'white',
-    borderColor: 'white',
-    borderWidth: 1,
   },
   highlightedSlot: {
-    backgroundColor: 'yellow',
-    borderRadius: 8,
-    // color: 'black',
+    backgroundColor: 'grey',
+    borderRadius: 10,
+  },
+  sixthSlotBorder: {
+    borderBottomColor: 'white',
+    borderBottomWidth: 1,
   },
   slotIndexText: {
     fontSize: 10,
@@ -154,25 +152,3 @@ const styles = StyleSheet.create({
 });
 
 export default Timetable;
-
-// Example Usage
-// const exampleSchedule: DaySchedule[] = [
-//   {
-//     day: 'Monday',
-//     slots: [
-//       { index: 10, activity: 'Math Class' },
-//       { index: 20, activity: 'Break' },
-//       { index: 30, activity: 'Science Class' },
-//     ],
-//   },
-//   {
-//     day: 'Tuesday',
-//     slots: [
-//       { index: 50, activity: 'History Class' },
-//       { index: 70, activity: 'Art Class' },
-//       { index: 90, activity: 'Physical Education' },
-//     ],
-//   },
-// ];
-
-// <Timetable schedule={exampleSchedule} />
