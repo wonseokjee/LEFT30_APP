@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import TimeTableSlotItem from './timeTableSlotItem';
 
 type TimeSlot = {
   startIndex: number;
@@ -59,6 +60,7 @@ const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.horizontalContainer}>
+      {/* 여기 아래 view도 timeTableTimeDivision?(이름 고민해봐야)으로 따로 빼기기 */}
       <View style={styles.timeIndexContainer}>
         <Text style={styles.timelocalarea}></Text>
         {generateTimeIndex().map((x, idx) => (
@@ -67,35 +69,26 @@ const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
           </View>
         ))}
       </View>
+        {/* 여기 아래래부터 slot으로 들어가야 */}
       <View style={styles.tableContainer}>
         {schedule.map((daySchedule, index) => (
           <View key={index} style={styles.dayContainer}>
             <Text style={styles.dayText}>{daySchedule.day}</Text>
             {generateFullDaySlots(daySchedule.slots).map((slot, slotIndex) => (
               <View key={slotIndex} style={styles.fullSlotContainer}>
-                {slotIndex % 6 === 5 ? (
-                  <TouchableOpacity style={styles.absoluteSlot}>
-                    <Text>허허허</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <></>
-                )}
+                <TimeTableSlotItem slotIndex={slotIndex} />
 
                 <TouchableOpacity
-                  onPress={() => slot && handlePress(slot.activity)}
+                  // onPress={() => slot && handlePress(slot.activity)}
                   style={[
                     styles.slotContainer,
-                    highlightedActivity === slot?.activity && slot?.activity
-                      ? styles.highlightedSlot
-                      : null,
+                    // highlightedActivity === slot?.activity && slot?.activity
+                    //   ? styles.highlightedSlot
+                    //   : null,
                     slotIndex % 6 === 5 ? styles.sixthSlotBorder : null,
                   ]}
                 >
                   <Text style={styles.slotIndexText}>Slot {slotIndex + 1}</Text>
-                  {/* <Text style={styles.activityText}>
-                    {slot?.activity || ''}
-                  </Text> */}
-                  {/* <Text> </Text> */}
                 </TouchableOpacity>
               </View>
             ))}
@@ -141,14 +134,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'blue',
     height: '0.5%',
     // flex: 1,
-  },
-  absoluteSlot: {
-    position: 'absolute',
-    backgroundColor: 'yellow',
-    height: '200%',
-    zIndex: 101,
-    borderRadius: 5,
-    width: '99%',
   },
   slotContainer: {
     flexDirection: 'row',
