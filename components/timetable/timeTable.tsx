@@ -62,14 +62,15 @@ const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
     <ScrollView contentContainerStyle={styles.horizontalContainer}>
       {/* 여기 아래 view도 timeTableTimeDivision?(이름 고민해봐야)으로 따로 빼기기 */}
       <View style={styles.timeIndexContainer}>
-        <Text style={styles.timelocalarea}></Text>
+        {/* <Text style={styles.timelocalarea}></Text> */}
         {generateTimeIndex().map((x, idx) => (
           <View key={idx} style={styles.timeContainer}>
             <Text style={styles.timeIndexText}>{x}</Text>
           </View>
         ))}
+        <Text style={styles.timelocalareaBottom}></Text>
       </View>
-        {/* 여기 아래래부터 slot으로 들어가야 */}
+      {/* 여기 아래래부터 slot으로 들어가야 */}
       <View style={styles.tableContainer}>
         {schedule.map((daySchedule, index) => (
           <View key={index} style={styles.dayContainer}>
@@ -88,7 +89,7 @@ const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
                     slotIndex % 6 === 5 ? styles.sixthSlotBorder : null,
                   ]}
                 >
-                  <Text style={styles.slotIndexText}>Slot {slotIndex + 1}</Text>
+                  {/* <Text style={styles.slotIndexText}>Slot {slotIndex + 1}</Text> */}
                 </TouchableOpacity>
               </View>
             ))}
@@ -103,26 +104,51 @@ const styles = StyleSheet.create({
   horizontalContainer: {
     flexGrow: 1,
     flexDirection: 'row',
+    borderWidth: 1,
+    // borderColor: 'red',
+    height: '200%',
   },
   timeIndexContainer: {
     flex: 1,
+    borderWidth: 1,
+    // borderColor: 'blue',
+    // height: '110%',
   },
-  timelocalarea: { fontSize: 5.5 },
+  // timelocalarea: {
+  //   borderWidth: 1,
+  //   borderColor: 'blue',
+  //   height: '1%',
+  // },
+  timelocalareaBottom: {
+    // borderWidth: 1,
+    // borderColor: 'blue',
+    height: '1.7%',
+  },
   timeContainer: {
     flex: 1,
     justifyContent: 'flex-start',
+    borderWidth: 1,
+    // borderColor: 'red',
+    // height: '3%',
   },
   timeIndexText: {
     textAlign: 'right',
     paddingRight: 8,
     color: 'white',
+    // fontSize:,
   },
   tableContainer: {
     flexDirection: 'row',
     flex: 7,
+    // borderWidth: 1,
+    // borderColor: 'yellow',
+    height: '136%',
   },
   dayContainer: {
     flex: 1,
+    // borderWidth: 1,
+    borderLeftWidth: 1,
+    borderColor: 'white',
   },
   dayText: {
     fontSize: 15,
@@ -131,7 +157,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   fullSlotContainer: {
-    backgroundColor: 'blue',
+    // backgroundColor: 'blue',
     height: '0.5%',
     // flex: 1,
   },
@@ -140,7 +166,8 @@ const styles = StyleSheet.create({
     // justifyContent: 'space-between',
     color: 'white',
     borderColor: 'white',
-    borderWidth: 1,
+    // borderWidth: 1,
+    borderRightWidth: 1,
     // height: '100%',
   },
   highlightedSlot: {
