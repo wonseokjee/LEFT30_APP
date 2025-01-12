@@ -7,6 +7,8 @@ export default function GetButton() {
   const onPress = async () => {
     try {
       console.log('inner');
+      const today = new Date().toISOString().split('T')[0];
+      console.log(today);
       const testRef = collection(DB, 'test');
       // const data = await getDocs(testRef);
       // data.forEach((result) => console.log(result.data()));
@@ -15,7 +17,7 @@ export default function GetButton() {
       const q = query(testRef, orderBy('date'));
       const qData = await getDocs(q);
       const qDatas = qData.docs.map((doc) => ({ ...doc.data() }));
-      console.log(qDatas);
+      // console.log(qDatas);
       //new Date().toISOString().split('T')[0]
       setDoc(qDatas);
     } catch (error) {

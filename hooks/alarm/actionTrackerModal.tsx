@@ -19,21 +19,28 @@ export interface checkProps {
 const ActionTrackerModal = () => {
   const [inputValue, setInputValue] = useState<string>('');
   const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
-  const { timerModalOpen, setModalClose, modalOpenDate } = useNumStore();
+  const { timerModalOpen, setModalClose, date, startTime, endTime } =
+    useNumStore();
   const checkboxHandler = (str: string) => {
     setCheckboxValue(str);
     // console.log('여기는 부모:' + str);
   };
-
+  //USERID는 다른곳에서 관리
+  const USER_ID = '1';
   const handleConfirm = async () => {
     //checkbox가 체크되어 있지 않으면 confirm 안되게
     // console.log('입력된 값:', inputValue);
     if (checkboxValue) {
       //firebase collection 'test'에 들어갈 value
       const testValue: setCollection_Test = {
-        date: modalOpenDate,
-        action: checkboxValue,
-        detail: inputValue,
+        userId: USER_ID,
+        date: date,
+        event: {
+          action: checkboxValue,
+          detail: inputValue,
+          startTime: startTime,
+          endTime: endTime,
+        },
       };
       //firebase에 입력
       setFirebaseCollection_Test('test', testValue);

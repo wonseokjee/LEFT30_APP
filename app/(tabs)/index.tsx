@@ -8,8 +8,8 @@ export default function Index() {
   return (
     <View style={styles.appContainer}>
       <Timer />
-      <Button title='Modal 열기' onPress={() => setModalOpen()} color='grey' />
       {/* <ModalButton /> */}
+      <Button title='Modal 열기' onPress={() => setModalOpen()} color='grey' />
     </View>
   );
 }

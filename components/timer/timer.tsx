@@ -15,7 +15,7 @@ export default function Timer() {
   return (
     <View>
       <View style={styles.timerContainer}>
-        <Text style={styles.clock}>{time}</Text>
+        {/* <Text style={styles.clock}>{time}</Text> */}
         <Text style={styles.timer}>
           {leftMinute}:{leftSecond}
         </Text>
