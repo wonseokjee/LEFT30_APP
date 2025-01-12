@@ -71,6 +71,7 @@ const ActionTrackerModal = () => {
         <View style={styles.overlay}>
           <View style={styles.alertBox}>
             <Text style={styles.alertTitle}>어떤 일을 하셨나요?</Text>
+            {/* checkbox.tsx */}
             <CheckBox checkValue={checkboxHandler} />
             {checkboxValue ? <></> : <Text>한 일을 체크 해주세요!</Text>}
             <TextInput

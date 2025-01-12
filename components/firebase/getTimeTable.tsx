@@ -7,8 +7,9 @@ export default function GetButton() {
   const onPress = async () => {
     try {
       console.log('inner');
-      const today = new Date().toISOString().split('T')[0];
-      console.log(today);
+      // const date = new Date().toTimeString();
+
+      // console.log(date);
       const testRef = collection(DB, 'test');
       // const data = await getDocs(testRef);
       // data.forEach((result) => console.log(result.data()));
@@ -31,8 +32,9 @@ export default function GetButton() {
         <View style={{}}>
           <Text style={{ color: 'white' }}>여기는 firestore 확인</Text>
           {doc?.map((x) => (
-            <Text key={x['date']} style={{ color: 'white' }}>
-              {x['action']}:{x['detail']} [{x['date']}]
+            <Text key={x['event']['startTime']} style={{ color: 'white' }}>
+              {x['date']} {x['event']['action']}
+              {x['event']['detail']}
             </Text>
           ))}
         </View>
