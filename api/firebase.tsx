@@ -1,8 +1,15 @@
 import { setCollection_Test } from '@/@types/firebase/collections';
 import DB from '@/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
-import { collection, getDocs, orderBy, query } from '@firebase/firestore';
+import {
+  collection,
+  getDocs,
+  where,
+  orderBy,
+  query,
+} from '@firebase/firestore';
 import { useState } from 'react';
+import useTimeSlotStore from '@/store/timeTableStore';
 
 export const setFirebaseCollection_Test = async (
   document: string,
@@ -20,17 +27,28 @@ export const setFirebaseCollection_Test = async (
 };
 
 export const getFirebaseCollection_Test_TodayAndLastday = async () => {
+  const { setTimeSlot } = useTimeSlotStore();
   const [doc, setDoc] = useState<{ [x: string]: any }[]>();
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
   try {
     console.log('inner getFirebaseCollection_Test_TodayAndLastday');
-    const today = new Date().getFullYear();
     const testRef = collection(DB, 'test');
-    const q = query(testRef, orderBy('date'));
-    const qData = await getDocs(q);
-    const qDatas = qData.docs.map((doc) => ({ ...doc.data() }));
-    console.log(qDatas);
+
+    const q = query(
+      testRef,
+      where('userId', '==', 1),
+      where('date', 'in', [today, yesterdayStr])
+    );
+
+    const querySnapShot = await getDocs(q);
+    const timeSlot = querySnapShot.docs.map((doc) => ({ ...doc.data() }));
+    console.log(timeSlot);
     //new Date().toISOString().split('T')[0]
-    setDoc(qDatas);
+    // setTimeSlot(timeSlot);
+    setDoc(timeSlot);
   } catch (error) {
     console.log('error', error);
   }

@@ -8,3 +8,5 @@ export type setCollection_Test = {
     endTime: string;
   };
 };
+
+export type setCollection_Tests = setCollection_Test[];
