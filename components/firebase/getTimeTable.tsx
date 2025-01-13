@@ -23,13 +23,15 @@ export default function GetButton() {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toISOString().split('T')[0];
+      console.log(today, yesterdayStr);
       const qe = query(
         testRef,
-        where('userId', '==', 1),
+        where('userId', '==', '1'),
         where('date', 'in', [today, yesterdayStr])
       );
 
       const querySnapShot = await getDocs(qe);
+
       const timeSlot = querySnapShot.docs.map((doc) => ({ ...doc.data() }));
       console.log(timeSlot);
 
