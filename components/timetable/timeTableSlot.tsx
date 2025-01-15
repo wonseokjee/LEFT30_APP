@@ -48,6 +48,7 @@ const TimeTableSlot: React.FC<TimetableProps> = ({ schedule }) => {
         {schedule.map((daySchedule, index) => (
           <View key={index} style={styles.dayContainer}>
             <Text style={styles.dayText}>{daySchedule.day}</Text>
+            {/* 여기 아래에서 slot따져서 핻강 아이템에 들어갈것인지 말지. slot은 start에서 따지고 slotrange는 end-start로 계산해서 */}
             {generateFullDaySlots(daySchedule.slots).map((slot, slotIndex) => (
               <View key={slotIndex} style={styles.fullSlotContainer}>
                 <TimeTableSlotItem slotIndex={slotIndex} />

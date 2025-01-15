@@ -27,32 +27,31 @@ export const setFirebaseCollection_Test = async (
 };
 
 export const getFirebaseCollection_Test_TodayAndLastday = async () => {
-  const { setTimeSlot } = useTimeSlotStore();
-  const [doc, setDoc] = useState<{ [x: string]: any }[]>();
+  const { setTimeSlot } = useTimeSlotStore.getState();
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = yesterday.toISOString().split('T')[0];
+  console.log(today, yesterdayStr);
   try {
     console.log('inner getFirebaseCollection_Test_TodayAndLastday');
     const testRef = collection(DB, 'test');
 
     const q = query(
       testRef,
-      where('userId', '==', 1),
+      where('userId', '==', '1'),
       where('date', 'in', [today, yesterdayStr])
     );
 
     const querySnapShot = await getDocs(q);
     const timeSlot = querySnapShot.docs.map((doc) => ({ ...doc.data() }));
-    console.log(timeSlot);
-    //new Date().toISOString().split('T')[0]
-    // setTimeSlot(timeSlot);
-    setDoc(timeSlot);
+    // console.log(timeSlot);
+    setTimeSlot(timeSlot);
   } catch (error) {
     console.log('error', error);
   }
 };
+
 export const getFirebaseCollection_Test = async () => {
   const [doc, setDoc] = useState<{ [x: string]: any }[]>();
   try {

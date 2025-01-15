@@ -19,7 +19,7 @@ export interface checkProps {
 const ActionTrackerModal = () => {
   const [inputValue, setInputValue] = useState<string>('');
   const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
-  const { timerModalOpen, setModalClose, date, startTime, endTime } =
+  const { timerModalOpen, setModalClose, date, startTime, endTime, newDate } =
     useNumStore();
   const checkboxHandler = (str: string) => {
     setCheckboxValue(str);
@@ -39,6 +39,7 @@ const ActionTrackerModal = () => {
           action: checkboxValue,
           detail: inputValue,
           startTime: startTime,
+          newDate: newDate,
           endTime: endTime,
         },
       };

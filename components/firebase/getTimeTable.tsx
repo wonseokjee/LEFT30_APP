@@ -9,38 +9,14 @@ import {
 } from '@firebase/firestore';
 import { useState } from 'react';
 import { getFirebaseCollection_Test_TodayAndLastday } from '@/api/firebase';
+import useTimeSlotStore from '@/store/timeTableStore';
 export default function GetButton() {
   const [doc, setDoc] = useState<{ [x: string]: any }[]>();
+  const { data } = useTimeSlotStore();
   const onPress = async () => {
+    // console.log('nothing');
     try {
-      console.log('inner');
-      const testRef = collection(DB, 'test');
-      // const data = await getDocs(testRef);
-      // data.forEach((result) => console.log(result.data()));
-      // const datas = data.docs.map((doc) => ({ ...doc.data() }));
-      // console.log(datas);
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-      console.log(today, yesterdayStr);
-      const qe = query(
-        testRef,
-        where('userId', '==', '1'),
-        where('date', 'in', [today, yesterdayStr])
-      );
-
-      const querySnapShot = await getDocs(qe);
-
-      const timeSlot = querySnapShot.docs.map((doc) => ({ ...doc.data() }));
-      console.log(timeSlot);
-
-      const q = query(testRef, orderBy('date'));
-      const qData = await getDocs(q);
-      const qDatas = qData.docs.map((doc) => ({ ...doc.data() }));
-      // console.log(qDatas);
-      //new Date().toISOString().split('T')[0]
-      setDoc(qDatas);
+      await getFirebaseCollection_Test_TodayAndLastday();
     } catch (error) {
       console.log('error', error);
     }
@@ -52,10 +28,11 @@ export default function GetButton() {
         <View style={{}}>
           <Text style={{ color: 'white' }}>여기는 firestore 확인</Text>
           {doc?.map((x) => (
-            <Text key={x['event']['startTime']} style={{ color: 'white' }}>
+            <Text key={x['event']['newDate']} style={{ color: 'white' }}>
               {x['date']} {x['event']['action']}
               {x['event']['detail']}
             </Text>
+            // <Text></Text>
           ))}
         </View>
       </TouchableOpacity>

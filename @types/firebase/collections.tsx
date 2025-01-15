@@ -4,6 +4,7 @@ export type setCollection_Test = {
   event: {
     action: string | null;
     detail: string;
+    newDate: number;
     startTime: string;
     endTime: string;
   };

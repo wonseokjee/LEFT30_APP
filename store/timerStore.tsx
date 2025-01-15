@@ -3,6 +3,7 @@ interface numStore {
   timerModalOpen: boolean;
   date: string;
   endTime: string;
+  newDate: number;
   startTime: string;
   setModalOpen: () => void;
   setModalClose: () => void;
@@ -38,12 +39,14 @@ const startTime = () => {
 const useNumStore = create<numStore>((set) => ({
   timerModalOpen: false,
   date: '',
+  newDate: 0,
   endTime: '',
   startTime: '',
   setModalOpen: () =>
     set(() => ({
       timerModalOpen: true,
       date: new Date().toISOString().split('T')[0],
+      newDate: new Date().getTime(),
       endTime: endTime(),
       startTime: startTime(),
     })),
