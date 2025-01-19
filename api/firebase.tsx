@@ -9,7 +9,10 @@ import {
   query,
 } from '@firebase/firestore';
 import { useState } from 'react';
-import useTimeSlotStore from '@/store/timeTableStore';
+import {
+  useTimeSlotStore_today,
+  useTimeSlotStore_yesterday,
+} from '@/store/timeTableStore';
 
 export const setFirebaseCollection_Test = async (
   document: string,
@@ -26,21 +29,42 @@ export const setFirebaseCollection_Test = async (
   await setDoc(doc(DB, document, insID), value);
 };
 
-export const getFirebaseCollection_Test_TodayAndLastday = async () => {
-  const { setTimeSlot } = useTimeSlotStore.getState();
+export const getFirebaseCollection_Test_Today = async () => {
+  const { setTimeSlot } = useTimeSlotStore_today.getState();
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split('T')[0];
-  console.log(today, yesterdayStr);
+  console.log(today);
   try {
-    console.log('inner getFirebaseCollection_Test_TodayAndLastday');
+    console.log('inner getFirebaseCollection_Test_Today');
     const testRef = collection(DB, 'test');
 
     const q = query(
       testRef,
       where('userId', '==', '1'),
-      where('date', 'in', [today, yesterdayStr])
+      where('date', 'in', [today])
+    );
+
+    const querySnapShot = await getDocs(q);
+    const timeSlot = querySnapShot.docs.map((doc) => ({ ...doc.data() }));
+    // console.log(timeSlot);
+    setTimeSlot(timeSlot);
+  } catch (error) {
+    console.log('error', error);
+  }
+};
+export const getFirebaseCollection_Test_Yesterday = async () => {
+  const { setTimeSlot } = useTimeSlotStore_yesterday.getState();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0];
+  console.log(yesterdayStr);
+  try {
+    console.log('inner getFirebaseCollection_Test_Yesterday');
+    const testRef = collection(DB, 'test');
+
+    const q = query(
+      testRef,
+      where('userId', '==', '1'),
+      where('date', 'in', [yesterdayStr])
     );
 
     const querySnapShot = await getDocs(q);

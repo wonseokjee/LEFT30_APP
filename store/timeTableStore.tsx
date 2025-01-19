@@ -1,16 +1,29 @@
 import { setCollection_Tests } from '@/@types/firebase/collections';
 import { create } from 'zustand';
-interface timeSlotStore {
-  data: { [x: string]: any }[] | null;
-  setTimeSlot: (data: { [x: string]: any }[]) => void;
+interface useTimeSlotStore_today {
+  todaydata: { [x: string]: any }[] | null;
+  setTimeSlot: (todaydata: { [x: string]: any }[]) => void;
+}
+interface useTimeSlotStore_yesterday {
+  yesterdaydata: { [x: string]: any }[] | null;
+  setTimeSlot: (yesterdaydata: { [x: string]: any }[]) => void;
 }
 
-const useTimeSlotStore = create<timeSlotStore>((set) => ({
-  data: null,
+export const useTimeSlotStore_today = create<useTimeSlotStore_today>((set) => ({
+  todaydata: null,
   setTimeSlot: (data: { [x: string]: any }[]) =>
     set(() => ({
-      data: data,
+      todaydata: data,
     })),
 }));
+export const useTimeSlotStore_yesterday = create<useTimeSlotStore_yesterday>(
+  (set) => ({
+    yesterdaydata: null,
+    setTimeSlot: (data: { [x: string]: any }[]) =>
+      set(() => ({
+        yesterdaydata: data,
+      })),
+  })
+);
 
-export default useTimeSlotStore;
+// export default { useTimeSlotStore_today, useTimeSlotStore_yesterday };

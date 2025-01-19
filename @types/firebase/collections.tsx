@@ -11,3 +11,7 @@ export type setCollection_Test = {
 };
 
 export type setCollection_Tests = setCollection_Test[];
+
+export type firebase_type = {
+  [x: string]: any;
+};
