@@ -32,7 +32,7 @@ export const setFirebaseCollection_Test = async (
 export const getFirebaseCollection_Test_Today = async () => {
   const { setTimeSlot } = useTimeSlotStore_today.getState();
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  console.log(today);
+  // console.log(today);
   try {
     console.log('inner getFirebaseCollection_Test_Today');
     const testRef = collection(DB, 'test');
@@ -56,7 +56,7 @@ export const getFirebaseCollection_Test_Yesterday = async () => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = yesterday.toISOString().split('T')[0];
-  console.log(yesterdayStr);
+  // console.log(yesterdayStr);
   try {
     console.log('inner getFirebaseCollection_Test_Yesterday');
     const testRef = collection(DB, 'test');

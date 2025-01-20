@@ -1,3 +1,4 @@
+import { firebase_type } from '@/@types/firebase/collections';
 import React, { useState } from 'react';
 import {
   View,
@@ -8,7 +9,7 @@ import {
 } from 'react-native';
 
 type timeTableSlotProps = {
-  slotIndex: number;
+  slotdata: firebase_type | null;
 };
 
 //zstand에서 최신화된 시간표를 상태관리 할 것임.
@@ -16,12 +17,19 @@ type timeTableSlotProps = {
 // 시작시간에서 종료시간이 얼마인지에 따라 10분에 styles.absoluteSlot에서 height를 100% * N으로 주면 됨.
 //
 
-const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotIndex }) => {
+const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
+  // const duration = slotdata!['range'] * 100;
   return (
     <>
-      {slotIndex % 6 === 5 ? (
-        <TouchableOpacity style={styles.absoluteSlot}>
-          <Text>허허허</Text>
+      {slotdata ? (
+        <TouchableOpacity
+          // style={[styles.absoluteSlot, { height: `${duration}%` }]}
+          style={styles.absoluteSlot}
+        >
+          <Text>
+            {slotdata!['event']['action']}
+            {slotdata!['event']['detail']}
+          </Text>
         </TouchableOpacity>
       ) : (
         <></>
@@ -33,7 +41,7 @@ const styles = StyleSheet.create({
   absoluteSlot: {
     position: 'absolute',
     backgroundColor: 'yellow',
-    height: '200%',
+    height: '300%',
     zIndex: 101,
     borderRadius: 3,
     width: '99.5%',

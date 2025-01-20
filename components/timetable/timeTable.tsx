@@ -1,31 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { StyleSheet, ScrollView } from 'react-native';
 import TimeTableSlot from './timeTableSlot';
 import TableTimeDivision from './tableTimeDivision';
 
-type TimeSlot = {
-  startIndex: number;
-  endIndex: number;
-  activity: string;
-};
-
-type DaySchedule = {
-  day: string;
-  slots: TimeSlot[];
-};
-
-type TimetableProps = {
-  schedule: DaySchedule[];
-};
-
-const Timetable: React.FC<TimetableProps> = ({ schedule }) => {
+const Timetable = () => {
   return (
     <ScrollView contentContainerStyle={styles.horizontalContainer}>
       {/* 시간표 시간 구분 */}
       <TableTimeDivision />
 
       {/* 시간표 틀 */}
-      <TimeTableSlot schedule={schedule} />
+      <TimeTableSlot />
     </ScrollView>
   );
 };
