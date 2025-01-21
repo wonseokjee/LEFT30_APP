@@ -1,12 +1,6 @@
 import { firebase_type } from '@/@types/firebase/collections';
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import React from 'react';
+import { Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 type timeTableSlotProps = {
   slotdata: firebase_type | null;
@@ -18,13 +12,14 @@ type timeTableSlotProps = {
 //
 
 const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
-  // const duration = slotdata!['range'] * 100;
+  //slotdata가 없는 경우를 걸러줘야 한다.
+  const duration = slotdata ? slotdata!['range'] * 100 : 0;
   return (
     <>
       {slotdata ? (
         <TouchableOpacity
-          // style={[styles.absoluteSlot, { height: `${duration}%` }]}
-          style={styles.absoluteSlot}
+          style={[styles.absoluteSlot, { height: `${duration}%` }]}
+          // style={styles.absoluteSlot}
         >
           <Text>
             {slotdata!['event']['action']}
@@ -41,7 +36,7 @@ const styles = StyleSheet.create({
   absoluteSlot: {
     position: 'absolute',
     backgroundColor: 'yellow',
-    height: '300%',
+    // height: '300%',
     zIndex: 101,
     borderRadius: 3,
     width: '99.5%',

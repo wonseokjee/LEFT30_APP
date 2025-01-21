@@ -18,7 +18,7 @@ const TimeTableSlot = () => {
   const { yesterdaydata } = useTimeSlotStore_yesterday();
 
   const generateFullDaySlots = (
-    slots: firebase_type[]
+    slots: firebase_type[] | null
   ): (firebase_type | null)[] => {
     const totalSlots = 144;
     const fullDaySlots: (firebase_type | null)[] = new Array(totalSlots).fill(
@@ -26,7 +26,7 @@ const TimeTableSlot = () => {
     );
 
     //여기에서 start, end index로 변환해야함.
-    slots.forEach((slot) => {
+    slots?.forEach((slot) => {
       const startTime: string = slot.event.startTime;
       const endTime: string = slot.event.endTime;
       const calHour =
@@ -40,18 +40,20 @@ const TimeTableSlot = () => {
         Number(startTime.substring(2)) / 10;
       fullDaySlots[hourIndex - 1] = { ...slot, range: indexRange };
     });
+    // console.log(fullDaySlots);
     return fullDaySlots;
   };
 
   return (
     <>
       <View style={styles.tableContainer}>
-        {/* 이틀치 여기 map에서 돌림. */}
+        {/* 이틀치 여기 map에서 돌림.  데이터가 없다면 오류남 map에서 돌리는 방식을 수정해야 할듯 generateFullDaySlots는 map이 맞는데 굳이 여기서 map일 필요는 없음. */}
         {[yesterdaydata, todaydata]?.map((data, index) => (
           <View key={index} style={styles.dayContainer}>
+            {/* today 값이 없으면 오류 date! 사용해서  */}
             <Text style={styles.dayText}>{data![0]['date']}</Text>
             {/* 여기 아래에서 slot따져서 핻강 아이템에 들어갈것인지 말지. slot은 start에서 따지고 slotrange는 end-start로 계산해서 */}
-            {generateFullDaySlots(data!).map((slotdata, slotIndex) => (
+            {generateFullDaySlots(data).map((slotdata, slotIndex) => (
               <View key={slotIndex} style={styles.fullSlotContainer}>
                 <TimeTableSlotItem slotdata={slotdata} />
 
