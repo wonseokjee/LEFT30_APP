@@ -1,4 +1,8 @@
 import { firebase_type } from '@/@types/firebase/collections';
+import {
+  ACTION_TYPE,
+  ACTION_TYPE_COLOR,
+} from '@/@types/firebase/common/actionColorType';
 import React from 'react';
 import { Text, StyleSheet, TouchableOpacity } from 'react-native';
 
@@ -14,11 +18,22 @@ type timeTableSlotProps = {
 const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
   //slotdata가 없는 경우를 걸러줘야 한다.
   const duration = slotdata ? slotdata!['range'] * 100 : 0;
+  const colorKey = slotdata
+    ? (slotdata['event']['action'] as keyof typeof ACTION_TYPE_COLOR)
+    : null;
   return (
     <>
       {slotdata ? (
         <TouchableOpacity
-          style={[styles.absoluteSlot, { height: `${duration}%` }]}
+          style={[
+            styles.absoluteSlot,
+            {
+              height: `${duration}%`,
+              backgroundColor: colorKey
+                ? ACTION_TYPE_COLOR[colorKey]
+                : 'transparent',
+            },
+          ]}
           // style={styles.absoluteSlot}
         >
           <Text>
@@ -35,7 +50,7 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
 const styles = StyleSheet.create({
   absoluteSlot: {
     position: 'absolute',
-    backgroundColor: 'yellow',
+    // backgroundColor: 'green',
     // height: '300%',
     zIndex: 101,
     borderRadius: 3,
