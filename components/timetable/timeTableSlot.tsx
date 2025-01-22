@@ -50,11 +50,11 @@ const TimeTableSlot = () => {
         {/* 이틀치 여기 map에서 돌림.  데이터가 없다면 오류남 map에서 돌리는 방식을 수정해야 할듯 generateFullDaySlots는 map이 맞는데 굳이 여기서 map일 필요는 없음. */}
         {[yesterdaydata, todaydata]?.map((data, index) => (
           <View key={index} style={styles.dayContainer}>
-            {/* today 값이 없으면 오류 date! 사용해서  */}
-            {data ? (
-              <Text style={styles.dayText}>{data![0]['date']}</Text>
+            {/* today 값이 없으면 오류 date! 사용해서   오늘 날짜를 직접 넣어야 할 듯*/}
+            {data === todaydata ? (
+              <Text style={styles.dayText}>{new Date().getDate()}</Text>
             ) : (
-              <></>
+              <Text style={styles.dayText}>{new Date().getDate() - 1}</Text>
             )}
             {/* 여기 아래에서 slot따져서 핻강 아이템에 들어갈것인지 말지. slot은 start에서 따지고 slotrange는 end-start로 계산해서 */}
             {generateFullDaySlots(data).map((slotdata, slotIndex) => (
