@@ -52,9 +52,11 @@ const TimeTableSlot = () => {
           <View key={index} style={styles.dayContainer}>
             {/* today 값이 없으면 오류 date! 사용해서   오늘 날짜를 직접 넣어야 할 듯*/}
             {data === todaydata ? (
-              <Text style={styles.dayText}>{new Date().getDate()}</Text>
+              <Text style={styles.dayText}>{new Date().getDate()}(오늘)</Text>
             ) : (
-              <Text style={styles.dayText}>{new Date().getDate() - 1}</Text>
+              <Text style={styles.dayText}>
+                {new Date().getDate() - 1}(어제)
+              </Text>
             )}
             {/* 여기 아래에서 slot따져서 핻강 아이템에 들어갈것인지 말지. slot은 start에서 따지고 slotrange는 end-start로 계산해서 */}
             {generateFullDaySlots(data).map((slotdata, slotIndex) => (
