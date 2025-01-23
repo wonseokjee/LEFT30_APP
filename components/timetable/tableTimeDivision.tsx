@@ -57,6 +57,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     color: 'white',
     // fontSize:,
+    opacity: 0.6,
   },
 });
 export default TableTimeDivision;

@@ -52,8 +52,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     // backgroundColor: 'green',
     // height: '300%',
-    zIndex: 101,
-    borderRadius: 3,
+     zIndex: 101,
+    borderRadius: 4,
     width: '99.5%',
   },
 });

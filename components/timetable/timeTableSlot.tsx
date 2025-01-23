@@ -90,12 +90,14 @@ const styles = StyleSheet.create({
     // borderWidth: 1,
     borderLeftWidth: 1,
     borderColor: 'white',
+    opacity: 0.8,
   },
   dayText: {
     fontSize: 15,
     fontWeight: 'bold',
     textAlign: 'center',
     color: 'white',
+    opacity: 0.8,
   },
   fullSlotContainer: {
     // backgroundColor: 'blue',
@@ -115,6 +117,7 @@ const styles = StyleSheet.create({
   sixthSlotBorder: {
     borderBottomColor: 'white',
     borderBottomWidth: 1,
+    opacity: 0.6,
   },
 });
 export default TimeTableSlot;
