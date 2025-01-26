@@ -10,7 +10,7 @@ import {
 import CheckBox from './checkbox';
 import { setFirebaseCollection_Test } from '@/api/firebase';
 import { setCollection_Test } from '@/@types/firebase/collections';
-import useNumStore from '@/store/timerStore';
+import  useNumStore  from '@/store/timerStore';
 
 export interface checkProps {
   checkValue: (str: string) => void;

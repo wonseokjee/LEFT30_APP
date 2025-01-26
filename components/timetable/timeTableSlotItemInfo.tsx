@@ -15,33 +15,30 @@ import {
   ACTION_TYPE,
   ACTION_TYPE_COLOR,
 } from '@/@types/firebase/common/actionColorType';
+import useSlotItemInfoOpenStore from '@/store/timeTableSlotItemInfoStore';
 
 type TimeTableSlotProps = {
   slotdata: firebase_type | null;
 };
 
-const TimeTableSlotItem: React.FC<TimeTableSlotProps> = ({ slotdata }) => {
-  const [modalVisible, setModalVisible] = useState(false);
+const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({ slotdata }) => {
+  const { setItemInfoModalClose, isSlotItemInfoModalOpen } =
+    useSlotItemInfoOpenStore();
   const [action, setAction] = useState(slotdata?.event.action || '');
   const [detail, setDetail] = useState(slotdata?.event.detail || '');
-
-  const duration = slotdata ? slotdata!['range'] * 100 : 0;
-  const colorKey = slotdata
-    ? (slotdata['event']['action'] as keyof typeof ACTION_TYPE_COLOR)
-    : null;
 
   const handleSave = () => {
     // 저장 로직 추가 (ex. 서버와 통신 또는 상태 업데이트)
     console.log('Updated Action:', action);
     console.log('Updated Detail:', detail);
-    setModalVisible(false);
+    setItemInfoModalClose();
   };
   return (
     <Modal
       animationType='slide'
       transparent={true}
-      visible={modalVisible}
-      onRequestClose={() => setModalVisible(false)}
+      visible={isSlotItemInfoModalOpen}
+      onRequestClose={() => setItemInfoModalClose()}
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
@@ -63,7 +60,7 @@ const TimeTableSlotItem: React.FC<TimeTableSlotProps> = ({ slotdata }) => {
             <Button
               title='Cancel'
               color='red'
-              onPress={() => setModalVisible(false)}
+              onPress={() => setItemInfoModalClose()}
             />
           </View>
         </View>
@@ -108,3 +105,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 });
+
+export default TimeTableSlotItemInfo;

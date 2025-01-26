@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+
 interface numStore {
   timerModalOpen: boolean;
   date: string;
@@ -36,6 +37,7 @@ const startTime = () => {
 
 //timetable에 값이 create되어서 read해야 하면 zustand에 값이 변했다는 trigger를 넣기?
 //아니면 자동으로 zustand가 상태를 보전가능?
+
 const useNumStore = create<numStore>((set) => ({
   timerModalOpen: false,
   date: '',

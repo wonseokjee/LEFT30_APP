@@ -3,8 +3,10 @@ import {
   ACTION_TYPE,
   ACTION_TYPE_COLOR,
 } from '@/@types/firebase/common/actionColorType';
+import useSlotItemInfoOpenStore from '@/store/timeTableSlotItemInfoStore';
 import React from 'react';
 import { Text, StyleSheet, TouchableOpacity } from 'react-native';
+import TimeTableSlotItemInfo from './timeTableSlotItemInfo';
 
 type timeTableSlotProps = {
   slotdata: firebase_type | null;
@@ -17,6 +19,11 @@ type timeTableSlotProps = {
 
 const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
   //slotdata가 없는 경우를 걸러줘야 한다.
+  const {
+    setItemInfoModalOpen,
+    setItemInfoModalClose,
+    isSlotItemInfoModalOpen,
+  } = useSlotItemInfoOpenStore();
   const duration = slotdata ? slotdata!['range'] * 100 : 0;
   const colorKey = slotdata
     ? (slotdata['event']['action'] as keyof typeof ACTION_TYPE_COLOR)
@@ -34,12 +41,19 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
                 : 'transparent',
             },
           ]}
+          onPress={setItemInfoModalOpen}
           // style={styles.absoluteSlot}
         >
           <Text>
             {slotdata!['event']['action']}
             {slotdata!['event']['detail']}
           </Text>
+
+          {isSlotItemInfoModalOpen ? (
+            <TimeTableSlotItemInfo slotdata={slotdata} />
+          ) : (
+            <></>
+          )}
         </TouchableOpacity>
       ) : (
         <></>
@@ -52,7 +66,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     // backgroundColor: 'green',
     // height: '300%',
-     zIndex: 101,
+    zIndex: 101,
     borderRadius: 4,
     width: '99.5%',
   },
