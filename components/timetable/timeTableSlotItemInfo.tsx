@@ -11,16 +11,13 @@ import {
   Button,
 } from 'react-native';
 import { firebase_type } from '@/@types/firebase/collections';
-import {
-  ACTION_TYPE,
-  ACTION_TYPE_COLOR,
-} from '@/@types/firebase/common/actionColorType';
 import useSlotItemInfoOpenStore from '@/store/timeTableSlotItemInfoStore';
 
 type TimeTableSlotProps = {
   slotdata: firebase_type | null;
 };
 
+//모든 slotitem이 한번에 열리는 오류가 생긴것 같음.
 const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({ slotdata }) => {
   const { setItemInfoModalClose, isSlotItemInfoModalOpen } =
     useSlotItemInfoOpenStore();

@@ -5,7 +5,7 @@ import {
 } from '@/@types/firebase/common/actionColorType';
 import useSlotItemInfoOpenStore from '@/store/timeTableSlotItemInfoStore';
 import React from 'react';
-import { Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
 import TimeTableSlotItemInfo from './timeTableSlotItemInfo';
 
 type timeTableSlotProps = {
@@ -44,9 +44,18 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
           onPress={setItemInfoModalOpen}
           // style={styles.absoluteSlot}
         >
-          <Text>
-            {slotdata!['event']['action']}
-            {slotdata!['event']['detail']}
+          <Text
+            style={[
+              styles.slotView,
+              {
+                backgroundColor: colorKey
+                  ? ACTION_TYPE_COLOR[colorKey]
+                  : 'transparent',
+              },
+            ]}
+          ></Text>
+          <Text style={styles.slotText}>
+            {slotdata!['event']['action']}: {slotdata!['event']['detail']}
           </Text>
 
           {isSlotItemInfoModalOpen ? (
@@ -69,6 +78,16 @@ const styles = StyleSheet.create({
     zIndex: 101,
     borderRadius: 4,
     width: '99.5%',
+    flexDirection: 'row',
+    // opacity: 0.6,
+  },
+  slotView: {
+    width: '6%',
+    borderTopLeftRadius: 4,
+    borderBottomLeftRadius: 4,
+  },
+  slotText: {
+    color: 'white',
   },
 });
 export default TimeTableSlotItem;
