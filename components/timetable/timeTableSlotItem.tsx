@@ -23,7 +23,7 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
 
   const handlePress = () => {
     setIsOpen(!isOpen); // 현재 상태의 반대로 변경
-    console.log(isOpen);
+    // console.log(isOpen);
   };
 
   if (!slotdata) return null;
