@@ -11,16 +11,19 @@ import {
   Button,
 } from 'react-native';
 import { firebase_type } from '@/@types/firebase/collections';
-import useSlotItemInfoOpenStore from '@/store/timeTableSlotItemInfoStore';
 
 type TimeTableSlotProps = {
   slotdata: firebase_type | null;
+  modalOpen: boolean;
+  onClose: () => void;
 };
 
 //모든 slotitem이 한번에 열리는 오류가 생긴것 같음.
-const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({ slotdata }) => {
-  const { setItemInfoModalClose, isSlotItemInfoModalOpen } =
-    useSlotItemInfoOpenStore();
+const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
+  slotdata,
+  modalOpen,
+  onClose,
+}) => {
   const [action, setAction] = useState(slotdata?.event.action || '');
   const [detail, setDetail] = useState(slotdata?.event.detail || '');
 
@@ -28,14 +31,14 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({ slotdata }) => {
     // 저장 로직 추가 (ex. 서버와 통신 또는 상태 업데이트)
     console.log('Updated Action:', action);
     console.log('Updated Detail:', detail);
-    setItemInfoModalClose();
+    onClose()
   };
   return (
     <Modal
       animationType='slide'
       transparent={true}
-      visible={isSlotItemInfoModalOpen}
-      onRequestClose={() => setItemInfoModalClose()}
+      visible={modalOpen}
+      onRequestClose={() => onClose()}
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
@@ -54,11 +57,7 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({ slotdata }) => {
           />
           <View style={styles.buttonContainer}>
             <Button title='Save' onPress={handleSave} />
-            <Button
-              title='Cancel'
-              color='red'
-              onPress={() => setItemInfoModalClose()}
-            />
+            <Button title='Cancel' color='red' onPress={() => onClose()} />
           </View>
         </View>
       </View>

@@ -3,8 +3,7 @@ import {
   ACTION_TYPE,
   ACTION_TYPE_COLOR,
 } from '@/@types/firebase/common/actionColorType';
-import useSlotItemInfoOpenStore from '@/store/timeTableSlotItemInfoStore';
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
 import TimeTableSlotItemInfo from './timeTableSlotItemInfo';
 
@@ -19,11 +18,16 @@ type timeTableSlotProps = {
 
 const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
   //slotdata가 없는 경우를 걸러줘야 한다.
-  const {
-    setItemInfoModalOpen,
-    setItemInfoModalClose,
-    isSlotItemInfoModalOpen,
-  } = useSlotItemInfoOpenStore();
+
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handlePress = () => {
+    setIsOpen(!isOpen); // 현재 상태의 반대로 변경
+    console.log(isOpen);
+  };
+
+  if (!slotdata) return null;
+
   const duration = slotdata ? slotdata!['range'] * 100 : 0;
   const colorKey = slotdata
     ? (slotdata['event']['action'] as keyof typeof ACTION_TYPE_COLOR)
@@ -41,7 +45,7 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
                 : 'transparent',
             },
           ]}
-          onPress={setItemInfoModalOpen}
+          onPress={handlePress}
           // style={styles.absoluteSlot}
         >
           <Text
@@ -58,8 +62,12 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
             {slotdata!['event']['action']}: {slotdata!['event']['detail']}
           </Text>
 
-          {isSlotItemInfoModalOpen ? (
-            <TimeTableSlotItemInfo slotdata={slotdata} />
+          {isOpen ? (
+            <TimeTableSlotItemInfo
+              slotdata={slotdata}
+              modalOpen={isOpen}
+              onClose={() => setIsOpen(!isOpen)}
+            />
           ) : (
             <></>
           )}
