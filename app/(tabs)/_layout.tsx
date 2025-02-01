@@ -39,6 +39,7 @@ export default function TabLayout() {
             <Entypo size={28} name='check' color={color} />
           ),
         }}
+      
       />
     </Tabs>
   );

@@ -1,3 +1,4 @@
+import GetButton from '@/components/firebase/getTimeTable';
 import Timer from '@/components/timer/timer';
 // import ModalButton from '@/hooks/alarm/modal';
 import useNumStore from '@/store/timerStore';
@@ -10,6 +11,7 @@ export default function Index() {
       <Timer />
       {/* <ModalButton /> */}
       <Button title='Modal 열기' onPress={() => setModalOpen()} color='grey' />
+        <GetButton />
     </View>
   );
 }
