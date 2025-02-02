@@ -13,11 +13,11 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name='calendar'
+        name='todo'
         options={{
-          title: 'calendar',
+          title: 'todo',
           tabBarIcon: ({ color }) => (
-            <Entypo size={28} name='pie-chart' color={color} />
+            <Entypo size={28} name='check' color={color} />
           ),
         }}
       />
@@ -36,10 +36,9 @@ export default function TabLayout() {
         options={{
           title: 'plan',
           tabBarIcon: ({ color }) => (
-            <Entypo size={28} name='check' color={color} />
+            <Entypo size={28} name='pie-chart' color={color} />
           ),
         }}
-      
       />
     </Tabs>
   );
