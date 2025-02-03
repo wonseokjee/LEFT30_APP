@@ -14,6 +14,7 @@ export default function RootLayout() {
           }}
         />
       </Stack>
+      {/* 어떤 화면에 있던지 trackerModal이 보일 수 있도록 layout에 위치함. */}
       <ActionTrackerModal />
       <StatusBar style='light' />
     </>

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { CheckBox } from 'react-native-elements';
 
-export default function Calendar() {
+export default function Todo() {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [task, setTask] = useState<string>('');
@@ -78,7 +78,6 @@ export default function Calendar() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>To-Do TimeTable</Text>
       <FlatList
         data={Object.entries(tasks)}
         keyExtractor={(item) => item[0]}
@@ -115,7 +114,7 @@ export default function Calendar() {
       <Modal visible={modalVisible} animationType='slide' transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>할 일 추가</Text>
+            {/* 시간을 설정하는 부분을 따로 빼기 */}
             <TextInput
               style={styles.input}
               placeholder='시간을 입력하세요 (예: 12:00)'
@@ -123,6 +122,7 @@ export default function Calendar() {
               value={selectedTime || ''}
               onChangeText={setSelectedTime}
             />
+            {/* detail 적을수 있게게 */}
             <TextInput
               style={styles.input}
               placeholder='할 일을 입력하세요'
@@ -146,7 +146,7 @@ export default function Calendar() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#222', padding: 20 },
+  container: { flex: 1, backgroundColor: 'black', padding: 20 },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
