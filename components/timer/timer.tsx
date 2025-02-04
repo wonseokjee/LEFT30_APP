@@ -27,9 +27,9 @@ const styles = StyleSheet.create({
   timerContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
+  }, 
   timer: {
-    color: 'white',
+    color: '#c2c2c2',
     fontSize: 110,
   },
   clock: { color: 'white' },
