@@ -37,7 +37,7 @@ const Stack = createStackNavigator();
 
 export default function TabLayout() {
   return (
-    // <NavigationContainer>
+    // <NavigationContainer> UI 디자인중중
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: 'white',
