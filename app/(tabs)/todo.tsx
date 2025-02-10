@@ -10,119 +10,105 @@ import {
   Button,
 } from 'react-native';
 import { CheckBox } from 'react-native-elements';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function Todo() {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [task, setTask] = useState<string>('');
-  const [tasks, setTasks] = useState<Record<string, string[]>>({});
-  const [checkedItems, setCheckedItems] = useState<Record<string, boolean[]>>(
-    {}
+  const [tasks, setTasks] = useState<string[]>([]);
+  const [checkedItems, setCheckedItems] = useState<boolean[]>([]);
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(
+    null
   );
-
-  const handleSlotPress = (time: string) => {
-    if (!time) return;
-    setSelectedTime(time);
-    setModalVisible(true);
-  };
 
   const addTask = () => {
     if (task.trim() === '') return;
-    setTasks((prevTasks) => ({
-      ...prevTasks,
-      [selectedTime as string]: [
-        ...(prevTasks[selectedTime as string] || []),
-        task,
-      ],
-    }));
-    setCheckedItems((prevCheckedItems) => ({
-      ...prevCheckedItems,
-      [selectedTime as string]: [
-        ...(prevCheckedItems[selectedTime as string] || []),
-        false,
-      ],
-    }));
+    setTasks((prevTasks) => [...prevTasks, task]);
+    setCheckedItems((prevCheckedItems) => [...prevCheckedItems, false]);
     setTask('');
     setModalVisible(false);
   };
 
-  const removeTask = (time: string, index: number) => {
-    setTasks((prevTasks: any) => {
-      const updatedTasks = [...prevTasks[time]];
-      updatedTasks.splice(index, 1);
-      const newTasks = updatedTasks.length
-        ? { ...prevTasks, [time]: updatedTasks }
-        : { ...prevTasks, [time]: undefined }; // undefined로 설정하여 시간 슬롯 제거
-      if (!newTasks[time]) {
-        delete newTasks[time]; // 시간 슬롯을 완전히 제거
-        setSelectedTime(null); // 모든 작업이 삭제되면 selectedTime 초기화
-      }
-      return newTasks;
-    });
-    setCheckedItems((prevCheckedItems: any) => {
-      const updatedCheckedItems = [...prevCheckedItems[time]];
-      updatedCheckedItems.splice(index, 1);
-      return updatedCheckedItems.length
-        ? { ...prevCheckedItems, [time]: updatedCheckedItems }
-        : { ...prevCheckedItems, [time]: undefined }; // undefined로 설정하여 체크박스 상태 제거
+  const toggleCheckbox = (index: number) => {
+    setCheckedItems((prevCheckedItems) => {
+      const updatedCheckedItems = [...prevCheckedItems];
+      updatedCheckedItems[index] = !updatedCheckedItems[index];
+      return updatedCheckedItems;
     });
   };
 
-  const toggleCheckbox = (time: string, index: number) => {
-    setCheckedItems((prevCheckedItems) => {
-      const updatedCheckedItems = [...prevCheckedItems[time]];
-      updatedCheckedItems[index] = !updatedCheckedItems[index];
-      return { ...prevCheckedItems, [time]: updatedCheckedItems };
-    });
+  const getFormattedDate = () => {
+    const date = new Date();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekDay = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+    return `${month}월 ${day}일 ${weekDay}요일`;
   };
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerContainer}>
+        <Text style={styles.header}>Today</Text>
+        <Text style={styles.date}>{getFormattedDate()}</Text>
+      </View>
       <FlatList
-        data={Object.entries(tasks)}
-        keyExtractor={(item) => item[0]}
-        renderItem={({ item }) => (
-          <View style={styles.taskContainer}>
-            <Text style={styles.taskTime}>{item[0]}</Text>
-            {item[1] &&
-              item[1].map((t, index) => (
-                <View key={index} style={styles.taskItem}>
-                  <CheckBox
-                    checked={
-                      checkedItems[item[0]]
-                        ? checkedItems[item[0]][index]
-                        : false
-                    }
-                    onPress={() => {
-                      toggleCheckbox(item[0], index);
-                      removeTask(item[0], index);
-                    }}
-                    containerStyle={styles.checkBoxContainer}
-                  />
-                  <Text style={styles.taskText}>{t}</Text>
-                </View>
-              ))}
+        data={tasks}
+        keyExtractor={(item, index) => index.toString()}
+        renderItem={({ item, index }) => (
+          <View>
+            <TouchableOpacity
+              style={styles.taskContainer}
+              onLongPress={() => setSelectedTaskIndex(index)}
+            >
+              <View style={styles.taskItem}>
+                <CheckBox
+                  checked={checkedItems[index]}
+                  onPress={() => toggleCheckbox(index)}
+                  containerStyle={styles.checkBoxContainer}
+                  checkedColor='#fff' // 체크된 항목의 색상 변경
+                />
+                <Text
+                  style={[
+                    styles.taskText,
+                    checkedItems[index] && styles.taskTextChecked,
+                  ]}
+                  numberOfLines={1}
+                  ellipsizeMode='tail'
+                >
+                  {item}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            {selectedTaskIndex === index && (
+              <View style={styles.buttonGroup}>
+                <TouchableOpacity
+                  onPress={() => {
+                    /* Edit task logic */
+                  }}
+                >
+                  <Icon name='edit' size={24} color='black' />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    /* Delete task logic */
+                  }}
+                >
+                  <Icon name='delete' size={24} color='black' />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         )}
       />
       <TouchableOpacity
         style={styles.addButton}
-        onPress={() => handleSlotPress('12:00')}
+        onPress={() => setModalVisible(true)}
       >
         <Text style={styles.addButtonText}>+</Text>
       </TouchableOpacity>
       <Modal visible={modalVisible} animationType='slide' transparent>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* 시간을 설정하는 부분을 따로 빼기 */}
-            <TextInput
-              style={styles.input}
-              placeholder='시간을 입력하세요 (예: 12:00)'
-              placeholderTextColor='#888'
-              value={selectedTime || ''}
-              onChangeText={setSelectedTime}
-            />
-            {/* detail 적을수 있게게 */}
             <TextInput
               style={styles.input}
               placeholder='할 일을 입력하세요'
@@ -147,30 +133,35 @@ export default function Todo() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'black', padding: 20 },
-  header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
-    textAlign: 'center',
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 10,
+  },
+  header: {
+    fontSize: 20,
+    color: 'white',
+  },
+  date: {
+    fontSize: 16,
+    color: 'white',
   },
   addButton: {
     position: 'absolute',
     bottom: 30,
     right: 30,
-    backgroundColor: '#4682B4', // SteelBlue 색상으로 변경
-    width: 60,
-    height: 60,
+    backgroundColor: '#0048FF', // Blue 색상으로 변경
+    width: 50,
+    height: 50,
     borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', // 수직 가운데 정렬
+    alignItems: 'center', // 수평 가운데 정렬
   },
   addButtonText: {
     color: 'white',
     fontSize: 30,
-    lineHeight: 60, // 버튼의 높이와 동일하게 설정
     textAlign: 'center',
-    textAlignVertical: 'center', // 텍스트를 수직으로 가운데 정렬
   },
   taskTime: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   taskItem: {
@@ -178,15 +169,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 5,
     flexWrap: 'wrap', // 텍스트가 화면을 벗어나지 않도록 함
+    flex: 1, // 추가된 부분
   },
   taskText: {
     color: '#fff',
     flexShrink: 1, // 텍스트가 화면을 벗어나지 않도록 함
     textAlign: 'left', // 텍스트를 왼쪽으로 정렬
+    flex: 1, // 추가된 부분
+  },
+  taskTextChecked: {
+    textDecorationLine: 'line-through', // 가운데 줄 긋기
+    color: '#888', // 체크된 항목의 텍스트 색상 변경
   },
   taskContainer: {
-    backgroundColor: '#333',
-    padding: 10,
+    backgroundColor: '#333', //여기가 todo list의 배경색
+    //                                 padding: 10,
     borderRadius: 5,
     marginBottom: 10,
   },
@@ -196,7 +193,19 @@ const styles = StyleSheet.create({
     padding: 0,
     marginRight: 10, // 체크박스와 텍스트 사이에 여백 추가
   },
-  removeText: { color: 'red', fontSize: 18 },
+  buttonGroup: {
+    position: 'absolute', // 추가된 부분
+    bottom: 0, // 추가된 부분
+    left: '65%', // 추가된 부분
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    width: '30%', // 추가된 부분
+    height: '65%', // 추가된 부분
+    backgroundColor: 'white', // 추가된 부분
+    zIndex: 1, // 추가된 부분
+    borderRadius: 5, // 추가된 부분
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
