@@ -5,7 +5,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import { Tabs, useNavigation } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import TodoScreen from './todo';
-import TodoDetailScreen from '@/components/todo/todoDetail';
+import TodoDetailScreen from '@/components/todo/todoItem';
 
 const Stack = createStackNavigator();
 
