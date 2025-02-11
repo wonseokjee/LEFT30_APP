@@ -4,13 +4,12 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  Modal,
-  TextInput,
-  Button,
   TouchableWithoutFeedback,
   StyleSheet,
 } from 'react-native';
 import TaskItem from '../../components/todo/todoItem';
+import AddTaskModal from '../../components/todo/AddTaskModal';
+import EditTaskModal from '../../components/todo/EditTaskModal';
 
 export default function Todo() {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
@@ -88,48 +87,20 @@ export default function Todo() {
         >
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
-        <Modal visible={modalVisible} animationType='slide' transparent>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <TextInput
-                style={styles.input}
-                placeholder='할 일을 입력하세요'
-                placeholderTextColor='#888'
-                value={task}
-                onChangeText={setTask}
-              />
-              <View style={styles.buttonContainer}>
-                <Button title='추가하기' onPress={addTask} />
-                <Button
-                  title='취소'
-                  color='red'
-                  onPress={() => setModalVisible(false)}
-                />
-              </View>
-            </View>
-          </View>
-        </Modal>
-        <Modal visible={editModalVisible} animationType='slide' transparent>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <TextInput
-                style={styles.input}
-                placeholder='할 일을 수정하세요'
-                placeholderTextColor='#888'
-                value={editTask}
-                onChangeText={setEditTask}
-              />
-              <View style={styles.buttonContainer}>
-                <Button title='수정하기' onPress={editTaskHandler} />
-                <Button
-                  title='취소'
-                  color='red'
-                  onPress={() => setEditModalVisible(false)}
-                />
-              </View>
-            </View>
-          </View>
-        </Modal>
+        <AddTaskModal
+          modalVisible={modalVisible}
+          setModalVisible={setModalVisible}
+          task={task}
+          setTask={setTask}
+          addTask={addTask}
+        />
+        <EditTaskModal
+          editModalVisible={editModalVisible}
+          setEditModalVisible={setEditModalVisible}
+          editTask={editTask}
+          setEditTask={setEditTask}
+          editTaskHandler={editTaskHandler}
+        />
       </View>
     </TouchableWithoutFeedback>
   );
@@ -166,31 +137,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 30,
     textAlign: 'center',
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.8)',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#333',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-  },
-  input: {
-    width: '100%',
-    backgroundColor: '#555',
-    color: '#fff',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
   },
 });

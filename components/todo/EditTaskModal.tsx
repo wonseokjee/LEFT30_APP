@@ -1,0 +1,73 @@
+import React from 'react';
+import { View, Modal, TextInput, Button, StyleSheet } from 'react-native';
+
+interface EditTaskModalProps {
+  editModalVisible: boolean;
+  setEditModalVisible: (visible: boolean) => void;
+  editTask: string;
+  setEditTask: (task: string) => void;
+  editTaskHandler: () => void;
+}
+
+const EditTaskModal: React.FC<EditTaskModalProps> = ({
+  editModalVisible,
+  setEditModalVisible,
+  editTask,
+  setEditTask,
+  editTaskHandler,
+}) => {
+  return (
+    <Modal visible={editModalVisible} animationType='slide' transparent>
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <TextInput
+            style={styles.input}
+            placeholder='할 일을 수정하세요'
+            placeholderTextColor='#888'
+            value={editTask}
+            onChangeText={setEditTask}
+          />
+          <View style={styles.buttonContainer}>
+            <Button title='수정하기' onPress={editTaskHandler} />
+            <Button
+              title='취소'
+              color='red'
+              onPress={() => setEditModalVisible(false)}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const styles = StyleSheet.create({
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.8)',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: '#333',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+  },
+  input: {
+    width: '100%',
+    backgroundColor: '#555',
+    color: '#fff',
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+});
+
+export default EditTaskModal;
