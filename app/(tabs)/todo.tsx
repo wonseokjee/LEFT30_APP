@@ -8,13 +8,16 @@ import {
   Modal,
   TextInput,
   Button,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { CheckBox } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function Todo() {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const [task, setTask] = useState<string>('');
+  const [editTask, setEditTask] = useState<string>('');
   const [tasks, setTasks] = useState<string[]>([]);
   const [checkedItems, setCheckedItems] = useState<boolean[]>([]);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(
@@ -27,6 +30,18 @@ export default function Todo() {
     setCheckedItems((prevCheckedItems) => [...prevCheckedItems, false]);
     setTask('');
     setModalVisible(false);
+  };
+
+  const editTaskHandler = () => {
+    if (editTask.trim() === '' || selectedTaskIndex === null) return;
+    setTasks((prevTasks) => {
+      const updatedTasks = [...prevTasks];
+      updatedTasks[selectedTaskIndex] = editTask;
+      return updatedTasks;
+    });
+    setEditTask('');
+    setEditModalVisible(false);
+    setSelectedTaskIndex(null);
   };
 
   const toggleCheckbox = (index: number) => {
@@ -46,88 +61,112 @@ export default function Todo() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.header}>Today</Text>
-        <Text style={styles.date}>{getFormattedDate()}</Text>
-      </View>
-      <FlatList
-        data={tasks}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item, index }) => (
-          <View>
-            <TouchableOpacity
-              style={styles.taskContainer}
-              onLongPress={() => setSelectedTaskIndex(index)}
-            >
-              <View style={styles.taskItem}>
-                <CheckBox
-                  checked={checkedItems[index]}
-                  onPress={() => toggleCheckbox(index)}
-                  containerStyle={styles.checkBoxContainer}
-                  checkedColor='#fff' // 체크된 항목의 색상 변경
-                />
-                <Text
-                  style={[
-                    styles.taskText,
-                    checkedItems[index] && styles.taskTextChecked,
-                  ]}
-                  numberOfLines={1}
-                  ellipsizeMode='tail'
-                >
-                  {item}
-                </Text>
-              </View>
-            </TouchableOpacity>
-            {selectedTaskIndex === index && (
-              <View style={styles.buttonGroup}>
-                <TouchableOpacity
-                  onPress={() => {
-                    /* Edit task logic */
-                  }}
-                >
-                  <Icon name='edit' size={24} color='black' />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    /* Delete task logic */
-                  }}
-                >
-                  <Icon name='delete' size={24} color='black' />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
-      />
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.addButtonText}>+</Text>
-      </TouchableOpacity>
-      <Modal visible={modalVisible} animationType='slide' transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TextInput
-              style={styles.input}
-              placeholder='할 일을 입력하세요'
-              placeholderTextColor='#888'
-              value={task}
-              onChangeText={setTask}
-            />
-            <View style={styles.buttonContainer}>
-              <Button title='추가하기' onPress={addTask} />
-              <Button
-                title='취소'
-                color='red'
-                onPress={() => setModalVisible(false)}
+    <TouchableWithoutFeedback onPress={() => setSelectedTaskIndex(null)}>
+      <View style={styles.container}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.header}>Today</Text>
+          <Text style={styles.date}>{getFormattedDate()}</Text>
+        </View>
+        <FlatList
+          data={tasks}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item, index }) => (
+            <View>
+              <TouchableOpacity
+                style={styles.taskContainer}
+                onLongPress={() => setSelectedTaskIndex(index)}
+              >
+                <View style={styles.taskItem}>
+                  <CheckBox
+                    checked={checkedItems[index]}
+                    onPress={() => toggleCheckbox(index)}
+                    containerStyle={styles.checkBoxContainer}
+                    checkedColor='#fff' // 체크된 항목의 색상 변경
+                  />
+                  <Text
+                    style={[
+                      styles.taskText,
+                      checkedItems[index] && styles.taskTextChecked,
+                    ]}
+                    numberOfLines={1}
+                    ellipsizeMode='tail'
+                  >
+                    {item}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              {selectedTaskIndex === index && (
+                <View style={styles.buttonGroup}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditTask(item);
+                      setEditModalVisible(true);
+                    }}
+                  >
+                    <Icon name='edit' size={24} color='black' />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      /* Delete task logic */
+                    }}
+                  >
+                    <Icon name='delete' size={24} color='black' />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+        />
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setModalVisible(true)}
+        >
+          <Text style={styles.addButtonText}>+</Text>
+        </TouchableOpacity>
+        <Modal visible={modalVisible} animationType='slide' transparent>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <TextInput
+                style={styles.input}
+                placeholder='할 일을 입력하세요'
+                placeholderTextColor='#888'
+                value={task}
+                onChangeText={setTask}
               />
+              <View style={styles.buttonContainer}>
+                <Button title='추가하기' onPress={addTask} />
+                <Button
+                  title='취소'
+                  color='red'
+                  onPress={() => setModalVisible(false)}
+                />
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+        <Modal visible={editModalVisible} animationType='slide' transparent>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <TextInput
+                style={styles.input}
+                placeholder='할 일을 수정하세요'
+                placeholderTextColor='#888'
+                value={editTask}
+                onChangeText={setEditTask}
+              />
+              <View style={styles.buttonContainer}>
+                <Button title='수정하기' onPress={editTaskHandler} />
+                <Button
+                  title='취소'
+                  color='red'
+                  onPress={() => setEditModalVisible(false)}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -182,26 +221,20 @@ const styles = StyleSheet.create({
     color: '#888', // 체크된 항목의 텍스트 색상 변경
   },
   taskContainer: {
-    backgroundColor: '#333', //여기가 todo list의 배경색
-    //                                 padding: 10,
     borderRadius: 5,
-    marginBottom: 10,
   },
   checkBoxContainer: {
     backgroundColor: 'transparent',
-    borderWidth: 0,
-    padding: 0,
-    marginRight: 10, // 체크박스와 텍스트 사이에 여백 추가
   },
   buttonGroup: {
     position: 'absolute', // 추가된 부분
-    bottom: 0, // 추가된 부분
+    bottom: 10, // 추가된 부분
     left: '65%', // 추가된 부분
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     width: '30%', // 추가된 부분
-    height: '65%', // 추가된 부분
+    height: '45%', // 추가된 부분
     backgroundColor: 'white', // 추가된 부분
     zIndex: 1, // 추가된 부분
     borderRadius: 5, // 추가된 부분
