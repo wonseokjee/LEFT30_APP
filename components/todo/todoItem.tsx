@@ -2,9 +2,10 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CheckBox } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { deleteTaskFromFirebase } from '../../api/firebase';
 
 interface TaskItemProps {
-  item: string;
+  item: { id: string; task: string };
   index: number;
   checked: boolean;
   onToggleCheckbox: () => void;
@@ -12,6 +13,7 @@ interface TaskItemProps {
   selectedTaskIndex: number | null;
   setEditTask: (task: string) => void;
   setEditModalVisible: (visible: boolean) => void;
+  deleteTask: (index: number) => void;
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({
@@ -23,7 +25,13 @@ const TaskItem: React.FC<TaskItemProps> = ({
   selectedTaskIndex,
   setEditTask,
   setEditModalVisible,
+  deleteTask,
 }) => {
+  const handleDeleteTask = async () => {
+    await deleteTaskFromFirebase(item.id);
+    deleteTask(index);
+  };
+
   return (
     <View>
       <TouchableOpacity style={styles.taskContainer} onLongPress={onLongPress}>
@@ -39,7 +47,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
             numberOfLines={1}
             ellipsizeMode='tail'
           >
-            {item}
+            {item.task}
           </Text>
         </View>
       </TouchableOpacity>
@@ -47,17 +55,13 @@ const TaskItem: React.FC<TaskItemProps> = ({
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             onPress={() => {
-              setEditTask(item);
+              setEditTask(item.task);
               setEditModalVisible(true);
             }}
           >
             <Icon name='edit' size={24} color='black' />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              /* Delete task logic */
-            }}
-          >
+          <TouchableOpacity onPress={handleDeleteTask}>
             <Icon name='delete' size={24} color='black' />
           </TouchableOpacity>
         </View>
