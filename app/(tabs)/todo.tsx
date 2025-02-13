@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   FlatList,
   TouchableOpacity,
   TouchableWithoutFeedback,
   StyleSheet,
+  Text,
 } from 'react-native';
 import TaskItem from '../../components/todo/todoItem';
 import AddTaskModal from '../../components/todo/AddTaskModal';
 import EditTaskModal from '../../components/todo/EditTaskModal';
+import TodoFormattedDate from '../../components/todo/todoFormattedDate';
 import {
   addTaskToFirebase,
   updateTaskInFirebase,
@@ -76,21 +77,10 @@ export default function Todo() {
     });
   };
 
-  const getFormattedDate = () => {
-    const date = new Date();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const weekDay = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
-    return `${month}월 ${day}일 ${weekDay}요일`;
-  };
-
   return (
     <TouchableWithoutFeedback onPress={() => setSelectedTaskIndex(null)}>
       <View style={styles.container}>
-        <View style={styles.headerContainer}>
-          <Text style={styles.header}>Today</Text>
-          <Text style={styles.date}>{getFormattedDate()}</Text>
-        </View>
+        <TodoFormattedDate />
         <FlatList
           data={tasks}
           keyExtractor={(item) => item.id}
@@ -135,20 +125,6 @@ export default function Todo() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'black', padding: 20 },
-  headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  header: {
-    fontSize: 20,
-    color: 'white',
-  },
-  date: {
-    fontSize: 16,
-    color: 'white',
-  },
   addButton: {
     position: 'absolute',
     bottom: 30,
