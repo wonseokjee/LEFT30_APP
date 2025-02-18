@@ -41,7 +41,7 @@ const TodoContainer = () => {
     const newTask = { id: Date.now().toString(), task };
     setTasks((prevTasks) => [...prevTasks, newTask]);
     setCheckedItems((prevCheckedItems) => [...prevCheckedItems, false]);
-    await addTaskToFirebase(task); // Firebase에 할 일 추가
+    await addTaskToFirebase(task); // Firebase에 할 일 추가..
     setTask('');
     setModalVisible(false);
   };
