@@ -81,8 +81,8 @@ const styles = StyleSheet.create({
   tableContainer: {
     flexDirection: 'row',
     flex: 7,
-    // borderWidth: 1,
-    // borderColor: 'yellow',
+    borderWidth: 1,
+    borderColor: 'yellow',
     height: '136%',
   },
   dayContainer: {

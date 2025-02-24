@@ -60,6 +60,8 @@ const TableTimeDivision: React.FC = () => {
       <View
         style={styles.timeIndexContainer}
         onLayout={(event) =>
+          //높이를 받아와서 containerHeight에 넣어줌.
+          //높이가 달라서 현재시간 bar가 문제가 생김
           setContainerHeight(event.nativeEvent.layout.height)
         }
       >
@@ -86,7 +88,7 @@ const styles = StyleSheet.create({
   timeIndexContainer: {
     flex: 1,
     borderWidth: 1,
-    // borderColor: 'blue',
+    borderColor: 'blue',
     // height: '110%',
   },
   // timelocalarea: {
@@ -95,15 +97,15 @@ const styles = StyleSheet.create({
   //   height: '1%',
   // },
   timelocalareaBottom: {
-    // borderWidth: 1,
-    // borderColor: 'blue',
+    borderWidth: 1,
+    borderColor: 'blue',
     height: '1.7%',
   },
   timeContainer: {
     flex: 1,
     justifyContent: 'flex-start',
     borderWidth: 1,
-    // borderColor: 'red',
+    borderColor: 'red',
     // height: '3%',
   },
   timeIndexText: {
