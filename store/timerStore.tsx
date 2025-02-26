@@ -11,25 +11,22 @@ interface numStore {
 }
 
 const endTime = () => {
-  const endHour = new Date().getHours();
-  const endMinuate = new Date().getMinutes();
-  let endTimeString = '';
-  if (endMinuate === 0) {
-    endTimeString = `${endHour}00`;
-    return endTimeString;
-  }
-  return `${endHour}${endMinuate}`;
+  const now = new Date();
+  const endHour = now.getHours();
+  const endMinute = now.getMinutes();
+  const endHourString = endHour.toString().padStart(2, '0');
+  const endMinuteString = endMinute.toString().padStart(2, '0');
+  return `${endHourString}${endMinuteString}`;
 };
 
 const startTime = () => {
-  const endHour = new Date().getHours();
-  const endMinuate = new Date().getMinutes();
-  let startTimeString = '';
-  if (endMinuate === 0) {
-    startTimeString = `${endHour - 1}30`;
-    return startTimeString;
-  }
-  return `${endHour}00`;
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - 30);
+  const startHour = now.getHours();
+  const startMinute = now.getMinutes();
+  const startHourString = startHour.toString().padStart(2, '0');
+  const startMinuteString = startMinute.toString().padStart(2, '0');
+  return `${startHourString}${startMinuteString}`;
 };
 
 //여기서는 modalOpen 될때 시간 생성. 나중에 시간 자유롭게 추가/수정하려면 date가 여기서 고정되면 안됨.
