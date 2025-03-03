@@ -8,24 +8,18 @@ import {
   useTimeSlotStore_today,
   useTimeSlotStore_yesterday,
 } from '@/store/timeTableStore';
+
 export default function GetButton() {
   const { todaydata } = useTimeSlotStore_today();
-
   const { yesterdaydata } = useTimeSlotStore_yesterday.getState();
 
   const onPress = async () => {
-    // console.log('nothing');
     try {
       await getFirebaseCollection_Test_Today();
       await getFirebaseCollection_Test_Yesterday();
     } catch (error) {
       console.log('error', error);
     }
-    // console.log([yesterdaydata, todaydata]);
-    // [yesterdaydata, todaydata].map((x, idx) => {
-    //   console.log(x);
-    // });
-    // console.log(yesterdaydata![0]);
   };
 
   return (
@@ -38,7 +32,6 @@ export default function GetButton() {
               {x['date']} {x['event']['action']}
               {x['event']['detail']}
             </Text>
-            // <Text></Text>
           ))}
         </View>
       </TouchableOpacity>
