@@ -3,6 +3,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
+import { TimetableModule } from './timetable/timetable.module';
+import { TodoModule } from './todo/todo.module';
+import { PushModule } from './push/push.module';
 
 @Module({
   imports: [
@@ -19,6 +22,9 @@ import { UserModule } from './user/user.module';
       synchronize: true, // set to false in production
     }),
     UserModule,
+    TimetableModule,
+    TodoModule,
+    PushModule,
   ],
   controllers: [AppController],
   providers: [AppService],
