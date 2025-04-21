@@ -6,14 +6,14 @@ import {
   CreateDateColumn,
   ManyToOne,
 } from 'typeorm';
-import { User } from 'src/Entity/user.entity';
+import { User } from 'src/entity/user.entity';
 
 @Entity('timetable_entries')
 export class TimetableEntry {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, (user) => user.timetableEntries)
+  @ManyToOne(() => User, user => user.timetableEntries)
   user: User;
 
   @Column({ type: 'timestamp' })

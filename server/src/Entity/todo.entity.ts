@@ -7,14 +7,14 @@ import {
   UpdateDateColumn,
   ManyToOne,
 } from 'typeorm';
-import { User } from 'src/Entity/user.entity';
+import { User } from 'src/entity/user.entity';
 
 @Entity('todos')
 export class Todo {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, (user) => user.todos)
+  @ManyToOne(() => User, user => user.todos)
   user: User;
 
   @Column()

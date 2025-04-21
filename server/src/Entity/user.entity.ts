@@ -7,9 +7,9 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { TimetableEntry } from 'src/Entity/timetableEntry.entity';
-import { Todo } from 'src/Entity/todo.entity';
-import { PushToken } from 'src/Entity/pushToken.entity';
+import { TimetableEntry } from 'src/entity/timetableEntry.entity';
+import { Todo } from 'src/entity/todo.entity';
+import { PushToken } from 'src/entity/pushToken.entity';
 
 @Entity('users')
 export class User {
@@ -34,12 +34,12 @@ export class User {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @OneToMany(() => TimetableEntry, (entry) => entry.user)
+  @OneToMany(() => TimetableEntry, entry => entry.user)
   timetableEntries: TimetableEntry[];
 
-  @OneToMany(() => Todo, (todo) => todo.user)
+  @OneToMany(() => Todo, todo => todo.user)
   todos: Todo[];
 
-  @OneToMany(() => PushToken, (token) => token.user)
+  @OneToMany(() => PushToken, token => token.user)
   pushTokens: PushToken[];
 }
