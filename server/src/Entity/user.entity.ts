@@ -7,9 +7,9 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { TimetableEntry } from 'src/timetable/timetableEntry.entity';
-import { Todo } from 'src/todo/todo.entity';
-import { PushToken } from 'src/push/pushToken.entity';
+import { TimetableEntry } from 'src/Entity/timetableEntry.entity';
+import { Todo } from 'src/Entity/todo.entity';
+import { PushToken } from 'src/Entity/pushToken.entity';
 
 @Entity('users')
 export class User {

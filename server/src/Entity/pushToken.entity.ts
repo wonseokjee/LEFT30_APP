@@ -6,7 +6,7 @@ import {
   CreateDateColumn,
   ManyToOne,
 } from 'typeorm';
-import { User } from 'src/user/user.entity';
+import { User } from 'src/Entity/user.entity';
 
 @Entity('push_tokens')
 export class PushToken {
