@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { User } from 'src/entity/user.entity';
 
-@Entity('push_tokens')
+@Entity('push_token')
 export class PushToken {
   @PrimaryGeneratedColumn('uuid')
   id: string;

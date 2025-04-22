@@ -11,7 +11,7 @@ import { TimetableEntry } from 'src/entity/timetableEntry.entity';
 import { Todo } from 'src/entity/todo.entity';
 import { PushToken } from 'src/entity/pushToken.entity';
 
-@Entity('users')
+@Entity('user')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
