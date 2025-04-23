@@ -33,13 +33,12 @@ export class TimetableEntry {
   @Column({ type: 'text' })
   action: string; // 수면, 휴식, 운동, 업무, 공부, 식사, 자기개발 등
 
-  @Column({ type: 'varchar', length: 7, default: '#FFFFFF' }) // 색상 정보 추가
+  @Column({ type: 'varchar', length: 7, default: '#FFFFFF', nullable: true }) // 색상 정보 추가
   color: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   category: string; // 카테고리 (예: 운동, 공부 등)
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   tags: string; // 태그 (예: #운동, #공부 등)
-
 }
