@@ -1,5 +1,5 @@
 import { TouchableOpacity, View, Text } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   getFirebaseCollection_Test_Today,
   getFirebaseCollection_Test_Yesterday,
@@ -8,6 +8,7 @@ import {
   useTimeSlotStore_today,
   useTimeSlotStore_yesterday,
 } from '@/store/timeTableStore';
+import api from '@/api/api';
 
 export default function GetButton() {
   const { todaydata } = useTimeSlotStore_today();
@@ -21,12 +22,23 @@ export default function GetButton() {
       console.log('error', error);
     }
   };
+  useEffect(() => {
+    api
+      .get('/user')
+      .then((res) => {
+        console.log(res.data);
+      })
+      .catch((error) => {
+        console.log('error', error);
+      });
+  }, []);
 
   return (
     <View>
       <TouchableOpacity onPress={onPress}>
         <View style={{}}>
           <Text style={{ color: 'white' }}>여기는 firestore 확인</Text>
+
           {todaydata?.map((x) => (
             <Text key={x['event']['newDate']} style={{ color: 'white' }}>
               {x['date']} {x['event']['action']}

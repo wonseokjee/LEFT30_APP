@@ -9,7 +9,7 @@ const TableTimeDivision: React.FC = () => {
   const [currentTime, setCurrentTime] = useState('');
   const generateTimeIndex = () => {
     const HOUR = 12;
-    const totalHour: string[] = [''];
+    const totalHour: string[] = ['0AM'];
     const AMPM = ['AM', 'PM'];
     for (let j = 0; j < 2; j++) {
       for (let i = 1; i <= HOUR; i++) {
@@ -38,13 +38,16 @@ const TableTimeDivision: React.FC = () => {
       setCurrentTime(formattedTime);
       // 현재 시간이 몇 번째 인덱스인지 찾기
       const timeIndex = generateTimeIndex().indexOf(hour + ampm);
-
+      // console.log('timeIndex', timeIndex);
       // 한 칸의 높이 계산 (containerHeight 기반)
       const itemHeight = containerHeight / generateTimeIndex().length;
+      // console.log('itemHeight', itemHeight, containerHeight);
 
-      // 현재 시각 위치 (시간 인덱스 + 분 단위 이동 비율)
-      const newPosition = timeIndex * itemHeight + (minute / 60) * itemHeight;
-
+      // 현재 시각 위치 (시간 인덱스 + 분 단위 이동 비율), -13은 보정값
+      const newPosition =
+        timeIndex * itemHeight + (minute / 60) * itemHeight - 13;
+      // console.log('newPosition', newPosition);
+      // 현재 시각 위치를 상태로 저장
       setCurrentPos(newPosition);
       setCurrentPosition(newPosition); // Zustand 상태 업데이트
     };
