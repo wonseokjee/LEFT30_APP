@@ -29,10 +29,16 @@ export class TimetableService {
   }
 
   async findOne(id: string): Promise<TimetableEntry> {
-    return this.timetableRepo.findOne({
+    const entry = await this.timetableRepo.findOne({
       where: { id },
       relations: ['user'],
     });
+
+    if (!entry) {
+      throw new Error(`TimetableEntry with id ${id} not found`);
+    }
+
+    return entry;
   }
 
   async update(id: string, updateData: Partial<TimetableEntry>) {
