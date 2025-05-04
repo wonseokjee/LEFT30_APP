@@ -1,21 +1,35 @@
-import React from 'react';
+import { updateTodoItemFromDB } from '@/api/todoApi';
+import React, { useState } from 'react';
 import { View, Modal, TextInput, Button, StyleSheet } from 'react-native';
 
 interface EditTaskModalProps {
   editModalVisible: boolean;
   setEditModalVisible: (visible: boolean) => void;
-  editTask: string;
-  setEditTask: (task: string) => void;
-  editTaskHandler: () => void;
+  // editTask: string;
+  // setEditTask: (task: string) => void;
+  // editTaskHandler: () => void;
+  todoId: string;
+  todoTitle: string;
+  todoNotes: string;
 }
 
 const EditTaskModal: React.FC<EditTaskModalProps> = ({
   editModalVisible,
   setEditModalVisible,
-  editTask,
-  setEditTask,
-  editTaskHandler,
+  todoId,
+  todoTitle,
+  todoNotes,
+
+  // editTaskHandler,
 }) => {
+  const [editTask, setEditTask] = useState<string>(todoTitle);
+  const updateTodoFromDB = (task: string) => {
+    // task가 비어있지 않은 경우에만 업데이트
+    if (task.trim() === '') return;
+    //item이 많아질 경우 form으로 따로 만들어야 할듯.
+    updateTodoItemFromDB(todoId, task);
+    setEditModalVisible(false);
+  };
   return (
     <Modal visible={editModalVisible} animationType='slide' transparent>
       <View style={styles.modalContainer}>
@@ -28,7 +42,10 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
             onChangeText={setEditTask}
           />
           <View style={styles.buttonContainer}>
-            <Button title='수정하기' onPress={editTaskHandler} />
+            <Button
+              title='수정하기'
+              onPress={() => updateTodoFromDB(editTask)}
+            />
             <Button
               title='취소'
               color='red'

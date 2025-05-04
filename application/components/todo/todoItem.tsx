@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CheckBox } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { deleteTaskFromFirebase } from '../../api/firebase';
+import EditTaskModal from './EditTaskModal';
 
 interface TaskItemProps {
-  item: { id: string; task: string };
+  item: { id: string; title: string; notes: string; is_done: boolean };
   index: number;
-  checked: boolean;
+  checked: boolean; //나중에 isdone으로 바꿔야함.
   onToggleCheckbox: () => void;
   onLongPress: () => void;
   selectedTaskIndex: number | null;
-  setEditTask: (task: string) => void;
+  // setEditTask: (task: string) => void;
   setEditModalVisible: (visible: boolean) => void;
+  editModalVisible: boolean;
   deleteTask: (index: number) => void;
 }
 
@@ -23,22 +25,27 @@ const TaskItem: React.FC<TaskItemProps> = ({
   onToggleCheckbox,
   onLongPress,
   selectedTaskIndex,
-  setEditTask,
+  // setEditTask,
   setEditModalVisible,
+  editModalVisible,
   deleteTask,
 }) => {
+  // const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const handleDeleteTask = async () => {
     await deleteTaskFromFirebase(item.id);
     deleteTask(index);
   };
-
+  const onToggleTodoCheckbox = () => {
+    onToggleCheckbox(); // 체크박스 상태 변경 함수 호출
+    //checkbox 변경시 계속 db에서 다시 받아와야 하나... 너무 비효율적일듯.
+  };
   return (
     <View>
       <TouchableOpacity style={styles.taskContainer} onLongPress={onLongPress}>
         <View style={styles.taskItem}>
           <CheckBox
-            checked={checked}
-            onPress={onToggleCheckbox}
+            checked={item.is_done}
+            onPress={onToggleTodoCheckbox}
             containerStyle={styles.checkBoxContainer}
             checkedColor='#fff' // 체크된 항목의 색상 변경
           />
@@ -47,7 +54,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
             numberOfLines={1}
             ellipsizeMode='tail'
           >
-            {item.task}
+            {item.title}
           </Text>
         </View>
       </TouchableOpacity>
@@ -55,7 +62,6 @@ const TaskItem: React.FC<TaskItemProps> = ({
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             onPress={() => {
-              setEditTask(item.task);
               setEditModalVisible(true);
             }}
           >
@@ -64,6 +70,13 @@ const TaskItem: React.FC<TaskItemProps> = ({
           <TouchableOpacity onPress={handleDeleteTask}>
             <Icon name='delete' size={24} color='black' />
           </TouchableOpacity>
+          <EditTaskModal
+            editModalVisible={editModalVisible}
+            setEditModalVisible={setEditModalVisible}
+            todoId={item.id}
+            todoTitle={item.title}
+            todoNotes={item.notes}
+          />
         </View>
       )}
     </View>
