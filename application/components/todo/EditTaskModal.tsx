@@ -5,6 +5,7 @@ import { View, Modal, TextInput, Button, StyleSheet } from 'react-native';
 interface EditTaskModalProps {
   editModalVisible: boolean;
   setEditModalVisible: (visible: boolean) => void;
+  setSelectedTaskIndex: (index: number | null) => void;
   // editTask: string;
   // setEditTask: (task: string) => void;
   // editTaskHandler: () => void;
@@ -16,6 +17,7 @@ interface EditTaskModalProps {
 const EditTaskModal: React.FC<EditTaskModalProps> = ({
   editModalVisible,
   setEditModalVisible,
+  setSelectedTaskIndex,
   todoId,
   todoTitle,
   todoNotes,
@@ -23,12 +25,19 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
   // editTaskHandler,
 }) => {
   const [editTask, setEditTask] = useState<string>(todoTitle);
-  const updateTodoFromDB = (task: string) => {
+  const updateTodoFromDB = async (task: string) => {
     // task가 비어있지 않은 경우에만 업데이트
     if (task.trim() === '') return;
     //item이 많아질 경우 form으로 따로 만들어야 할듯.
-    updateTodoItemFromDB(todoId, task);
-    setEditModalVisible(false);
+    try {
+      await updateTodoItemFromDB(todoId, task); // 서버에 업데이트 요청
+      console.log(`Task updated: ${task}`);
+    } catch (error) {
+      console.error('Error updating task:', error);
+    } finally {
+      setSelectedTaskIndex(null); // 선택된 작업 해제
+      setEditModalVisible(false); // 모달 닫기
+    }
   };
   return (
     <Modal visible={editModalVisible} animationType='slide' transparent>
@@ -44,12 +53,17 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({
           <View style={styles.buttonContainer}>
             <Button
               title='수정하기'
-              onPress={() => updateTodoFromDB(editTask)}
+              onPress={() => {
+                updateTodoFromDB(editTask);
+              }}
             />
             <Button
               title='취소'
               color='red'
-              onPress={() => setEditModalVisible(false)}
+              onPress={() => {
+                setSelectedTaskIndex(null);
+                setEditModalVisible(false);
+              }}
             />
           </View>
         </View>

@@ -15,8 +15,9 @@ import { getTodoLIstFromDB } from '@/api/todoApi';
 const TodoContainer = () => {
   const [addModalVisible, setAddModalVisible] = useState<boolean>(false);
   const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
+  const [togle, setTogle] = useState<boolean>(false);
   const [tasks, setTasks] = useState<any[]>([]);
-  const [checkedItems, setCheckedItems] = useState<boolean[]>([]);
+  const [remove, setRemove] = useState<boolean>(false);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(
     null
   );
@@ -28,22 +29,7 @@ const TodoContainer = () => {
     };
 
     fetchTasks();
-  }, [addModalVisible, editModalVisible]);
-
-  const deleteTask = (index: number) => {
-    setTasks((prevTasks) => prevTasks.filter((_, i) => i !== index));
-    setCheckedItems((prevCheckedItems) =>
-      prevCheckedItems.filter((_, i) => i !== index)
-    );
-  };
-
-  const toggleCheckbox = (index: number) => {
-    setCheckedItems((prevCheckedItems) => {
-      const updatedCheckedItems = [...prevCheckedItems];
-      updatedCheckedItems[index] = !updatedCheckedItems[index];
-      return updatedCheckedItems;
-    });
-  };
+  }, [togle, addModalVisible, editModalVisible, remove, selectedTaskIndex]);
 
   return (
     <TouchableWithoutFeedback onPress={() => setSelectedTaskIndex(null)}>
@@ -56,13 +42,15 @@ const TodoContainer = () => {
             <TaskItem
               item={item}
               index={index}
-              checked={item.is_done}
-              onToggleCheckbox={() => toggleCheckbox(index)}
+              setTogle={setTogle}
+              togle={togle}
               onLongPress={() => setSelectedTaskIndex(index)}
               selectedTaskIndex={selectedTaskIndex}
+              setSelectedTaskIndex={setSelectedTaskIndex}
               setEditModalVisible={setEditModalVisible}
               editModalVisible={editModalVisible}
-              deleteTask={deleteTask}
+              setRemove={setRemove}
+              remove={remove}
             />
           )}
         />

@@ -37,3 +37,28 @@ export const updateTodoItemFromDB = async (id: string, task: string) => {
     return null; // 에러 발생 시 null 반환
   }
 };
+
+export const updateTodoItemStatusFromDB = async (
+  id: string,
+  is_done: boolean
+) => {
+  try {
+    const res = await api.patch(`/todo/${id}`, {
+      is_done: is_done,
+    });
+    return res.data; // 업데이트된 데이터를 반환
+  } catch (error) {
+    console.error('Error updating todo status:', error);
+    return null; // 에러 발생 시 null 반환
+  }
+};
+
+export const deleteTodoItemFromDB = async (id: string) => {
+  try {
+    const res = await api.delete(`/todo/${id}`); // DELETE 요청
+    return res.data; // 삭제 결과를 반환
+  } catch (error) {
+    console.error('Error deleting todo item:', error);
+    return null; // 에러 발생 시 null 반환
+  }
+};

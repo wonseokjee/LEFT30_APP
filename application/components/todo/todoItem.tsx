@@ -4,40 +4,58 @@ import { CheckBox } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { deleteTaskFromFirebase } from '../../api/firebase';
 import EditTaskModal from './EditTaskModal';
+import {
+  deleteTodoItemFromDB,
+  updateTodoItemStatusFromDB,
+} from '@/api/todoApi';
 
 interface TaskItemProps {
   item: { id: string; title: string; notes: string; is_done: boolean };
   index: number;
-  checked: boolean; //나중에 isdone으로 바꿔야함.
-  onToggleCheckbox: () => void;
+  setTogle: (togle: boolean) => void;
   onLongPress: () => void;
+  togle: boolean;
   selectedTaskIndex: number | null;
+  setSelectedTaskIndex: (index: number | null) => void;
   // setEditTask: (task: string) => void;
   setEditModalVisible: (visible: boolean) => void;
   editModalVisible: boolean;
-  deleteTask: (index: number) => void;
+  remove: boolean;
+  setRemove: (remove: boolean) => void;
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({
   item,
   index,
-  checked,
-  onToggleCheckbox,
+  setTogle,
   onLongPress,
   selectedTaskIndex,
+  setSelectedTaskIndex,
+  togle,
   // setEditTask,
   setEditModalVisible,
   editModalVisible,
-  deleteTask,
+  setRemove,
+  remove,
 }) => {
   // const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const handleDeleteTask = async () => {
-    await deleteTaskFromFirebase(item.id);
-    deleteTask(index);
+    await deleteTodoItemFromDB(item.id);
+    setRemove(!remove); // 로컬 상태 업데이트
   };
-  const onToggleTodoCheckbox = () => {
-    onToggleCheckbox(); // 체크박스 상태 변경 함수 호출
-    //checkbox 변경시 계속 db에서 다시 받아와야 하나... 너무 비효율적일듯.
+  const onToggleTodoCheckbox = async () => {
+    try {
+      // 서버에 is_done 상태 업데이트 요청
+      const updatedTask = await updateTodoItemStatusFromDB(
+        item.id,
+        !item.is_done
+      );
+      if (updatedTask) {
+        setTogle(!togle); // 로컬 상태 업데이트
+      }
+    } catch (error) {
+      console.error('Error toggling todo checkbox:', error);
+    }
   };
   return (
     <View>
@@ -50,7 +68,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
             checkedColor='#fff' // 체크된 항목의 색상 변경
           />
           <Text
-            style={[styles.taskText, checked && styles.taskTextChecked]}
+            style={[styles.taskText, item.is_done && styles.taskTextChecked]}
             numberOfLines={1}
             ellipsizeMode='tail'
           >
@@ -63,16 +81,23 @@ const TaskItem: React.FC<TaskItemProps> = ({
           <TouchableOpacity
             onPress={() => {
               setEditModalVisible(true);
+              // setSelectedTaskIndex(null); // 버튼 클릭 시 선택 해제
             }}
           >
             <Icon name='edit' size={24} color='black' />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDeleteTask}>
+          <TouchableOpacity
+            onPress={async () => {
+              await handleDeleteTask();
+              setSelectedTaskIndex(null);
+            }}
+          >
             <Icon name='delete' size={24} color='black' />
           </TouchableOpacity>
           <EditTaskModal
             editModalVisible={editModalVisible}
             setEditModalVisible={setEditModalVisible}
+            setSelectedTaskIndex={setSelectedTaskIndex}
             todoId={item.id}
             todoTitle={item.title}
             todoNotes={item.notes}
