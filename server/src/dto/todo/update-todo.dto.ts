@@ -12,4 +12,8 @@ export class UpdateTodoDto {
   @IsOptional()
   @IsDateString()
   due_time?: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string; // 메모 (예: 오늘의 운동 내용, 공부한 내용 등)
 }
