@@ -8,7 +8,10 @@ import {
   useTimeSlotStore_today,
   useTimeSlotStore_yesterday,
 } from '@/store/timeTableStore';
-import api from '@/api/api';
+import {
+  getTodayTimeSlotInfoFromDB,
+  getYesterdayTimeSlotInfoFromDB,
+} from '@/api/timetableApi';
 
 export default function GetButton() {
   const { todaydata } = useTimeSlotStore_today();
@@ -16,22 +19,15 @@ export default function GetButton() {
 
   const onPress = async () => {
     try {
-      await getFirebaseCollection_Test_Today();
-      await getFirebaseCollection_Test_Yesterday();
+      // await getFirebaseCollection_Test_Today();
+      // await getFirebaseCollection_Test_Yesterday();
+      const a = await getTodayTimeSlotInfoFromDB();
+      await getYesterdayTimeSlotInfoFromDB();
+      console.log('a', a);
     } catch (error) {
       console.log('error', error);
     }
   };
-  useEffect(() => {
-    api
-      .get('/user')
-      .then((res) => {
-        console.log(res.data);
-      })
-      .catch((error) => {
-        console.log('error', error);
-      });
-  }, []);
 
   return (
     <View>

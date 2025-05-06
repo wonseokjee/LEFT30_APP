@@ -1,7 +1,7 @@
 import api from './api';
 
+const user_id = process.env.EXPO_PUBLIC_USER_ID;
 export const getTodoLIstFromDB = async () => {
-  const user_id = 'cddba932-7fb4-41b6-b8ba-ab17d4bcf0cf';
   try {
     const res = await api.get('/todo/user/' + user_id);
     const todoList = res.data;
@@ -13,7 +13,6 @@ export const getTodoLIstFromDB = async () => {
 };
 
 export const addTodoItemFromDB = async (title: string) => {
-  const user_id = 'cddba932-7fb4-41b6-b8ba-ab17d4bcf0cf';
   try {
     const res = await api.post('/todo', {
       user_id,
