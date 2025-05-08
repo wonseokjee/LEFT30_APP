@@ -7,6 +7,7 @@ import {
 import {
   useTimeSlotStore_today,
   useTimeSlotStore_yesterday,
+  useTodayTimeSlotInfoFromZustand,
 } from '@/store/timeTableStore';
 import {
   getTodayTimeSlotInfoFromDB,
@@ -14,16 +15,15 @@ import {
 } from '@/api/timetableApi';
 
 export default function GetButton() {
-  const { todaydata } = useTimeSlotStore_today();
-  const { yesterdaydata } = useTimeSlotStore_yesterday.getState();
+  // const { todaydata } = useTimeSlotStore_today();
+  const { todaydata } = useTodayTimeSlotInfoFromZustand();
 
   const onPress = async () => {
     try {
       // await getFirebaseCollection_Test_Today();
       // await getFirebaseCollection_Test_Yesterday();
-      const a = await getTodayTimeSlotInfoFromDB();
+      await getTodayTimeSlotInfoFromDB();
       await getYesterdayTimeSlotInfoFromDB();
-      console.log('a', a);
     } catch (error) {
       console.log('error', error);
     }
@@ -35,10 +35,16 @@ export default function GetButton() {
         <View style={{}}>
           <Text style={{ color: 'white' }}>여기는 firestore 확인</Text>
 
-          {todaydata?.map((x) => (
+          {/* {todaydata?.map((x) => (
             <Text key={x['event']['newDate']} style={{ color: 'white' }}>
               {x['date']} {x['event']['action']}
               {x['event']['detail']}
+            </Text>
+          ))} */}
+          {todaydata?.map((x) => (
+            <Text key={x.started_at} style={{ color: 'white' }}>
+              {x.ended_at} {x.action}
+              {x.description}
             </Text>
           ))}
         </View>

@@ -65,6 +65,7 @@ const TableTimeDivision: React.FC = () => {
         onLayout={(event) =>
           //높이를 받아와서 containerHeight에 넣어줌.
           //높이가 달라서 현재시간 bar가 문제가 생김
+          //onLayout 이벤트는 컴포넌트가 렌더링 된 후, 해당 컴포넌트의 크기와 위치를 측정
           setContainerHeight(event.nativeEvent.layout.height)
         }
       >
@@ -82,7 +83,7 @@ const TableTimeDivision: React.FC = () => {
             <Text style={styles.timeIndexText}>{x}</Text>
           </View>
         ))}
-        <Text style={styles.timelocalareaBottom}></Text>
+        {/* <Text style={styles.timelocalareaBottom}></Text> */}
       </View>
     </>
   );

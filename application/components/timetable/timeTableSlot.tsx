@@ -11,34 +11,51 @@ import { firebase_type } from '@/@types/firebase/collections';
 import {
   useTimeSlotStore_today,
   useTimeSlotStore_yesterday,
+  useTodayTimeSlotInfoFromZustand,
+  useYesterdayTimeSlotInfoFromZustand,
 } from '@/store/timeTableStore';
+import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 
 const TimeTableSlot = () => {
-  const { todaydata } = useTimeSlotStore_today();
-  const { yesterdaydata } = useTimeSlotStore_yesterday();
+  // const { todaydata } = useTimeSlotStore_today();
+  // const { yesterdaydata } = useTimeSlotStore_yesterday();
+  const { todaydata } = useTodayTimeSlotInfoFromZustand();
+  const { yesterdaydata } = useYesterdayTimeSlotInfoFromZustand();
 
   const generateFullDaySlots = (
-    slots: firebase_type[] | null
-  ): (firebase_type | null)[] => {
+    // slots: firebase_type[] | null
+    slots: timeSlotType[] | null
+  ): (timeSlotType | null)[] => {
     const totalSlots = 144;
-    const fullDaySlots: (firebase_type | null)[] = new Array(totalSlots).fill(
+    const fullDaySlots: (timeSlotType | null)[] = new Array(totalSlots).fill(
       null
     );
 
     //여기에서 start, end index로 변환해야함.
     slots?.forEach((slot) => {
-      const startTime: string = slot.event.startTime;
-      const endTime: string = slot.event.endTime;
-      const calHour =
-        (Number(endTime.substring(0, 2)) - Number(startTime.substring(0, 2))) *
-        60;
-      const calMin =
-        Number(endTime.substring(2)) - Number(startTime.substring(2));
-      const indexRange = (calHour + calMin) / 10;
-      const hourIndex =
-        Number(startTime.substring(0, 2)) * 6 +
-        Number(startTime.substring(2)) / 10;
-      fullDaySlots[hourIndex - 1] = { ...slot, range: indexRange };
+      // const startTime: string = slot.event.startTime;
+      // const endTime: string = slot.event.endTime;
+      // const calHour =
+      //   (Number(endTime.substring(0, 2)) - Number(startTime.substring(0, 2))) *
+      //   60;
+      // const calMin =
+      //   Number(endTime.substring(2)) - Number(startTime.substring(2));
+      // const indexRange = (calHour + calMin) / 10;
+      // const hourIndex =
+      //   Number(startTime.substring(0, 2)) * 6 +
+      //   Number(startTime.substring(2)) / 10;
+      // fullDaySlots[hourIndex - 1] = { ...slot, range: indexRange };
+
+      const startTime = new Date(slot.started_at);
+      // const endTime = new Date(slot.ended_at);
+      const startIndex =
+        startTime.getHours() * 6 + Math.floor(startTime.getMinutes() / 10); // 시작 시간의 인덱스
+      // const endIndex =
+      //   endTime.getHours() * 6 + Math.ceil(endTime.getMinutes() / 10); // 종료 시간의 인덱스
+
+      // const range = endIndex - startIndex; // 슬롯 범위 계산
+
+      fullDaySlots[startIndex - 1] = { ...slot, range: slot.range }; // 시작 인덱스에 슬롯 데이터 삽입
     });
     // console.log(fullDaySlots);
     return fullDaySlots;

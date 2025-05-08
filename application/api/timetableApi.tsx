@@ -1,3 +1,4 @@
+import { useTodayTimeSlotInfoFromZustand } from '@/store/timeTableStore';
 import api from './api';
 
 const user_id = process.env.EXPO_PUBLIC_USER_ID;
@@ -28,10 +29,12 @@ export const createTimeSlotInfo = async (
 
 // 오늘의 정보를 받아오는 함수
 export const getTodayTimeSlotInfoFromDB = async () => {
+  const { setTimeSlot } = useTodayTimeSlotInfoFromZustand.getState();
   try {
     const res = await api.get('/timetable/today/' + user_id); // 서버의 '/timetable/today/:userid' 엔드포인트 호출
-    console.log('res', res.data); // 응답 데이터 확인
-    return res.data; // 오늘의 정보 반환
+    // console.log('res', res.data); // 응답 데이터 확인
+    setTimeSlot(res.data); // Zustand 스토어에 오늘의 정보 저장
+    // return res.data; // 오늘의 정보 반환
   } catch (error) {
     console.error('Error fetching today info:', error);
     return null; // 에러 발생 시 null 반환
