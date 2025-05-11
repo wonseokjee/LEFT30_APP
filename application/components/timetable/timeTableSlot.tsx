@@ -55,7 +55,7 @@ const TimeTableSlot = () => {
 
       // const range = endIndex - startIndex; // 슬롯 범위 계산
 
-      fullDaySlots[startIndex - 1] = { ...slot, range: slot.range }; // 시작 인덱스에 슬롯 데이터 삽입
+      fullDaySlots[startIndex] = { ...slot, range: slot.range }; // 시작 인덱스에 슬롯 데이터 삽입
     });
     // console.log(fullDaySlots);
     return fullDaySlots;
@@ -86,7 +86,7 @@ const TimeTableSlot = () => {
                 <TouchableOpacity
                   style={[
                     styles.slotContainer,
-                    slotIndex % 6 === 5 ? styles.sixthSlotBorder : null,
+                    slotIndex % 6 === 0 ? styles.sixthSlotBorder : null,
                   ]}
                 ></TouchableOpacity>
               </View>
@@ -100,10 +100,12 @@ const TimeTableSlot = () => {
 const styles = StyleSheet.create({
   tableContainer: {
     flexDirection: 'row',
+    // flex: 7,
     flex: 7,
-    borderWidth: 1,
-    borderColor: 'yellow',
-    height: '136%',
+    // borderWidth: 1,
+    // borderColor: 'yellow',
+    // height: '150%',
+    height: '100%',
   },
   dayContainer: {
     flex: 1,
@@ -112,7 +114,11 @@ const styles = StyleSheet.create({
     borderColor: 'white',
     opacity: 0.8,
   },
-  dayView: { borderWidth: 1, borderColor: 'red' },
+  dayView: {
+    // borderWidth: 1,
+    // borderColor: 'red', 
+    height: '2%',
+  },
   dayText: {
     fontSize: 15,
     fontWeight: 'bold',
@@ -122,7 +128,8 @@ const styles = StyleSheet.create({
   },
   fullSlotContainer: {
     // backgroundColor: 'blue',
-    height: '0.5%',
+    height: '0.68%',
+    // height: '0.684%',
     // flex: 1,
   },
   slotContainer: {
