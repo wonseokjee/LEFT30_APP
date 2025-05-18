@@ -1,23 +1,26 @@
-import React from 'react';
+import { addTodoItemFromDB } from '@/api/todoApi';
+import React, { useState } from 'react';
 import { View, Modal, TextInput, Button, StyleSheet } from 'react-native';
 
 interface AddTaskModalProps {
-  modalVisible: boolean;
-  setModalVisible: (visible: boolean) => void;
-  task: string;
-  setTask: (task: string) => void;
-  addTask: () => void;
+  addModalVisible: boolean;
+  setAddModalVisible: (visible: boolean) => void;
 }
 
 const AddTaskModal: React.FC<AddTaskModalProps> = ({
-  modalVisible,
-  setModalVisible,
-  task,
-  setTask,
-  addTask,
+  addModalVisible,
+  setAddModalVisible,
 }) => {
+  const [task, setTask] = useState<string>('');
+  const addTodoFromDB = (task: string) => {
+    if (task.trim() === '') return;
+    addTodoItemFromDB(task);
+    setAddModalVisible(false);
+    setTask(''); // 추가 후 입력 필드 초기화
+  };
+
   return (
-    <Modal visible={modalVisible} animationType='slide' transparent>
+    <Modal visible={addModalVisible} animationType='slide' transparent>
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <TextInput
@@ -28,11 +31,11 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
             onChangeText={setTask}
           />
           <View style={styles.buttonContainer}>
-            <Button title='추가하기' onPress={addTask} />
+            <Button title='추가하기' onPress={() => addTodoFromDB(task)} />
             <Button
               title='취소'
               color='red'
-              onPress={() => setModalVisible(false)}
+              onPress={() => setAddModalVisible(false)}
             />
           </View>
         </View>

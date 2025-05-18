@@ -1,53 +1,78 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CheckBox } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { deleteTaskFromFirebase } from '../../api/firebase';
+import EditTaskModal from './EditTaskModal';
+import {
+  deleteTodoItemFromDB,
+  updateTodoItemStatusFromDB,
+} from '@/api/todoApi';
 
 interface TaskItemProps {
-  item: { id: string; task: string };
+  item: { id: string; title: string; notes: string; is_done: boolean };
   index: number;
-  checked: boolean;
-  onToggleCheckbox: () => void;
+  setTogle: (togle: boolean) => void;
   onLongPress: () => void;
+  togle: boolean;
   selectedTaskIndex: number | null;
-  setEditTask: (task: string) => void;
+  setSelectedTaskIndex: (index: number | null) => void;
+  // setEditTask: (task: string) => void;
   setEditModalVisible: (visible: boolean) => void;
-  deleteTask: (index: number) => void;
+  editModalVisible: boolean;
+  remove: boolean;
+  setRemove: (remove: boolean) => void;
 }
 
 const TaskItem: React.FC<TaskItemProps> = ({
   item,
   index,
-  checked,
-  onToggleCheckbox,
+  setTogle,
   onLongPress,
   selectedTaskIndex,
-  setEditTask,
+  setSelectedTaskIndex,
+  togle,
+  // setEditTask,
   setEditModalVisible,
-  deleteTask,
+  editModalVisible,
+  setRemove,
+  remove,
 }) => {
+  // const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
   const handleDeleteTask = async () => {
-    await deleteTaskFromFirebase(item.id);
-    deleteTask(index);
+    await deleteTodoItemFromDB(item.id);
+    setRemove(!remove); // 로컬 상태 업데이트
   };
-
+  const onToggleTodoCheckbox = async () => {
+    try {
+      // 서버에 is_done 상태 업데이트 요청
+      const updatedTask = await updateTodoItemStatusFromDB(
+        item.id,
+        !item.is_done
+      );
+      if (updatedTask) {
+        setTogle(!togle); // 로컬 상태 업데이트
+      }
+    } catch (error) {
+      console.error('Error toggling todo checkbox:', error);
+    }
+  };
   return (
     <View>
       <TouchableOpacity style={styles.taskContainer} onLongPress={onLongPress}>
         <View style={styles.taskItem}>
           <CheckBox
-            checked={checked}
-            onPress={onToggleCheckbox}
+            checked={item.is_done}
+            onPress={onToggleTodoCheckbox}
             containerStyle={styles.checkBoxContainer}
             checkedColor='#fff' // 체크된 항목의 색상 변경
           />
           <Text
-            style={[styles.taskText, checked && styles.taskTextChecked]}
+            style={[styles.taskText, item.is_done && styles.taskTextChecked]}
             numberOfLines={1}
             ellipsizeMode='tail'
           >
-            {item.task}
+            {item.title}
           </Text>
         </View>
       </TouchableOpacity>
@@ -55,15 +80,28 @@ const TaskItem: React.FC<TaskItemProps> = ({
         <View style={styles.buttonGroup}>
           <TouchableOpacity
             onPress={() => {
-              setEditTask(item.task);
               setEditModalVisible(true);
+              // setSelectedTaskIndex(null); // 버튼 클릭 시 선택 해제
             }}
           >
             <Icon name='edit' size={24} color='black' />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDeleteTask}>
+          <TouchableOpacity
+            onPress={async () => {
+              await handleDeleteTask();
+              setSelectedTaskIndex(null);
+            }}
+          >
             <Icon name='delete' size={24} color='black' />
           </TouchableOpacity>
+          <EditTaskModal
+            editModalVisible={editModalVisible}
+            setEditModalVisible={setEditModalVisible}
+            setSelectedTaskIndex={setSelectedTaskIndex}
+            todoId={item.id}
+            todoTitle={item.title}
+            todoNotes={item.notes}
+          />
         </View>
       )}
     </View>

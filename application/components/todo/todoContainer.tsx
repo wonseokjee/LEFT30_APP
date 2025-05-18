@@ -9,71 +9,27 @@ import {
 } from 'react-native';
 import TaskItem from '../../components/todo/todoItem';
 import AddTaskModal from '../../components/todo/AddTaskModal';
-import EditTaskModal from '../../components/todo/EditTaskModal';
 import TodoFormattedDate from '../../components/todo/todoFormattedDate';
-import {
-  addTaskToFirebase,
-  updateTaskInFirebase,
-  getTasksFromFirebase,
-} from '../../api/firebase';
+import { getTodoLIstFromDB } from '@/api/todoApi';
 
 const TodoContainer = () => {
-  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [addModalVisible, setAddModalVisible] = useState<boolean>(false);
   const [editModalVisible, setEditModalVisible] = useState<boolean>(false);
-  const [task, setTask] = useState<string>('');
-  const [editTask, setEditTask] = useState<string>('');
+  const [togle, setTogle] = useState<boolean>(false);
   const [tasks, setTasks] = useState<any[]>([]);
-  const [checkedItems, setCheckedItems] = useState<boolean[]>([]);
-  const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(null);
+  const [remove, setRemove] = useState<boolean>(false);
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchTasks = async () => {
-      const fetchedTasks = await getTasksFromFirebase();
-      setTasks(fetchedTasks);
-      setCheckedItems(fetchedTasks.map(() => false));
+      const fetchedTask_be = await getTodoLIstFromDB();
+      setTasks(fetchedTask_be);
     };
 
     fetchTasks();
-  }, []);
-
-  const addTask = async () => {
-    if (task.trim() === '') return;
-    const newTask = { id: Date.now().toString(), task };
-    setTasks((prevTasks) => [...prevTasks, newTask]);
-    setCheckedItems((prevCheckedItems) => [...prevCheckedItems, false]);
-    await addTaskToFirebase(task); // Firebase에 할 일 추가..
-    setTask('');
-    setModalVisible(false);
-  };
-
-  const editTaskHandler = async () => {
-    if (editTask.trim() === '' || selectedTaskIndex === null) return;
-    const taskId = tasks[selectedTaskIndex].id; // 할 일 ID를 적절히 설정하세요
-    setTasks((prevTasks) => {
-      const updatedTasks = [...prevTasks];
-      updatedTasks[selectedTaskIndex].task = editTask;
-      return updatedTasks;
-    });
-    await updateTaskInFirebase(taskId, editTask); // Firebase에 할 일 수정
-    setEditTask('');
-    setEditModalVisible(false);
-    setSelectedTaskIndex(null);
-  };
-
-  const deleteTask = (index: number) => {
-    setTasks((prevTasks) => prevTasks.filter((_, i) => i !== index));
-    setCheckedItems((prevCheckedItems) =>
-      prevCheckedItems.filter((_, i) => i !== index)
-    );
-  };
-
-  const toggleCheckbox = (index: number) => {
-    setCheckedItems((prevCheckedItems) => {
-      const updatedCheckedItems = [...prevCheckedItems];
-      updatedCheckedItems[index] = !updatedCheckedItems[index];
-      return updatedCheckedItems;
-    });
-  };
+  }, [togle, addModalVisible, editModalVisible, remove, selectedTaskIndex]);
 
   return (
     <TouchableWithoutFeedback onPress={() => setSelectedTaskIndex(null)}>
@@ -86,35 +42,27 @@ const TodoContainer = () => {
             <TaskItem
               item={item}
               index={index}
-              checked={checkedItems[index]}
-              onToggleCheckbox={() => toggleCheckbox(index)}
+              setTogle={setTogle}
+              togle={togle}
               onLongPress={() => setSelectedTaskIndex(index)}
               selectedTaskIndex={selectedTaskIndex}
-              setEditTask={setEditTask}
+              setSelectedTaskIndex={setSelectedTaskIndex}
               setEditModalVisible={setEditModalVisible}
-              deleteTask={deleteTask}
+              editModalVisible={editModalVisible}
+              setRemove={setRemove}
+              remove={remove}
             />
           )}
         />
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => setModalVisible(true)}
+          onPress={() => setAddModalVisible(true)}
         >
           <Text style={styles.addButtonText}>+</Text>
         </TouchableOpacity>
         <AddTaskModal
-          modalVisible={modalVisible}
-          setModalVisible={setModalVisible}
-          task={task}
-          setTask={setTask}
-          addTask={addTask}
-        />
-        <EditTaskModal
-          editModalVisible={editModalVisible}
-          setEditModalVisible={setEditModalVisible}
-          editTask={editTask}
-          setEditTask={setEditTask}
-          editTaskHandler={editTaskHandler}
+          addModalVisible={addModalVisible}
+          setAddModalVisible={setAddModalVisible}
         />
       </View>
     </TouchableWithoutFeedback>

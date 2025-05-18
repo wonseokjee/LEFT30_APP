@@ -8,9 +8,10 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import CheckBox from './checkbox';
-import { setFirebaseCollection_Test } from '@/api/firebase';
+// import { setFirebaseCollection_Test } from '@/api/firebase';
 import { setCollection_Test } from '@/@types/firebase/collections';
-import  useNumStore  from '@/store/timerStore';
+import useNumStore from '@/store/timerStore';
+import { createTimeSlotInfo } from '@/api/timetableApi';
 
 export interface checkProps {
   checkValue: (str: string) => void;
@@ -44,7 +45,10 @@ const ActionTrackerModal = () => {
         },
       };
       //firebase에 입력
-      setFirebaseCollection_Test('test', testValue);
+      // await setFirebaseCollection_Test('test', testValue);
+      const ended_at = new Date().toISOString();
+      // console.log('ended_at', ended_at);
+      await createTimeSlotInfo(ended_at, checkboxValue, inputValue);
       setModalClose();
     } else {
       //확인버튼 눌렀을때 checkbox 체크 안되어 있으면 '한 일을 체크해주세요' 문구가 떨리는 effect추가하기

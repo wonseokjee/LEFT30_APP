@@ -11,9 +11,10 @@ import {
   Button,
 } from 'react-native';
 import { firebase_type } from '@/@types/firebase/collections';
+import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 
 type TimeTableSlotProps = {
-  slotdata: firebase_type | null;
+  slotdata: timeSlotType | null;
   modalOpen: boolean;
   onClose: () => void;
 };
@@ -24,14 +25,14 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
   modalOpen,
   onClose,
 }) => {
-  const [action, setAction] = useState(slotdata?.event.action || '');
-  const [detail, setDetail] = useState(slotdata?.event.detail || '');
+  const [action, setAction] = useState(slotdata?.action || '');
+  const [detail, setDetail] = useState(slotdata?.description || '');
 
   const handleSave = () => {
     // 저장 로직 추가 (ex. 서버와 통신 또는 상태 업데이트)
     console.log('Updated Action:', action);
     console.log('Updated Detail:', detail);
-    onClose()
+    onClose();
   };
   return (
     <Modal

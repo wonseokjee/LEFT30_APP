@@ -6,9 +6,11 @@ import {
 import React, { useState } from 'react';
 import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
 import TimeTableSlotItemInfo from './timeTableSlotItemInfo';
+import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 
 type timeTableSlotProps = {
-  slotdata: firebase_type | null;
+  slotdata: timeSlotType | null;
+  // slotdata: firebase_type | null;
 };
 
 //zstand에서 최신화된 시간표를 상태관리 할 것임.
@@ -28,9 +30,9 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
 
   if (!slotdata) return null;
 
-  const duration = slotdata ? slotdata!['range'] * 100 : 0;
+  const duration = slotdata ? slotdata.range! * 100 : 0;
   const colorKey = slotdata
-    ? (slotdata['event']['action'] as keyof typeof ACTION_TYPE_COLOR)
+    ? (slotdata.action as keyof typeof ACTION_TYPE_COLOR)
     : null;
   return (
     <>
@@ -59,7 +61,7 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
             ]}
           ></Text>
           <Text style={styles.slotText}>
-            {slotdata!['event']['action']}: {slotdata!['event']['detail']}
+            {slotdata!.action}: {slotdata!.description}
           </Text>
 
           {isOpen ? (
