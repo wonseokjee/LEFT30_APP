@@ -2,8 +2,14 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import ActionTrackerModal from '@/hooks/alarm/actionTrackerModal';
 import React from 'react';
+import { useEffect } from 'react';
+import { initializeKakaoSDK } from '@react-native-kakao/core';
 
 export default function RootLayout() {
+  const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
+  useEffect(() => {
+    initializeKakaoSDK(kakaoNativeAppKey);
+  }, []);
   return (
     <>
       <Stack>
