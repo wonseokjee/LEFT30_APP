@@ -23,11 +23,11 @@ const TableTimeDivision: React.FC = () => {
   useEffect(() => {
     const updateCurrentPosition = () => {
       if (containerHeight === 0) return;
-
       const now = new Date();
-      let hour = now.getHours();
+      // console.log('now', now);
+      let hour = now.getHours() + 9; // 한국 시간으로 변환 (UTC+9)
       let minute = now.getMinutes();
-      let ampm = hour < 12 ? 'AM' : 'PM';
+      let ampm = hour <= 12 ? 'AM' : 'PM';
 
       // 24시간제를 12시간제로 변환
       if (hour > 12) hour -= 12;

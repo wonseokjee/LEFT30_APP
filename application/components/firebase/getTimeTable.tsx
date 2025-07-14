@@ -1,5 +1,4 @@
 import { TouchableOpacity, View, Text } from 'react-native';
-import { useEffect, useState } from 'react';
 import { useTodayTimeSlotInfoFromZustand } from '@/store/timeTableStore';
 import {
   getTodayTimeSlotInfoFromDB,
@@ -10,7 +9,6 @@ import { useKakaoLogin } from '@/utils/auth/kakaoLogin';
 import { handleLogin } from '@/hooks/login/handleLoginBtn';
 
 export default function GetButton() {
-  // const { todaydata } = useTimeSlotStore_today();
   const { todaydata } = useTodayTimeSlotInfoFromZustand();
   const { loginWithKakao, request } = useKakaoLogin();
 
@@ -29,14 +27,7 @@ export default function GetButton() {
 
       <TouchableOpacity onPress={onPress}>
         <View style={{}}>
-          <Text style={{ color: 'white' }}>여기는 firestore 확인</Text>
-
-          {/* {todaydata?.map((x) => (
-            <Text key={x['event']['newDate']} style={{ color: 'white' }}>
-              {x['date']} {x['event']['action']}
-              {x['event']['detail']}
-            </Text>
-          ))} */}
+          <Text style={{ color: 'white' }}>여기는 zustand 확인</Text>
           {todaydata?.map((x) => (
             <Text key={x.started_at} style={{ color: 'white' }}>
               {x.ended_at} {x.action}

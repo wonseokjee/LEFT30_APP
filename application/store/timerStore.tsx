@@ -12,7 +12,7 @@ interface numStore {
 
 const endTime = () => {
   const now = new Date();
-  const endHour = now.getHours();
+  const endHour = now.getHours() + 9; // 한국 시간으로 변환 (UTC+9)
   const endMinute = now.getMinutes();
   const endHourString = endHour.toString().padStart(2, '0');
   const endMinuteString = endMinute.toString().padStart(2, '0');
@@ -22,7 +22,7 @@ const endTime = () => {
 const startTime = () => {
   const now = new Date();
   now.setMinutes(now.getMinutes() - 30);
-  const startHour = now.getHours();
+  const startHour = now.getHours() + 9; // 한국 시간으로 변환 (UTC+9)
   const startMinute = now.getMinutes();
   const startHourString = startHour.toString().padStart(2, '0');
   const startMinuteString = startMinute.toString().padStart(2, '0');

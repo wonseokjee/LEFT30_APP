@@ -49,7 +49,9 @@ const TimeTableSlot = () => {
       const startTime = new Date(slot.started_at);
       // const endTime = new Date(slot.ended_at);
       const startIndex =
-        startTime.getHours() * 6 + Math.floor(startTime.getMinutes() / 10); // 시작 시간의 인덱스
+        (startTime.getHours() + 9) * 6 + // 한국 시간으로 변환 (UTC+9) 및 인덱스 계산( * 6)
+        //하드 코딩된 9는 한국 시간으로 변환하기 위한 값 이후에 나라별로 변환되게
+        Math.floor(startTime.getMinutes() / 10); // 시작 시간의 인덱스
       // const endIndex =
       //   endTime.getHours() * 6 + Math.ceil(endTime.getMinutes() / 10); // 종료 시간의 인덱스
 
@@ -116,7 +118,7 @@ const styles = StyleSheet.create({
   },
   dayView: {
     // borderWidth: 1,
-    // borderColor: 'red', 
+    // borderColor: 'red',
     height: '2%',
   },
   dayText: {
