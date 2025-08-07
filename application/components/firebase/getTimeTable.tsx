@@ -24,7 +24,7 @@ export default function GetButton() {
   return (
     <View>
       <Button title='카카오 로그인' onPress={() => handleLogin()}></Button>
-
+      <Button title='로그인 가드' onPress={() => handleLogin()}></Button>
       <TouchableOpacity onPress={onPress}>
         <View style={{}}>
           <Text style={{ color: 'white' }}>여기는 zustand 확인</Text>

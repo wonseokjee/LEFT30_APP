@@ -27,6 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
+    'expo-secure-store',
     [
       'expo-splash-screen',
       {
@@ -49,7 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       '@react-native-kakao/core',
       {
-        nativeAppKey: kakaoNativeAppKey,
+        nativeAppKey: 'db4ba8bb6eb816db894d051a140aa9ff',
         android: {
           authCodeHandlerActivity: true,
         },
@@ -70,9 +71,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       projectId: 'f138631f-eac8-4169-bb2d-b5a98bebc79e',
     },
   },
-  runtimeVersion: {
-    policy: 'appVersion',
-  },
+  runtimeVersion: '1.0.0',
   updates: {
     url: 'https://u.expo.dev/f138631f-eac8-4169-bb2d-b5a98bebc79e',
   },
