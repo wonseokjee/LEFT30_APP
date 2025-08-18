@@ -7,6 +7,7 @@ import {
 import { Button } from 'react-native-elements';
 import { useKakaoLogin } from '@/utils/auth/kakaoLogin';
 import { handleLogin } from '@/hooks/login/handleLoginBtn';
+import checkLogin from '@/hooks/login/checkLogin';
 
 export default function GetButton() {
   const { todaydata } = useTodayTimeSlotInfoFromZustand();
@@ -24,7 +25,7 @@ export default function GetButton() {
   return (
     <View>
       <Button title='카카오 로그인' onPress={() => handleLogin()}></Button>
-      <Button title='로그인 가드' onPress={() => handleLogin()}></Button>
+      <Button title='로그인 가드' onPress={() => checkLogin()}></Button>
       <TouchableOpacity onPress={onPress}>
         <View style={{}}>
           <Text style={{ color: 'white' }}>여기는 zustand 확인</Text>
