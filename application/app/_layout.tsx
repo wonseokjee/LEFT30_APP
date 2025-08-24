@@ -14,6 +14,12 @@ export default function RootLayout() {
     <>
       <Stack>
         <Stack.Screen
+          name='(login)/index' // Set the login page as the initial screen
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
           name='(tabs)'
           options={{
             headerShown: false,

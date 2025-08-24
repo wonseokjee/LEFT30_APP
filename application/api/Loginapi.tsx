@@ -6,7 +6,8 @@ import api from './api';
 const Loginapi = axios.create({
   // baseURL: 'http://' + process.env. + ':3030', // 내 로컬 서버 IP
   //cmd -> ipconfig -> IPv4 Address
-  baseURL: 'http://' + process.env.EXPO_PUBLIC_LOCAL_IP + ':3030', // 내 로컬 서버 IP
+  // baseURL: 'http://' + process.env.EXPO_PUBLIC_LOCAL_IP + ':3030', // 내 로컬 서버 IP
+  baseURL: 'http://localhost:3030', // 내 로컬 서버 IP
 });
 
 //api access token을 요청 보낼 때마다 header에 넣어주기 위한 interceptor 설정
@@ -16,7 +17,7 @@ Loginapi.interceptors.request.use(
   async (config) => {
     try {
       const token = await SecureStore.getItemAsync('accessToken');
-      console.log('Retrieved accessToken:', token);
+      // console.log('Retrieved accessToken:', token);
       // 토큰이 존재하면 Authorization 헤더에 추가
       // config.headers가 함수형(set)일 경우와 객체형일 경우를 모두 처리합니다.
       // set 메서드가 있는 경우는 axios 0.21.1 이상 버전에서 사용됩니다.
@@ -49,7 +50,7 @@ Loginapi.interceptors.response.use(
     if (error.response?.status === 401) {
       const refreshToken = await SecureStore.getItemAsync('refreshToken');
       const userId = await SecureStore.getItemAsync('user_id');
-      console.error('Access token expired, attempting to refresh:', error);
+      // console.error('Access token expired, attempting to refresh:', error);
       // refreshToken으로 새로운 accessToken 요청 및 재시도 로직 작성
       if (refreshToken) {
         try {
@@ -67,7 +68,7 @@ Loginapi.interceptors.response.use(
             'Bearer ',
             ''
           );
-          console.log('res:', res);
+          // console.log('res:', res);
           // 새 accessToken 저장
           await SecureStore.setItemAsync('accessToken', newAccessToken);
 

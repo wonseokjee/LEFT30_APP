@@ -1,45 +1,53 @@
 import api from '@/api/api';
 import { login } from '@react-native-kakao/user';
 import * as SecureStore from 'expo-secure-store';
-// import { loginWithKakao } from '@/utils/auth/kakaoLogin';
 
-// 로그인 버튼 클릭 시
-export const handleLogin = async () => {
+export const handleLogin = async (): Promise<boolean> => {
   try {
     const resKakao = await login();
-    // console.log('res', res.accessToken);
-    api
-      .get('/auth/kakao', {
-        headers: {
-          Authorization: `Bearer ${resKakao.accessToken}`,
-        },
-      })
-      .then((res) => {
-        // console.log('res headers:', res.headers);
-        const accessToken = res.headers['authorization']?.replace(
-          'Bearer ',
-          ''
-        );
-        const refreshToken = res.headers['x-refresh-token'];
-        const user_id = res.data.user_id;
-        // console.log('accessToken', accessToken);
-        // console.log('refreshToken', refreshToken);
-        // console.log('user_id', user_id);
-        if (!accessToken || !refreshToken || !user_id) {
-          console.error('로그인 정보가 올바르지 않습니다.');
-          return;
-        } else {
-          console.log('로그인 성공');
-          // 토큰 및 userid를 SecureStore에 저장
-          SecureStore.setItem('accessToken', accessToken);
-          SecureStore.setItem('refreshToken', refreshToken);
-          SecureStore.setItem('user_id', user_id);
-        }
+    console.log('Waiting for Kakao login response');
 
-        //불러오기
-        // const token = await SecureStore.getItemAsync('accessToken');
-      });
+    // API 요청 처리
+    const res = await api.get('/auth/kakao', {
+      headers: {
+        Authorization: `Bearer ${resKakao.accessToken}`,
+      },
+    });
+
+    // 응답에서 토큰 및 사용자 ID 추출
+    const accessToken = res.headers['authorization']?.replace('Bearer ', '');
+    const refreshToken = res.headers['x-refresh-token'];
+    const user_id = res.data.user_id;
+
+    if (!accessToken || !refreshToken || !user_id) {
+      console.error('로그인 정보가 올바르지 않습니다.');
+      return false;
+    }
+
+    console.log('로그인 성공');
+    // 토큰 및 사용자 ID를 SecureStore에 저장
+    try {
+      await SecureStore.setItemAsync('accessToken', accessToken);
+    } catch (err) {
+      console.error('Failed to store accessToken:', err);
+      return false;
+    }
+    try {
+      await SecureStore.setItemAsync('refreshToken', refreshToken);
+    } catch (err) {
+      console.error('Failed to store refreshToken:', err);
+      return false;
+    }
+    try {
+      await SecureStore.setItemAsync('user_id', user_id);
+    } catch (err) {
+      console.error('Failed to store user_id:', err);
+      return false;
+    }
+
+    return true;
   } catch (error) {
-    console.error(error);
+    console.error('Error during login:', error);
+    return false;
   }
 };
