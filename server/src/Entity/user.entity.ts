@@ -9,24 +9,32 @@ import {
 } from 'typeorm';
 import { TimetableEntry } from 'src/entity/timetableEntry.entity';
 import { Todo } from 'src/entity/todo.entity';
-import { PushToken } from 'src/entity/pushToken.entity';
 
 @Entity('user')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ nullable: true })
   email: string;
 
-  @Column()
-  password: string;
+  @Column({ nullable: true, unique: true })
+  kakaoId: string;
 
-  @Column()
+  @Column({ nullable: true })
   name: string;
+
+  @Column({ nullable: true })
+  password: string;
 
   @Column({ type: 'enum', enum: ['student', 'worker'], default: 'student' })
   role: 'student' | 'worker';
+
+  @Column({ nullable: true })
+  refreshToken: string;
+
+  @Column({ nullable: true })
+  pushToken: string;
 
   @CreateDateColumn()
   created_at: Date;
@@ -39,7 +47,4 @@ export class User {
 
   @OneToMany(() => Todo, todo => todo.user)
   todos: Todo[];
-
-  @OneToMany(() => PushToken, token => token.user)
-  pushTokens: PushToken[];
 }

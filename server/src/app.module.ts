@@ -6,6 +6,7 @@ import { UserModule } from './user/user.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { TodoModule } from './todo/todo.module';
 import { PushModule } from './push/push.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { PushModule } from './push/push.module';
     TimetableModule,
     TodoModule,
     PushModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

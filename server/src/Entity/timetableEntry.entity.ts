@@ -16,10 +16,10 @@ export class TimetableEntry {
   @ManyToOne(() => User, user => user.timetableEntries)
   user: User;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   started_at: Date;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamptz' })
   ended_at: Date;
 
   @Column({ type: 'text' })
@@ -41,4 +41,7 @@ export class TimetableEntry {
 
   @Column({ type: 'text', nullable: true })
   tags: string; // 태그 (예: #운동, #공부 등)
+
+  @Column({ type: 'int', nullable: true })
+  range: number; // 범위 ended_at - started_at (분 단위)
 }
