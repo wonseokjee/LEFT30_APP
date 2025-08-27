@@ -4,11 +4,13 @@ import ActionTrackerModal from '@/hooks/alarm/actionTrackerModal';
 import React from 'react';
 import { useEffect } from 'react';
 import { initializeKakaoSDK } from '@react-native-kakao/core';
+import registerForPushNotificationsAsync from '@/components/pushNotification/registerForPushNotificationsAsync';
 
 export default function RootLayout() {
   const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
   useEffect(() => {
     initializeKakaoSDK(kakaoNativeAppKey);
+    registerForPushNotificationsAsync();
   }, []);
   return (
     <>
