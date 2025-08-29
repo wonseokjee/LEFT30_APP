@@ -10,7 +10,7 @@ export default function RootLayout() {
   const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
   useEffect(() => {
     initializeKakaoSDK(kakaoNativeAppKey);
-    registerForPushNotificationsAsync();
+    // registerForPushNotificationsAsync();
   }, []);
   return (
     <>
