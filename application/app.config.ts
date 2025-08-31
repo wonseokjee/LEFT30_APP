@@ -19,7 +19,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#ffffff',
     },
-    googleServicesFile: './google-services.json',
+    googleServicesFile: './android/app/google-services.json',
   },
   web: {
     bundler: 'metro',
