@@ -5,12 +5,24 @@ import React from 'react';
 import { useEffect } from 'react';
 import { initializeKakaoSDK } from '@react-native-kakao/core';
 import registerForPushNotificationsAsync from '@/components/pushNotification/registerForPushNotificationsAsync';
+import * as Notifications from 'expo-notifications';
 
 export default function RootLayout() {
   const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
   useEffect(() => {
     initializeKakaoSDK(kakaoNativeAppKey);
     // registerForPushNotificationsAsync();
+    const subscription = Notifications.addNotificationReceivedListener(
+      (notification) => {
+        console.log('알림 수신:', notification);
+        // 여기서 알림 데이터 처리 (예: 화면 이동, 데이터 갱신 등)
+      }
+    );
+
+    // 컴포넌트 언마운트 시 구독 해제
+    return () => {
+      subscription.remove();
+    };
   }, []);
   return (
     <>

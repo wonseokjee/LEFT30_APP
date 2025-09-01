@@ -25,7 +25,7 @@ async function registerForPushNotificationsAsync() {
   const user_id = await SecureStore.getItemAsync('user_id');
   // 서버로 token 전송
   console.log('푸시 알림 토큰 등록:', { user_id, FCMToken });
-  // await api.post('/push/register-token', { user_id, FCMToken });
+  await api.post('/push/register-token', { user_id, FCMToken });
 }
 
 export default registerForPushNotificationsAsync;
