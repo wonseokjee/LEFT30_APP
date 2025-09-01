@@ -7,6 +7,16 @@ import { initializeKakaoSDK } from '@react-native-kakao/core';
 import registerForPushNotificationsAsync from '@/components/pushNotification/registerForPushNotificationsAsync';
 import * as Notifications from 'expo-notifications';
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    // shouldShowAlert: true, // 상단에 알림표시
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
 export default function RootLayout() {
   const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
   useEffect(() => {
