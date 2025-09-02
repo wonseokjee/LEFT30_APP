@@ -25,7 +25,9 @@ const TableTimeDivision: React.FC = () => {
       if (containerHeight === 0) return;
       const now = new Date();
       // console.log('now', now);
-      let hour = now.getHours() + 9; // 한국 시간으로 변환 (UTC+9)
+      let hour = now.getHours(); // 한국 시간으로 변환 (UTC+9)
+      //뭔가 꼬이고 있음. now는 UTC로 나오는데 now.getHours()는 16으로 나옴 그래서 +9할필요가 없음.
+      // console.log('hour', now.getHours(), now);
       let minute = now.getMinutes();
       let ampm = hour <= 12 ? 'AM' : 'PM';
 

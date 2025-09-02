@@ -4,16 +4,7 @@ import * as SecureStore from 'expo-secure-store';
 async function registerForPushNotificationsAsync() {
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') return;
-  if (status === 'granted') {
-    console.log('Notification permissions granted.');
-    // await Notifications.scheduleNotificationAsync({
-    //   content: {
-    //     title: '테스트 알림',
-    //     body: '푸시 알림이 정상적으로 동작합니다.',
-    //   },
-    //   trigger: null, // 즉시 발송
-    // });
-  }
+
   //현재는 expo-notification만 활용하지만 추후 FCM도 활용할 수 있으므로 token을 ExpoToken, FCMToken으로 구분
   // const ExpoTokenData = await Notifications.getExpoPushTokenAsync();
   // const ExpoToken = ExpoTokenData.data;

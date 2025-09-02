@@ -33,28 +33,16 @@ const TimeTableSlot = () => {
 
     //여기에서 start, end index로 변환해야함.
     slots?.forEach((slot) => {
-      // const startTime: string = slot.event.startTime;
-      // const endTime: string = slot.event.endTime;
-      // const calHour =
-      //   (Number(endTime.substring(0, 2)) - Number(startTime.substring(0, 2))) *
-      //   60;
-      // const calMin =
-      //   Number(endTime.substring(2)) - Number(startTime.substring(2));
-      // const indexRange = (calHour + calMin) / 10;
-      // const hourIndex =
-      //   Number(startTime.substring(0, 2)) * 6 +
-      //   Number(startTime.substring(2)) / 10;
-      // fullDaySlots[hourIndex - 1] = { ...slot, range: indexRange };
-
       const startTime = new Date(slot.started_at);
       // const endTime = new Date(slot.ended_at);
       const startIndex =
-        (startTime.getHours() + 9) * 6 + // 한국 시간으로 변환 (UTC+9) 및 인덱스 계산( * 6)
+        startTime.getHours() * 6 + // 한국 시간으로 변환 (UTC+9) 및 인덱스 계산( * 6)
+        //이전에는 하드코딩된 9가 들어갔을때 잘 작동했는데 지금은 없어야 잘 작동.
         //하드 코딩된 9는 한국 시간으로 변환하기 위한 값 이후에 나라별로 변환되게
         Math.floor(startTime.getMinutes() / 10); // 시작 시간의 인덱스
       // const endIndex =
       //   endTime.getHours() * 6 + Math.ceil(endTime.getMinutes() / 10); // 종료 시간의 인덱스
-
+      // console.log(startTime.getHours(), startTime.getMinutes(), startIndex);
       // const range = endIndex - startIndex; // 슬롯 범위 계산
 
       fullDaySlots[startIndex] = { ...slot, range: slot.range }; // 시작 인덱스에 슬롯 데이터 삽입
