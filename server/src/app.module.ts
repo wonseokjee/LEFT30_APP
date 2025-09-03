@@ -7,6 +7,7 @@ import { TimetableModule } from './timetable/timetable.module';
 import { TodoModule } from './todo/todo.module';
 import { PushModule } from './push/push.module';
 import { AuthModule } from './auth/auth.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuthModule } from './auth/auth.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // set to false in production
     }),
+    ScheduleModule.forRoot(),
     UserModule,
     TimetableModule,
     TodoModule,

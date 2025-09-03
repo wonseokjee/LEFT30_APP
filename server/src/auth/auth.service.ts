@@ -17,8 +17,8 @@ export class AuthService {
     const kakaoUser = await this.kakaoApiService.getKakaoUser(accessToken);
     const { id: kakao_Id, connected_at: connected_at } =
       kakaoUser.kakaoProfile as { id: number; connected_at: string };
-    console.log('Kakao User:', kakaoUser);
-    console.log('Kakao id:', kakao_Id, connected_at);
+    // console.log('Kakao User:', kakaoUser);
+    // console.log('Kakao id:', kakao_Id, connected_at);
     // 2. 카카오 정보로 유저 찾거나 생성
     const userId = await this.userService.findOrCreateByKakao(kakao_Id);
     // console.log('user_id:', userId);

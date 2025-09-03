@@ -29,7 +29,7 @@ export class AuthJWTService {
   //refreshToken을 생성하는 메서드
   generateRefreshToken(userId: string): string {
     const payload: JWTpayload = { sub: userId };
-    console.log('Generating refresh token for user:', userId);
+    // console.log('Generating refresh token for user:', userId);
     return this.jwtService.sign(payload, { expiresIn: '7d' });
   }
 
