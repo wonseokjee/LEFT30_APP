@@ -36,6 +36,19 @@ export class User {
   @Column({ nullable: true })
   pushToken: string;
 
+  // 방해금지 시작/종료 시간 (시, 분)
+  @Column({ type: 'int', default: 18, nullable: true })
+  doNotDisturbStartHour: number;
+
+  @Column({ type: 'int', default: 0, nullable: true })
+  doNotDisturbStartMinute: number;
+
+  @Column({ type: 'int', default: 9, nullable: true })
+  doNotDisturbEndHour: number;
+
+  @Column({ type: 'int', default: 0, nullable: true })
+  doNotDisturbEndMinute: number;
+
   @CreateDateColumn()
   created_at: Date;
 

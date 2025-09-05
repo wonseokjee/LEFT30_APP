@@ -23,7 +23,7 @@ export class AuthJWTService {
   generateAccessToken(userId: string): string {
     const payload: JWTpayload = { sub: userId };
     console.log('Generating access token for user:', userId);
-    return this.jwtService.sign(payload, { expiresIn: '1m' });
+    return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
   //refreshToken을 생성하는 메서드
