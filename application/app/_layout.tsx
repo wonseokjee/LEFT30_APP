@@ -4,34 +4,39 @@ import ActionTrackerModal from '@/hooks/alarm/actionTrackerModal';
 import React from 'react';
 import { useEffect } from 'react';
 import { initializeKakaoSDK } from '@react-native-kakao/core';
-import registerForPushNotificationsAsync from '@/components/pushNotification/registerForPushNotificationsAsync';
 import * as Notifications from 'expo-notifications';
+import {
+  receivedListener,
+  responseReceivedListener,
+} from '@/components/pushNotification/listener';
+import useNumStore from '@/store/timerStore';
+import registerForPushNotificationsAsync from '@/components/pushNotification/registerForPushNotificationsAsync';
+import { handleNotification } from '@/components/pushNotification/pushNotificationHandler';
 
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    // shouldShowAlert: true, // 상단에 알림표시
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    return handleNotification(notification);
+  },
 });
 
 export default function RootLayout() {
   const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
+  const { setModalOpen } = useNumStore();
   useEffect(() => {
+    //카카오 로그인 SDK 초기화
     initializeKakaoSDK(kakaoNativeAppKey);
-    // registerForPushNotificationsAsync();
-    const subscription = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        console.log('알림 수신:', notification);
-        // 여기서 알림 데이터 처리 (예: 화면 이동, 데이터 갱신 등)
-      }
-    );
+
+    //푸시 알림 토큰 등록
+    registerForPushNotificationsAsync();
+
+    // 푸시 알림 수신 및 응답 리스너 설정
+    const subscription = receivedListener();
+    const responseSubscription = responseReceivedListener(setModalOpen);
 
     // 컴포넌트 언마운트 시 구독 해제
     return () => {
       subscription.remove();
+      responseSubscription.remove();
     };
   }, []);
   return (

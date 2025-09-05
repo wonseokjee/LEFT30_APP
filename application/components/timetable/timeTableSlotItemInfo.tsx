@@ -10,7 +10,6 @@ import {
   TextInput,
   Button,
 } from 'react-native';
-import { firebase_type } from '@/@types/firebase/collections';
 import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 
 type TimeTableSlotProps = {
