@@ -1,21 +1,15 @@
 import { useTodayTimeSlotInfoFromZustand } from '@/store/timeTableStore';
 import api from './api';
+import { setCollection_Test } from '@/@types/firebase/collections';
 
-const user_id = process.env.EXPO_PUBLIC_USER_ID;
-
-export const createTimeSlotInfo = async (
-  // startTime: string,
-  ended_at: string,
-  action: string,
-  description: string
-) => {
+export const createTimeSlotInfo = async (data: setCollection_Test) => {
   try {
     const payload = {
-      user: user_id, // 사용자 ID
+      user: data.userId, // 사용자 ID
       // start_time: startTime, // 시작 시간
-      ended_at: ended_at, // 종료 시간
-      description: description, // 설명
-      action: action, // 한 일
+      ended_at: data.event.endTime, // 종료 시간
+      description: data.event.detail, // 설명
+      action: data.event.action, // 한 일
     };
 
     const res = await api.post('/timetable', payload); // 서버의 '/timetable' 엔드포인트 호출
@@ -28,7 +22,7 @@ export const createTimeSlotInfo = async (
 };
 
 // 오늘의 정보를 받아오는 함수
-export const getTodayTimeSlotInfoFromDB = async () => {
+export const getTodayTimeSlotInfoFromDB = async (user_id: string) => {
   const { setTimeSlot } = useTodayTimeSlotInfoFromZustand.getState();
   try {
     const res = await api.get('/timetable/today/' + user_id); // 서버의 '/timetable/today/:userid' 엔드포인트 호출
@@ -42,7 +36,7 @@ export const getTodayTimeSlotInfoFromDB = async () => {
 };
 
 // 어제의 정보를 받아오는 함수
-export const getYesterdayTimeSlotInfoFromDB = async () => {
+export const getYesterdayTimeSlotInfoFromDB = async (user_id: string) => {
   try {
     const res = await api.get('/timetable/yesterday/' + user_id); // 서버의 '/timetable/yesterday' 엔드포인트 호출
     return res.data; // 어제의 정보 반환

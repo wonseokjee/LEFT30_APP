@@ -5,19 +5,23 @@ import {
   getYesterdayTimeSlotInfoFromDB,
 } from '@/api/timetableApi';
 import { Button } from 'react-native-elements';
-import { useKakaoLogin } from '@/utils/auth/kakaoLogin';
 import { handleLogin } from '@/hooks/login/handleLoginBtn';
 import checkLogin from '@/hooks/login/checkLogin';
 import registerForPushNotificationsAsync from '../pushNotification/registerForPushNotificationsAsync';
+import * as SecureStore from 'expo-secure-store';
 
 export default function GetButton() {
   const { todaydata } = useTodayTimeSlotInfoFromZustand();
-  const { loginWithKakao, request } = useKakaoLogin();
 
   const onPress = async () => {
     try {
-      await getTodayTimeSlotInfoFromDB();
-      await getYesterdayTimeSlotInfoFromDB();
+      const user_id = await SecureStore.getItemAsync('user_id');
+      if (!user_id) {
+        console.log('user_id가 없습니다.');
+        return;
+      }
+      await getTodayTimeSlotInfoFromDB(user_id);
+      await getYesterdayTimeSlotInfoFromDB(user_id);
     } catch (error) {
       console.log('error', error);
     }
@@ -30,7 +34,7 @@ export default function GetButton() {
       <Button
         title='푸시 알림 토큰 등록'
         onPress={() => registerForPushNotificationsAsync()}
-      ></Button>
+      ></Button> 
       <TouchableOpacity onPress={onPress}>
         <View style={{}}>
           <Text style={{ color: 'white' }}>여기는 zustand 확인</Text>
