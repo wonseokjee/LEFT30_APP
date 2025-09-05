@@ -7,10 +7,10 @@ export class PushController {
 
   @Post('register-token')
   async registerToken(
-    @Body('userId') userId: string,
-    @Body('expoPushToken') expoPushToken: string,
+    @Body('user_id') userId: string,
+    @Body('FCMToken') FCMPushToken: string,
   ) {
-    await this.pushService.saveExpoPushToken(userId, expoPushToken);
-    return { message: 'Expo push token registered successfully' };
+    await this.pushService.saveFCMPushToken(userId, FCMPushToken);
+    return { message: 'FCM push token registered successfully' };
   }
 }
