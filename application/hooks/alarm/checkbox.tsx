@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { checkProps } from './actionTrackerModal';
+import {
+  CheckboxItem,
+  CheckboxListProps,
+  CheckboxLabel,
+} from '@/@types/timeSlot/checkBoxType';
 
-type CheckboxItem = {
-  id: number;
-  label: string;
-  checked: boolean;
-};
-
-type CheckboxListProps = {
-  items: CheckboxItem[];
-  onChange: (selectedItem: CheckboxItem | null) => void;
-};
-
+type CheckBoxProps = {
+  items: CheckboxLabel[];
+} & checkProps;
 const CheckboxList: React.FC<CheckboxListProps> = ({ items, onChange }) => {
   const handleToggle = (id: number) => {
     const updatedItems = items.map((item) => ({
@@ -41,15 +38,15 @@ const CheckboxList: React.FC<CheckboxListProps> = ({ items, onChange }) => {
   );
 };
 
-const CheckBox = (props: checkProps) => {
-  const [checkboxItems, setCheckboxItems] = useState<CheckboxItem[]>([
-    { id: 1, label: '수면', checked: false },
-    { id: 2, label: '휴식', checked: false },
-    { id: 3, label: '운동', checked: false },
-    { id: 4, label: '관계', checked: false },
-    { id: 5, label: '자기개발', checked: false },
-    { id: 6, label: '업무', checked: false },
-  ]);
+const CheckBox = (props: CheckBoxProps) => {
+  //나중에 type으로 따로 빼야함.
+  const [checkboxItems, setCheckboxItems] = useState<CheckboxItem[]>(
+    (props.items ?? []).map((label, idx) => ({
+      id: idx + 1,
+      label,
+      checked: false,
+    }))
+  );
   const [selectedItem, setSelectedItem] = useState<CheckboxItem | null>();
 
   const handleCheckboxChange = (selectedItem: CheckboxItem | null) => {
@@ -69,11 +66,7 @@ const CheckBox = (props: checkProps) => {
 
   return (
     <View style={styles.appContainer}>
-      {/* <Text style={styles.title}>Checkbox List</Text> */}
       <CheckboxList items={checkboxItems} onChange={handleCheckboxChange} />
-      {/* <Text style={styles.selectedItemText}>
-        Selected: {selectedItem ? selectedItem.label : 'None'}
-      </Text> */}
     </View>
   );
 };
