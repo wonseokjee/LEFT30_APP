@@ -4,15 +4,11 @@ import serviceAccount from '../../config/serviceAccountKey.json';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entity/user.entity';
 import { Repository } from 'typeorm/repository/Repository';
-import {
-  sendPushNotification,
-  sendPushNotificationTEST,
-} from './component/sendPushNotification';
+import { sendPushNotification } from './component/sendPushNotification';
 import { Cron } from '@nestjs/schedule';
-import { Not } from 'typeorm';
-import { checkDisturbHour } from './component/handlePushNotification';
 import { TimetableEntry } from 'src/entity/timetableEntry.entity';
 import { isSameMinute } from './component/compareTime';
+import { getNotDisturbUsers } from './query/notDisturbUser';
 
 @Injectable()
 export class PushService {
@@ -35,12 +31,15 @@ export class PushService {
   }
 
   async saveFCMPushToken(userId: string, FCMPushToken: string): Promise<void> {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) throw new Error('User not found');
-    user.pushToken = FCMPushToken;
-    console.log('FCM Push Token saved for user:', userId, FCMPushToken);
-    await this.userRepo.save(user);
-    await sendPushNotificationTEST(userId, this.userRepo);
+    try {
+      const user = await this.userRepo.findOne({ where: { id: userId } });
+      if (!user) throw new Error('User not found');
+      user.pushToken = FCMPushToken;
+      console.log('FCM Push Token saved for user:', userId, FCMPushToken);
+      await this.userRepo.save(user);
+    } catch (error) {
+      console.error('FCM Push Token save error:', error);
+    }
   }
   // FCM 토큰 삭제 메서드
   async removeToken(userId: string): Promise<void> {
@@ -59,27 +58,15 @@ export class PushService {
     //조건: pushtoken유무, 현재 행동등록x, 현재가 방해금지시간이 아닐 것, 이전 행동이 없으면 저장x.
 
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const nowHour = fiveMinutesAgo.getHours();
-    const nowMinute = fiveMinutesAgo.getMinutes();
+    const fiveMinutesAgoHour = fiveMinutesAgo.getHours();
+    const fiveMinutesAgoMinute = fiveMinutesAgo.getMinutes();
 
-    // 방해금지 startHour < endHour (예: 22시~7시) 인 경우
-    // 방해금지 startHour > endHour (예: 1시~9시) 인 경우 모두 고려.
     // pushtoken이 있고, 5분전이 방해금지시간이 아닌 유저
-    const users = await this.userRepo
-      .createQueryBuilder('user')
-      .where("user.pushToken IS NOT NULL AND user.pushToken != ''")
-      .andWhere(
-        'NOT (' +
-          '(user.doNotDisturbStartHour < user.doNotDisturbEndHour AND ' +
-          '(user.doNotDisturbStartHour < :nowHour OR (user.doNotDisturbStartHour = :nowHour AND user.doNotDisturbStartMinute <= :nowMinute)) AND ' +
-          '(:nowHour < user.doNotDisturbEndHour OR (:nowHour = user.doNotDisturbEndHour AND :nowMinute < user.doNotDisturbEndMinute))) OR ' +
-          '(user.doNotDisturbStartHour > user.doNotDisturbEndHour AND ' +
-          '((user.doNotDisturbStartHour < :nowHour OR (user.doNotDisturbStartHour = :nowHour AND user.doNotDisturbStartMinute <= :nowMinute)) OR ' +
-          '(:nowHour < user.doNotDisturbEndHour OR (:nowHour = user.doNotDisturbEndHour AND :nowMinute < user.doNotDisturbEndMinute))))' +
-          ')',
-      )
-      .setParameters({ nowHour, nowMinute })
-      .getMany();
+    const users = await getNotDisturbUsers(
+      this.userRepo,
+      fiveMinutesAgoHour,
+      fiveMinutesAgoMinute,
+    );
 
     for (const user of users) {
       // const action = '이전 행동'; // 실제로는 이전 행동을 DB에서 가져와야 함.
@@ -92,7 +79,6 @@ export class PushService {
         },
         order: { ended_at: 'DESC' },
       });
-      // console.log(previousAction, thirtyFiveMinutesAgo);
       if (
         previousAction &&
         isSameMinute(previousAction.ended_at, thirtyFiveMinutesAgo)
@@ -127,24 +113,30 @@ export class PushService {
     }
   }
 
-  @Cron('0,30 * * * *')
+  @Cron('0,56 * * * *')
   async inputPresentAction(): Promise<void> {
-    const users = await this.userRepo.find({ where: { pushToken: Not('') } });
+    // pushtoken이 있고, 1분전이(방해금지 시작시간이면 포함 안돼서 1분전으로) 방해금지시간이 아닌 유저
+    const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
+    const oneMinuteAgoHour = oneMinuteAgo.getHours();
+    const oneMinuteAgoMinute = oneMinuteAgo.getMinutes();
+    const users = await getNotDisturbUsers(
+      this.userRepo,
+      oneMinuteAgoHour,
+      oneMinuteAgoMinute,
+    );
     for (const user of users) {
-      if (await checkDisturbHour(user)) {
-        //이전 실행 가져온다면 action을 넣는게 좋을듯.
-        await sendPushNotification(
-          user.pushToken,
-          '행동 입력',
-          // `이번 할일이 ${action}으로 입력되었습니다. 수정하려면 클릭하세요`,
-          '이번 할일을 입력해주세요',
-          {
-            user: user.name,
-            openModal: 'true',
-            type: 'normal',
-          },
-        );
-      }
+      //이전 실행 가져온다면 action을 넣는게 좋을듯.
+      await sendPushNotification(
+        user.pushToken,
+        '행동 입력',
+        // `이번 할일이 ${action}으로 입력되었습니다. 수정하려면 클릭하세요`,
+        '이번 할일을 입력해주세요',
+        {
+          user: user.name,
+          openModal: 'true',
+          type: 'normal',
+        },
+      );
     }
   }
 }

@@ -43,5 +43,5 @@ export class TimetableEntry {
   tags: string; // 태그 (예: #운동, #공부 등)
 
   @Column({ type: 'int', nullable: true })
-  range: number; // 범위 ended_at - started_at (분 단위)
+  range: number; // 범위 ended_at - started_at (10분 단위)
 }
