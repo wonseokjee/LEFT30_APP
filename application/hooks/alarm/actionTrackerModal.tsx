@@ -12,6 +12,7 @@ import CheckBox from './checkbox';
 import { setCollection_Test } from '@/@types/firebase/collections';
 import useNumStore from '@/store/timerStore';
 import { createTimeSlotInfo } from '@/api/timetableApi';
+import * as SecureStore from 'expo-secure-store';
 
 export interface checkProps {
   checkValue: (str: string) => void;
@@ -27,14 +28,14 @@ const ActionTrackerModal = () => {
     // console.log('여기는 부모:' + str);
   };
   //USERID는 다른곳에서 관리
-  const USER_ID = '1';
   const handleConfirm = async () => {
+    const user_id = await SecureStore.getItemAsync('user_id');
     //checkbox가 체크되어 있지 않으면 confirm 안되게
     // console.log('입력된 값:', inputValue);
-    if (checkboxValue) {
+    if (checkboxValue && user_id) {
       //firebase collection 'test'에 들어갈 value
       const testValue: setCollection_Test = {
-        userId: USER_ID,
+        userId: user_id,
         date: date,
         event: {
           action: checkboxValue,
@@ -44,11 +45,7 @@ const ActionTrackerModal = () => {
           endTime: endTime,
         },
       };
-      //firebase에 입력
-      // await setFirebaseCollection_Test('test', testValue);
-      const ended_at = new Date().toISOString();
-      // console.log('ended_at', ended_at);
-      await createTimeSlotInfo(ended_at, checkboxValue, inputValue);
+      await createTimeSlotInfo(testValue);
       setModalClose();
     } else {
       //확인버튼 눌렀을때 checkbox 체크 안되어 있으면 '한 일을 체크해주세요' 문구가 떨리는 effect추가하기
@@ -62,7 +59,7 @@ const ActionTrackerModal = () => {
     setCheckboxValue(null);
     setInputValue('');
     const insDate = new Date().toLocaleString();
-    console.log(insDate);
+    console.log(insDate + '에 취소를 눌렀습니다.');
   };
 
   return (
@@ -77,7 +74,10 @@ const ActionTrackerModal = () => {
           <View style={styles.alertBox}>
             <Text style={styles.alertTitle}>어떤 일을 하셨나요?</Text>
             {/* checkbox.tsx */}
-            <CheckBox checkValue={checkboxHandler} />
+            <CheckBox
+              items={['수면', '휴식', '운동', '관계', '자기개발', '업무']}
+              checkValue={checkboxHandler}
+            />
             {checkboxValue ? <></> : <Text>한 일을 체크 해주세요!</Text>}
             <TextInput
               style={styles.input}
