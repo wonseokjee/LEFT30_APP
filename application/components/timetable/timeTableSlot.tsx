@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import TimeTableSlotItem from './timeTableSlotItem';
-import { firebase_type } from '@/@types/firebase/collections';
 import {
   useTimeSlotStore_today,
   useTimeSlotStore_yesterday,
@@ -46,7 +45,6 @@ const TimeTableSlot = () => {
   };
 
   const generateFullDaySlots = (
-    // slots: firebase_type[] | null
     slots: timeSlotType[] | null
   ): (timeSlotType | null)[] => {
     const totalSlots = 144;

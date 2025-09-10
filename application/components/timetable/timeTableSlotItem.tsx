@@ -31,6 +31,7 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
   if (!slotdata) return null;
 
   const duration = slotdata ? slotdata.range! * 100 : 0;
+  //db에 저장된 action type에 따라 다른 color를 쓰도록 변경. itemInfo도 변경해야함.
   const colorKey = slotdata
     ? (slotdata.action as keyof typeof ACTION_TYPE_COLOR)
     : null;
