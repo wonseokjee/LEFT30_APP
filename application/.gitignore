@@ -31,11 +31,11 @@ yarn-error.*
 
 # local env files
 .env*.local
-
+.env
 # typescript
 *.tsbuildinfo
 
 app-example
 
-#firebase
-firebaseConfig.js
+#not upgrade
+#@react-native-firebase/app, @react-native-firebase/database, @react-native-firebase/firestore, @react-navigation/bottom-tabs, @react-navigation/native, @react-navigation/stack, axios, firebase, react-native-elements, react-native-vector-icons, zustand, @types/jest, @types/react-test-renderer, react-test-renderer

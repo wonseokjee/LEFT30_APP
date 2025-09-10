@@ -9,31 +9,6 @@ import TodoDetailScreen from '@/components/todo/todoItem';
 
 const Stack = createStackNavigator();
 
-// function TodoStack() {
-//   const navigation = useNavigation();
-
-//   return (
-//     <Stack.Navigator>
-//       <Stack.Screen
-//         name='Todo'
-//         component={TodoScreen}
-//         options={{
-//           headerLeft: () => (
-//             <TouchableOpacity onPress={() => navigation.navigate('home')}>
-//               <Entypo
-//                 name='home'
-//                 size={24}
-//                 color='white'
-//                 style={{ marginLeft: 15 }}
-//               />
-//             </TouchableOpacity>
-//           ),
-//         }}
-//       />
-//       <Stack.Screen name='TodoDetail' component={TodoDetailScreen} />
-//     </Stack.Navigator>
-//   );
-// }
 
 export default function TabLayout() {
   return (
