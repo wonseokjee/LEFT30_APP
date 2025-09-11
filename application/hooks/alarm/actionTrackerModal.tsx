@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import CheckBox from './checkbox';
-// import { setFirebaseCollection_Test } from '@/api/firebase';
 import { setCollection_Test } from '@/@types/firebase/collections';
 import useNumStore from '@/store/timerStore';
 import { createTimeSlotInfo } from '@/api/timetableApi';
@@ -20,9 +19,9 @@ export interface checkProps {
 
 const ActionTrackerModal = () => {
   const [inputValue, setInputValue] = useState<string>('');
-  const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
   const { timerModalOpen, setModalClose, date, startTime, endTime, newDate } =
-    useNumStore();
+  useNumStore();
+  const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
   const checkboxHandler = (str: string) => {
     setCheckboxValue(str);
     // console.log('여기는 부모:' + str);

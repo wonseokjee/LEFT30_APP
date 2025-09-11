@@ -21,7 +21,7 @@ export default function LoginPage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to My App</Text>
+      <Text style={styles.title}>Welcome to LEFT30</Text>
       <Button title='Login with Kakao' onPress={onLoginPress} />
     </View>
   );
