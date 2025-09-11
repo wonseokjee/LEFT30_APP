@@ -4,6 +4,7 @@ import {
 } from '@/store/timeTableStore';
 import api from './api';
 import { setCollection_Test } from '@/@types/firebase/collections';
+import * as SecureStore from 'expo-secure-store';
 
 export const createTimeSlotInfo = async (data: setCollection_Test) => {
   try {
@@ -45,5 +46,30 @@ export const getYesterdayTimeSlotInfoFromDB = async (user_id: string) => {
   } catch (error) {
     console.error('Error fetching yesterday info:', error);
     return null;
+  }
+};
+
+export const updateTimeSlotInfo = async (
+  start: Date | null,
+  end: Date | null,
+  detail: string,
+  action: string
+) => {
+  const userId = await SecureStore.getItemAsync('user_id');
+  try {
+    const payload = {
+      user: userId, // 사용자 ID
+      start_time: start, // 시작 시간
+      ended_at: end, // 종료 시간
+      description: detail, // 설명
+      action: action, // 한 일
+    };
+
+    const res = await api.post('/timetable/update', payload); // 서버의 '/timetable' 엔드포인트 호출
+    // console.log('Time slot created:', res.data); // 응답 데이터 확인
+    return res.data; // 생성된 timetable 정보 반환
+  } catch (error) {
+    console.error('Error creating time slot:', error);
+    return null; // 에러 발생 시 null 반환
   }
 };
