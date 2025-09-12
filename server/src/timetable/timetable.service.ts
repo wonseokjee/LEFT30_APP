@@ -3,8 +3,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateTimetableDto } from 'src/dto/timetable/createTimetable.dto';
 import { TimetableEntry } from 'src/entity/timetableEntry.entity';
-import { Between, Repository } from 'typeorm';
+import { Between, Raw, Repository } from 'typeorm';
 import dayjs from 'dayjs';
+import { splitInto30MinEndTimes } from './component/splitInto30MinEndTimes';
 
 @Injectable()
 export class TimetableService {
@@ -17,10 +18,19 @@ export class TimetableService {
     const { ended_at } = createTimetableDto;
 
     // ended_at을 ISO 8601 문자열에서 Date 객체로 변환
-    const endTime = new Date(ended_at);
-    // console.log('ended_at', endedAtDate);
-
-    // ended_at에서 30분 전 시간을 계산하여 started_at 생성
+    const today = new Date();
+    const hour = Number(ended_at.slice(0, 2));
+    const minute = Number(ended_at.slice(2, 4));
+    const endTime = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      hour,
+      minute,
+      0,
+      0,
+    );
+    //현재는 30분 고정이지만, 나중에 유저가 정할 수 있게 변경 가능
     const started_at = dayjs(endTime).subtract(30, 'minute').toDate();
 
     // 시작 시간과 종료 시간을 기반으로 슬롯 범위 계산
@@ -104,12 +114,43 @@ export class TimetableService {
     });
   }
 
-  async update(id: string, updateData: Partial<TimetableEntry>) {
-    await this.timetableRepo.update(id, updateData);
-    return this.findOne(id);
-  }
+  // 시간범위로 받아와서 해당 시간대에 행동있으면 update, 없으면 create
+  async timeUpdate(updateData: CreateTimetableDto) {
+    //updateData.started_at과 updateData.ended_at를 30분 간격으로 나눔.
+    console.log('updateData', updateData);
+    const { started_at, ended_at } = updateData;
+    if (!started_at || !ended_at) {
+      throw new Error('started_at and ended_at are required for update');
+    }
 
-  async remove(id: string): Promise<void> {
-    await this.timetableRepo.delete(id);
+    const endSlots = splitInto30MinEndTimes(
+      new Date(started_at),
+      new Date(ended_at),
+    );
+    console.log('endSlots', endSlots);
+    // // 각 슬롯에 대해 update 또는 create 수행
+    for (const end of endSlots) {
+      const existingEntry = await this.timetableRepo.findOne({
+        where: {
+          ended_at: Raw(
+            alias =>
+              `TO_CHAR(${alias}, 'YYYY-MM-DD HH24:MI') = '${dayjs(end).format('YYYY-MM-DD HH:mm')}'`,
+          ),
+          user: { id: updateData.user_id },
+        },
+      });
+      console.log('existingEntry', existingEntry);
+      const { ended_at, ...rest } = updateData;
+      const updatepayload = { ...rest, ended_at: end };
+      console.log('updatepayload', updatepayload);
+      if (existingEntry) {
+        await this.timetableRepo.update(existingEntry.id, updatepayload);
+      } else {
+        this.timetableRepo.create({
+          ...updateData,
+          ended_at: end,
+        });
+      }
+    }
   }
 }

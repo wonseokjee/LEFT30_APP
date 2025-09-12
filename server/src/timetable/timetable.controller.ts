@@ -5,12 +5,10 @@ import {
   Post,
   Body,
   Param,
-  Delete,
-  Put,
+  // Delete,
   // Query,
 } from '@nestjs/common';
 import { TimetableService } from './timetable.service';
-import { TimetableEntry } from 'src/entity/timetableEntry.entity';
 import { CreateTimetableDto } from 'src/dto/timetable/createTimetable.dto';
 
 @Controller('timetable')
@@ -47,13 +45,13 @@ export class TimetableController {
     return this.timetableService.findYesterdayEntries(userId);
   }
 
-  @Put(':id')
-  update(@Param('id') id: string, @Body() body: Partial<TimetableEntry>) {
-    return this.timetableService.update(id, body);
+  @Post('/timeUpdate')
+  timeUpdate(@Body() body: CreateTimetableDto) {
+    return this.timetableService.timeUpdate(body);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.timetableService.remove(id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.timetableService.remove(id);
+  // }
 }
