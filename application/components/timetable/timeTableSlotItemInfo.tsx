@@ -48,7 +48,7 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
     console.log('Updated Action:', action);
     console.log('Updated Detail:', detail);
     console.log('Selected Start Time:', selectedStart, selectedEnd);
-    // await updateTimeSlotInfo(selectedStart, selectedEnd, detail, action);
+    await updateTimeSlotInfo(selectedStart, selectedEnd, detail, action);
     // console.log(slotdata);
     onClose();
   };
@@ -89,7 +89,7 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
 
         <TouchableOpacity
           style={styles.action}
-          onPress={() => setShowActionCheckBox(true)}
+          onPress={() => setShowActionCheckBox((prev) => !prev)}
           // activeOpacity={0.8}
         >
           <Text style={styles.actionTitle}>한 일</Text>
@@ -108,11 +108,17 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
           />
         )}
         <TimeRangePicker
-          slotData={{ started_at: selectedStart, ended_at: selectedEnd }}
-          onChange={(start, end) => {
+          slotData={{ time: selectedStart, label: '시작' }}
+          onChange={(time) => {
             // start, end를 활용해 slotdata의 started_at 등 처리
-            setSelectedStart(start);
-            setSelectedEnd(end);
+            setSelectedStart(time);
+          }}
+        />
+        <TimeRangePicker
+          slotData={{ time: selectedEnd, label: '종료' }}
+          onChange={(time) => {
+            // start, end를 활용해 slotdata의 started_at 등 처리
+            setSelectedEnd(time);
           }}
         />
         <TextInput

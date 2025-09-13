@@ -58,14 +58,15 @@ export const updateTimeSlotInfo = async (
   const userId = await SecureStore.getItemAsync('user_id');
   try {
     const payload = {
-      user: userId, // 사용자 ID
-      start_time: start, // 시작 시간
+      user_id: userId, // 사용자 ID
+      started_at: start, // 시작 시간
       ended_at: end, // 종료 시간
       description: detail, // 설명
       action: action, // 한 일
     };
 
-    const res = await api.post('/timetable/update', payload); // 서버의 '/timetable' 엔드포인트 호출
+    console.log('Payload for update:', payload);
+    const res = await api.post('/timetable/timeUpdate/', payload); // 서버의 '/timetable' 엔드포인트 호출
     // console.log('Time slot created:', res.data); // 응답 데이터 확인
     return res.data; // 생성된 timetable 정보 반환
   } catch (error) {

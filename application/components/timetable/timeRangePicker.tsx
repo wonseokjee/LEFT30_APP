@@ -4,26 +4,23 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { GRAY_7 } from '@/assets/palette';
 
 type Props = {
-  onChange: (start: Date, end: Date) => void;
-  slotData: { started_at: Date; ended_at: Date };
+  onChange: (time: Date) => void;
+  slotData: { time: Date; label: string };
 };
 
+// 하나씩 받아올 수 있도록 수정하자. 코드 절반으로 줄일수있음.
 const TimeRangePicker: React.FC<Props> = ({ onChange, slotData }) => {
-  const [startTime, setStartTime] = useState(
-    slotData.started_at ? new Date(slotData.started_at) : new Date()
+  const [time, setTime] = useState(
+    slotData.time ? new Date(slotData.time) : new Date()
   );
-  const [endTime, setEndTime] = useState(
-    slotData.ended_at ? new Date(slotData.ended_at) : new Date()
-  );
-  const [showStart, setShowStart] = useState(false);
-  const [showEnd, setShowEnd] = useState(false);
+  const [showTime, setShowTime] = useState(false);
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => setShowStart(true)}>
-        <Text style={styles.pickerLabel}>시작</Text>
+      <TouchableOpacity onPress={() => setShowTime(true)}>
+        <Text style={styles.pickerLabel}>{slotData.label}</Text>
         <Text style={styles.label}>
-          {startTime.toLocaleTimeString([], {
+          {time.toLocaleTimeString([], {
             month: '2-digit',
             day: '2-digit',
             hour: '2-digit',
@@ -31,44 +28,19 @@ const TimeRangePicker: React.FC<Props> = ({ onChange, slotData }) => {
           })}
         </Text>
       </TouchableOpacity>
-      {showStart && (
+      {showTime && (
         <DateTimePicker
-          value={startTime}
+          value={time}
           mode='time'
           is24Hour={true}
           display='spinner'
           minuteInterval={30}
           onChange={(event, selectedDate) => {
-            setShowStart(false);
-            if (selectedDate) setStartTime(selectedDate);
-            onChange(startTime, endTime);
-          }}
-          style={styles.picker}
-        />
-      )}
-      <TouchableOpacity onPress={() => setShowEnd(true)}>
-        <Text style={styles.pickerLabel}>종료</Text>
-        <Text style={styles.label}>
-          {/* 종료 시간:{' '} */}
-          {endTime.toLocaleTimeString([], {
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-        </Text>
-      </TouchableOpacity>
-      {showEnd && (
-        <DateTimePicker
-          value={endTime}
-          mode='time'
-          is24Hour={true}
-          display='spinner'
-          minuteInterval={30}
-          onChange={(event, selectedDate) => {
-            setShowEnd(false);
-            if (selectedDate) setEndTime(selectedDate);
-            onChange(startTime, endTime);
+            setShowTime(false);
+            if (selectedDate) {
+              setTime(selectedDate);
+              onChange(selectedDate);
+            }
           }}
           style={styles.picker}
         />
