@@ -53,4 +53,20 @@ export class UserService {
     }
     return user.id;
   }
+
+  async updateDisturbTime(
+    userId: string,
+    doNotDisturbStartHour: number,
+    doNotDisturbStartMinute: number,
+    doNotDisturbEndHour: number,
+    doNotDisturbEndMinute: number,
+  ) {
+    // 사용자 정보를 업데이트
+    return this.userRepo.update(userId, {
+      doNotDisturbStartHour: doNotDisturbStartHour,
+      doNotDisturbStartMinute: doNotDisturbStartMinute,
+      doNotDisturbEndHour: doNotDisturbEndHour,
+      doNotDisturbEndMinute: doNotDisturbEndMinute,
+    });
+  }
 }

@@ -140,15 +140,14 @@ export class TimetableService {
         },
       });
       console.log('existingEntry', existingEntry);
-      const { ended_at, ...rest } = updateData;
-      const updatepayload = { ...rest, ended_at: end };
+      const updatepayload = { ...updateData };
+      updatepayload.ended_at = end.toISOString();
       console.log('updatepayload', updatepayload);
       if (existingEntry) {
         await this.timetableRepo.update(existingEntry.id, updatepayload);
       } else {
         this.timetableRepo.create({
-          ...updateData,
-          ended_at: end,
+          ...updatepayload,
         });
       }
     }

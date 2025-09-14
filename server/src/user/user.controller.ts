@@ -1,4 +1,4 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/auth/JWT/jwt.authGuard';
 
@@ -19,6 +19,25 @@ export class UserController {
     // if (!user) {
     //   throw new NotFoundException(`User with ID ${id} not found`);
     // }
+    return user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('disturbTime/:id')
+  async getDisturbTime(
+    @Param('id') id: string,
+    @Body('starthour') starthour: number,
+    @Body('startminute') startminute: number,
+    @Body('endhour') endhour: number,
+    @Body('endminute') endminute: number,
+  ) {
+    const user = await this.userService.updateDisturbTime(
+      id,
+      starthour,
+      startminute,
+      endhour,
+      endminute,
+    );
     return user;
   }
 }
