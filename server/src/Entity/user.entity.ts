@@ -38,16 +38,16 @@ export class User {
 
   // 방해금지 시작/종료 시간 (시, 분)
   @Column({ type: 'int', default: 18, nullable: true })
-  doNotDisturbStartHour: number;
+  quietStartHour: number;
 
   @Column({ type: 'int', default: 0, nullable: true })
-  doNotDisturbStartMinute: number;
+  quietStartMinute: number;
 
   @Column({ type: 'int', default: 9, nullable: true })
-  doNotDisturbEndHour: number;
+  quietEndHour: number;
 
   @Column({ type: 'int', default: 0, nullable: true })
-  doNotDisturbEndMinute: number;
+  quietEndMinute: number;
 
   @CreateDateColumn()
   created_at: Date;

@@ -54,19 +54,37 @@ export class UserService {
     return user.id;
   }
 
-  async updateDisturbTime(
+  async findQuietTimeById(userId: string) {
+    // 사용자 정보를 업데이트
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    return {
+      quietStartHour: user?.quietStartHour,
+      quietStartMinute: user?.quietStartMinute,
+      quietEndHour: user?.quietEndHour,
+      quietEndMinute: user?.quietEndMinute,
+    };
+  }
+
+  async updateQuietTime(
     userId: string,
-    doNotDisturbStartHour: number,
-    doNotDisturbStartMinute: number,
-    doNotDisturbEndHour: number,
-    doNotDisturbEndMinute: number,
+    quietStartHour: number,
+    quietStartMinute: number,
+    quietEndHour: number,
+    quietEndMinute: number,
   ) {
     // 사용자 정보를 업데이트
-    return this.userRepo.update(userId, {
-      doNotDisturbStartHour: doNotDisturbStartHour,
-      doNotDisturbStartMinute: doNotDisturbStartMinute,
-      doNotDisturbEndHour: doNotDisturbEndHour,
-      doNotDisturbEndMinute: doNotDisturbEndMinute,
-    });
+    // const userId = await this.userRepo.findOne({ where: { id: userId } });
+    try {
+      await this.userRepo.update(userId, {
+        quietStartHour: quietStartHour,
+        quietStartMinute: quietStartMinute,
+        quietEndHour: quietEndHour,
+        quietEndMinute: quietEndMinute,
+      });
+      return { status: 'success' };
+    } catch (error) {
+      console.log(error);
+      return { status: 'error' };
+    }
   }
 }

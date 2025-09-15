@@ -22,22 +22,27 @@ export class UserController {
     return user;
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Post('disturbTime/:id')
-  async getDisturbTime(
+  // @UseGuards(JwtAuthGuard)
+  @Post('quietTime/:id')
+  async updateQuietTime(
     @Param('id') id: string,
-    @Body('starthour') starthour: number,
-    @Body('startminute') startminute: number,
-    @Body('endhour') endhour: number,
-    @Body('endminute') endminute: number,
+    @Body('quietStartHour') quietStartHour: number,
+    @Body('quietStartMinute') quietStartMinute: number,
+    @Body('quietEndHour') quietEndHour: number,
+    @Body('quietEndMinute') quietEndMinute: number,
   ) {
-    const user = await this.userService.updateDisturbTime(
+    const user = await this.userService.updateQuietTime(
       id,
-      starthour,
-      startminute,
-      endhour,
-      endminute,
+      quietStartHour,
+      quietStartMinute,
+      quietEndHour,
+      quietEndMinute,
     );
     return user;
+  }
+
+  @Get('quietTime/:id')
+  async findQuietTimeById(@Param('id') id: string) {
+    return this.userService.findQuietTimeById(id);
   }
 }
