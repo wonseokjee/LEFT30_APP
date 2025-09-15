@@ -17,7 +17,7 @@ export class TimetableController {
 
   @Post()
   create(@Body() body: CreateTimetableDto) {
-    return this.timetableService.create(body);
+    return this.timetableService.createOne(body);
   }
 
   @Get()
@@ -47,7 +47,7 @@ export class TimetableController {
 
   @Post('/timeUpdate')
   timeUpdate(@Body() body: CreateTimetableDto) {
-    return this.timetableService.timeUpdate(body);
+    return this.timetableService.updateTimeSlot(body);
   }
 
   // @Delete(':id')
