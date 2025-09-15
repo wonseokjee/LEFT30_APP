@@ -3,17 +3,20 @@ import {
   useYesterdayTimeSlotInfoFromZustand,
 } from '@/store/timeTableStore';
 import api from './api';
-import { setCollection_Test } from '@/@types/firebase/collections';
 import * as SecureStore from 'expo-secure-store';
+import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 
-export const createTimeSlotInfo = async (data: setCollection_Test) => {
+export const createTimeSlotInfo = async (
+  data: timeSlotType,
+  user_id: string
+) => {
   try {
     const payload = {
-      user: data.userId, // 사용자 ID
+      user: user_id, // 사용자 ID
       // start_time: startTime, // 시작 시간
-      ended_at: data.event.endTime, // 종료 시간
-      description: data.event.detail, // 설명
-      action: data.event.action, // 한 일
+      ended_at: data.ended_at, // 종료 시간
+      description: data.description, // 설명
+      action: data.action, // 한 일
     };
 
     const res = await api.post('/timetable', payload); // 서버의 '/timetable' 엔드포인트 호출
@@ -58,7 +61,7 @@ export const updateTimeSlotInfo = async (
   const userId = await SecureStore.getItemAsync('user_id');
   try {
     const payload = {
-      user_id: userId, // 사용자 ID
+      user: userId, // 사용자 ID
       started_at: start, // 시작 시간
       ended_at: end, // 종료 시간
       description: detail, // 설명

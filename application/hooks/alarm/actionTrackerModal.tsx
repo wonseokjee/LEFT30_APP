@@ -8,10 +8,11 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import CheckBox from './checkbox';
-import { setCollection_Test } from '@/@types/firebase/collections';
 import useNumStore from '@/store/timerStore';
 import { createTimeSlotInfo } from '@/api/timetableApi';
 import * as SecureStore from 'expo-secure-store';
+import { GRAY_7, GRAY_8 } from '@/assets/palette';
+import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 
 export interface checkProps {
   checkValue: (str: string) => void;
@@ -19,8 +20,7 @@ export interface checkProps {
 
 const ActionTrackerModal = () => {
   const [inputValue, setInputValue] = useState<string>('');
-  const { timerModalOpen, setModalClose, date, startTime, endTime, newDate } =
-  useNumStore();
+  const { timerModalOpen, setModalClose, endTime } = useNumStore();
   const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
   const checkboxHandler = (str: string) => {
     setCheckboxValue(str);
@@ -33,18 +33,13 @@ const ActionTrackerModal = () => {
     // console.log('입력된 값:', inputValue);
     if (checkboxValue && user_id) {
       //firebase collection 'test'에 들어갈 value
-      const testValue: setCollection_Test = {
-        userId: user_id,
-        date: date,
-        event: {
-          action: checkboxValue,
-          detail: inputValue,
-          startTime: startTime,
-          newDate: newDate,
-          endTime: endTime,
-        },
+      const timeSlotInfo: timeSlotType = {
+        action: checkboxValue,
+        description: inputValue,
+        // started_at: startTime,
+        ended_at: endTime,
       };
-      await createTimeSlotInfo(testValue);
+      await createTimeSlotInfo(timeSlotInfo, user_id ? user_id : '');
       setModalClose();
     } else {
       //확인버튼 눌렀을때 checkbox 체크 안되어 있으면 '한 일을 체크해주세요' 문구가 떨리는 effect추가하기
@@ -121,13 +116,14 @@ const styles = StyleSheet.create({
     width: 300,
     padding: 20,
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 5,
     alignItems: 'center',
   },
   alertTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: GRAY_8,
   },
   input: {
     width: '100%',

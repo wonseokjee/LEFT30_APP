@@ -2,10 +2,8 @@ import { create } from 'zustand';
 
 interface numStore {
   timerModalOpen: boolean;
-  date: string;
-  endTime: string;
-  newDate: number;
-  startTime: string;
+  endTime: Date;
+  // startTime: Date;
   setModalOpen: () => void;
   setModalClose: () => void;
 }
@@ -16,22 +14,21 @@ const endTime = () => {
   // const endMinute = now.getMinutes();
   // 현재 분이 30 이상이면 30, 아니면 00
   const endMinute = now.getMinutes() >= 30 ? 30 : 0;
-  const endHourString = endHour.toString().padStart(2, '0');
-  const endMinuteString = endMinute.toString().padStart(2, '0');
-  return `${endHourString}${endMinuteString}`;
+
+  return now.setHours(endHour, endMinute, 0, 0), now;
 };
 
-const startTime = () => {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - 30);
-  const startHour = now.getHours(); // 한국 시간으로 변환 (UTC+9)하지 않아도 들어감.
-  // const startMinute = now.getMinutes();
-  // 현재 분이 30 이상이면 30, 아니면 00, 이후 20분, 15분 단위 나오면 수정 필요.
-  const startMinute = now.getMinutes() >= 30 ? 30 : 0;
-  const startHourString = startHour.toString().padStart(2, '0');
-  const startMinuteString = startMinute.toString().padStart(2, '0');
-  return `${startHourString}${startMinuteString}`;
-};
+// const startTime = () => {
+//   const now = new Date();
+//   now.setMinutes(now.getMinutes() - 30);
+//   const startHour = now.getHours(); // 한국 시간으로 변환 (UTC+9)하지 않아도 들어감.
+//   // const startMinute = now.getMinutes();
+//   // 현재 분이 30 이상이면 30, 아니면 00, 이후 20분, 15분 단위 나오면 수정 필요.
+//   const startMinute = now.getMinutes() >= 30 ? 30 : 0;
+//   const startHourString = startHour.toString().padStart(2, '0');
+//   const startMinuteString = startMinute.toString().padStart(2, '0');
+//   return `${startHourString}${startMinuteString}`;
+// };
 
 //여기서는 modalOpen 될때 시간 생성. 나중에 시간 자유롭게 추가/수정하려면 date가 여기서 고정되면 안됨.
 //or 고정하고 confirm 이전에 수정할 수 있게 하면 됨.
@@ -41,17 +38,14 @@ const startTime = () => {
 
 const useNumStore = create<numStore>((set) => ({
   timerModalOpen: false,
-  date: '',
-  newDate: 0,
-  endTime: '',
-  startTime: '',
+
+  endTime: new Date(),
+  // startTime: '',
   setModalOpen: () =>
     set(() => ({
       timerModalOpen: true,
-      date: new Date().toISOString().split('T')[0],
-      newDate: new Date().getTime(),
       endTime: endTime(),
-      startTime: startTime(),
+      // startTime: startTime(),
     })),
   setModalClose: () => set(() => ({ timerModalOpen: false })),
 }));
