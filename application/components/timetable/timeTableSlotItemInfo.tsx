@@ -113,12 +113,24 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
             // start, end를 활용해 slotdata의 started_at 등 처리
             setSelectedStart(time);
           }}
+          timeFormatOptions={{
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          }}
         />
         <TimeRangePicker
           slotData={{ time: selectedEnd, label: '종료' }}
           onChange={(time) => {
             // start, end를 활용해 slotdata의 started_at 등 처리
             setSelectedEnd(time);
+          }}
+          timeFormatOptions={{
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
           }}
         />
         <TextInput

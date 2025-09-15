@@ -6,7 +6,7 @@ import {
   CheckboxListProps,
   CheckboxLabel,
 } from '@/@types/timeSlot/checkBoxType';
-import { GRAY_4, GRAY_5, GRAY_7 } from '@/assets/palette';
+import { GRAY_4, GRAY_5, GRAY_7, GRAY_8 } from '@/assets/palette';
 
 type CheckBoxProps = {
   items: CheckboxLabel[];
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   checkedCheckbox: {
-    // backgroundColor: '#007BFF',
+    backgroundColor: GRAY_4,
   },
   label: {
     fontSize: 14,
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     fontStyle: 'italic',
-    color: GRAY_5,
+    color: GRAY_8,
   },
 });
 

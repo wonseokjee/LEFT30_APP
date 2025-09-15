@@ -6,10 +6,14 @@ import { GRAY_7 } from '@/assets/palette';
 type Props = {
   onChange: (time: Date) => void;
   slotData: { time: Date; label: string };
+  timeFormatOptions?: Intl.DateTimeFormatOptions;
 };
 
-// 하나씩 받아올 수 있도록 수정하자. 코드 절반으로 줄일수있음.
-const TimeRangePicker: React.FC<Props> = ({ onChange, slotData }) => {
+const TimeRangePicker: React.FC<Props> = ({
+  onChange,
+  slotData,
+  timeFormatOptions,
+}) => {
   const [time, setTime] = useState(
     slotData.time ? new Date(slotData.time) : new Date()
   );
@@ -20,12 +24,7 @@ const TimeRangePicker: React.FC<Props> = ({ onChange, slotData }) => {
       <TouchableOpacity onPress={() => setShowTime(true)}>
         <Text style={styles.pickerLabel}>{slotData.label}</Text>
         <Text style={styles.label}>
-          {time.toLocaleTimeString([], {
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {time.toLocaleTimeString([], timeFormatOptions)}
         </Text>
       </TouchableOpacity>
       {showTime && (
