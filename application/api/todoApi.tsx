@@ -1,7 +1,8 @@
 import api from './api';
+import * as SecureStore from 'expo-secure-store';
 
-const user_id = process.env.EXPO_PUBLIC_USER_ID;
 export const getTodoLIstFromDB = async () => {
+  const user_id = await SecureStore.getItemAsync('user_id');
   try {
     const res = await api.get('/todo/user/' + user_id);
     const todoList = res.data;
@@ -13,6 +14,7 @@ export const getTodoLIstFromDB = async () => {
 };
 
 export const addTodoItemFromDB = async (title: string) => {
+  const user_id = await SecureStore.getItemAsync('user_id');
   try {
     const res = await api.post('/todo', {
       user_id,
