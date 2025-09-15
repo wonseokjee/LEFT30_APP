@@ -113,7 +113,7 @@ export class PushService {
     }
   }
 
-  @Cron('0,56 * * * *')
+  @Cron('0,30 * * * *')
   async inputPresentAction(): Promise<void> {
     // pushtoken이 있고, 1분전이(방해금지 시작시간이면 포함 안돼서 1분전으로) 방해금지시간이 아닌 유저
     const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);

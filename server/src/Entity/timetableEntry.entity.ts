@@ -13,13 +13,13 @@ export class TimetableEntry {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, user => user.timetableEntries)
+  @ManyToOne(() => User, user => user.timetableEntries, { nullable: false })
   user: User;
 
-  @Column({ type: 'timestamptz' })
+  @Column({ type: 'timestamptz', nullable: false })
   started_at: Date;
 
-  @Column({ type: 'timestamptz' })
+  @Column({ type: 'timestamptz', nullable: false })
   ended_at: Date;
 
   @Column({ type: 'text' })
