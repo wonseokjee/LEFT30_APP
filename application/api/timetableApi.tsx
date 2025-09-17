@@ -68,7 +68,7 @@ export const updateTimeSlotInfo = async (
       action: action, // 한 일
     };
 
-    console.log('Payload for update:', payload);
+    // console.log('Payload for update:', payload);
     const res = await api.post('/timetable/timeUpdate/', payload); // 서버의 '/timetable' 엔드포인트 호출
     // console.log('Time slot created:', res.data); // 응답 데이터 확인
     return res.data; // 생성된 timetable 정보 반환

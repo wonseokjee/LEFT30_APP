@@ -1,3 +1,4 @@
+import { GRAY_0, GRAY_1 } from '@/assets/palette';
 import useInterval from '@/hooks/timer/useInterval';
 import useTimer from '@/hooks/timer/useTimer';
 import useNumStore from '@/store/timerStore';
@@ -28,7 +29,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timer: {
-    color: '#c2c2c2',
+    color: GRAY_1,
     fontSize: 110,
+    // marginBottom: 10,
   },
 });

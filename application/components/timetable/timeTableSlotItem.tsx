@@ -1,6 +1,4 @@
-import { firebase_type } from '@/@types/firebase/collections';
 import {
-  ACTION_TYPE,
   ACTION_TYPE_COLOR,
 } from '@/@types/firebase/common/actionColorType';
 import React, { useState } from 'react';

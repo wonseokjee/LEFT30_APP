@@ -1,15 +1,15 @@
-import React, { use, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import TimeRangePicker from '../timetable/timeRangePicker';
 import { getQuietTimeByZustand } from '@/store/useQuietTImeStore';
-import { GRAY_4, GRAY_7, GRAY_8 } from '@/assets/palette';
+import { GRAY_4, GRAY_8 } from '@/assets/palette';
 import { updateQuietTimeByDB } from '@/api/userApi';
 
-type SetDisturbModalProps = {
+type SetQuietTimeModalProps = {
   setModalVisible: (visible: boolean) => void;
 };
 
-const QuietTimeModal: React.FC<SetDisturbModalProps> = ({
+const QuietTimeModal: React.FC<SetQuietTimeModalProps> = ({
   setModalVisible,
 }) => {
   const { quietStartHour, quietStartMinute, quietEndHour, quietEndMinute } =
