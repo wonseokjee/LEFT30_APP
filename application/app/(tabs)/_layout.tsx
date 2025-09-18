@@ -1,14 +1,12 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Entypo from '@expo/vector-icons/Entypo';
-import { Tabs, useNavigation } from 'expo-router';
-import { TouchableOpacity } from 'react-native';
-import TodoScreen from './todo';
-import TodoDetailScreen from '@/components/todo/todoItem';
+import { Tabs } from 'expo-router';
+import { StyleSheet } from 'react-native';
+import TabHeaderTitle from '@/components/tab/headerTitle';
+import TabHeaderRight from '@/components/tab/headerRight';
 
 const Stack = createStackNavigator();
-
 
 export default function TabLayout() {
   return (
@@ -16,17 +14,11 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: 'white',
-        tabBarStyle: {
-          backgroundColor: 'black',
-          borderColor: '#c2c2c2',
-          borderTopWidth: 0.2,
-          borderEndWidth: 0.2,
-          borderStartWidth: 0.2,
-          borderTopLeftRadius: 15,
-          borderTopRightRadius: 15,
-        },
-        headerStyle: { backgroundColor: 'black' },
+        tabBarStyle: styles.tabBar,
+        headerStyle: styles.header,
         headerTintColor: 'white',
+        // headerTitle: () => <TabHeaderTitle />,
+        headerRight: () => <TabHeaderRight />,
       }}
     >
       <Tabs.Screen
@@ -60,3 +52,19 @@ export default function TabLayout() {
     // </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: 'black',
+    borderColor: '#c2c2c2',
+    borderTopWidth: 0.2,
+    borderEndWidth: 0.2,
+    borderStartWidth: 0.2,
+    borderTopLeftRadius: 15,
+    borderTopRightRadius: 15,
+  },
+
+  header: {
+    backgroundColor: 'black',
+  },
+});
