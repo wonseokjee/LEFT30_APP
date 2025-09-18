@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CheckBox } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { deleteTaskFromFirebase } from '../../api/firebase';
 import EditTaskModal from './EditTaskModal';
 import {
   deleteTodoItemFromDB,

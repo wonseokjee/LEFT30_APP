@@ -32,7 +32,7 @@ const TimeRangePicker: React.FC<Props> = ({
           value={time}
           mode='time'
           is24Hour={true}
-          display='spinner'
+          display='default'
           minuteInterval={30}
           onChange={(event, selectedDate) => {
             setShowTime(false);
@@ -51,7 +51,7 @@ const TimeRangePicker: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'column',
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     width: '100%',
   },
   pickerSection: {

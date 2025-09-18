@@ -17,6 +17,11 @@ interface useYesterdayTimeSlotInfoFromZustand {
   setTimeSlot: (yesterdaydata: timeSlotTypes) => void;
 }
 
+interface updateInfoFromZustand {
+  isUpdated: boolean;
+  setUpdated: (isUpdated: boolean) => void;
+}
+
 export const useTimeSlotStore_today = create<useTimeSlotStore_today>((set) => ({
   todaydata: null,
   setTimeSlot: (data: { [x: string]: any }[]) =>
@@ -52,5 +57,13 @@ export const useYesterdayTimeSlotInfoFromZustand =
         yesterdaydata: data,
       })),
   }));
+
+export const updateInfoFromZustand = create<updateInfoFromZustand>((set) => ({
+  isUpdated: false,
+  setUpdated: (isUpdated: boolean) =>
+    set(() => ({
+      isUpdated: isUpdated,
+    })),
+}));
 
 // export default { useTimeSlotStore_today, useTimeSlotStore_yesterday };
