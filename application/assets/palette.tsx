@@ -20,3 +20,30 @@ export const GRAY_9 = '#212529';
 
 //반전색상
 //배경은 gray 9, 텍스트는 상태에 따라 gray 0, gray 5, gray 6, 선 요소는 gray 7을 쓴다.
+
+export const calm_summer = [
+  '#0d4c89',
+  '#6090b9',
+  '#dfdbd2',
+  '#c99f75',
+  '#9a918b',
+  '#887972',
+];
+
+export const candy_shade = [
+  '#ffceff',
+  '#fbe4ff',
+  '#adcdff',
+  '#ffffd1',
+  '#c9e7d8',
+  '#fbd7e5',
+];
+
+export const welcome_spring = [
+  '#ffaea7',
+  '#fcd19e',
+  '#f4f3bd',
+  '#d9d5d2',
+  '#d9e9e3',
+  '#aec4ca',
+];
