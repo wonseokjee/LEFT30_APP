@@ -1,4 +1,5 @@
 import { addTodoItemFromDB } from '@/api/todoApi';
+import { GRAY_0, GRAY_1, GRAY_7 } from '@/assets/palette';
 import React, { useState } from 'react';
 import { View, Modal, TextInput, Button, StyleSheet } from 'react-native';
 
@@ -26,7 +27,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           <TextInput
             style={styles.input}
             placeholder='할 일을 입력하세요'
-            placeholderTextColor='#888'
+            placeholderTextColor={GRAY_7}
             value={task}
             onChangeText={setTask}
           />
@@ -53,15 +54,15 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '80%',
-    backgroundColor: '#333',
+    backgroundColor: GRAY_0,
     borderRadius: 10,
     padding: 20,
     alignItems: 'center',
   },
   input: {
     width: '100%',
-    backgroundColor: '#555',
-    color: '#fff',
+    backgroundColor: GRAY_1,
+    color: GRAY_7,
     padding: 10,
     borderRadius: 5,
     marginBottom: 15,

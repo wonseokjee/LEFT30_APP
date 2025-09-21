@@ -11,9 +11,17 @@ import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 import Entypo from '@expo/vector-icons/Entypo';
 import { ACTION_TYPE_COLOR } from '@/@types/firebase/common/actionColorType';
 import TimeRangePicker from './timeRangePicker';
-import { GRAY_0, GRAY_4, GRAY_7 } from '@/assets/palette';
-import CheckBox from '@/hooks/alarm/checkbox';
+import {
+  GRAY_0,
+  GRAY_1,
+  GRAY_4,
+  GRAY_5,
+  GRAY_7,
+  GRAY_9,
+} from '@/assets/palette';
+import CheckBox from '@/hooks/actionModal/checkbox';
 import { updateTimeSlotInfo } from '@/api/timetableApi';
+import { updateInfoFromZustand } from '@/store/timeTableStore';
 
 type TimeTableSlotProps = {
   slotdata: timeSlotType | null;
@@ -26,7 +34,9 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
   modalOpen,
   onClose,
 }) => {
-  const [action, setAction] = useState(slotdata?.action || '');
+  const [action, setAction] = useState(
+    slotdata?.action || '한 일을 설정해주세요'
+  );
   const [detail, setDetail] = useState(slotdata?.description || '');
   const [selectedStart, setSelectedStart] = useState(
     slotdata?.started_at ? new Date(slotdata.started_at) : new Date()
@@ -42,15 +52,20 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
   );
 
   const [showActionCheckBox, setShowActionCheckBox] = useState(false);
+  const { isUpdated, setUpdated } = updateInfoFromZustand();
 
   const handleSave = async () => {
-    // 저장 로직 추가 (ex. 서버와 통신 또는 상태 업데이트)
-    console.log('Updated Action:', action);
-    console.log('Updated Detail:', detail);
-    console.log('Selected Start Time:', selectedStart, selectedEnd);
-    await updateTimeSlotInfo(selectedStart, selectedEnd, detail, action);
-    // console.log(slotdata);
-    onClose();
+    //시작시간이 종료시간보다 늦는 경우 처리해야함.
+    if (selectedStart > selectedEnd) {
+      // 종료시간이 더 빠르다는 경고 메시지 표시
+      alert('시작시간이 종료시간보다 빨라야 합니다.');
+      return;
+    } else {
+      await updateTimeSlotInfo(selectedStart, selectedEnd, detail, action);
+      // console.log(slotdata);
+      onClose();
+      setUpdated(!isUpdated); //상태 변경
+    }
   };
 
   //여기 색상은 action에 따라 바뀌도록. action은 placeholder에 있는 걸로. 가능한가?? 다시 렌더링해야 보일듯. ver2.0에...
@@ -75,14 +90,15 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
           ]}
         >
           <TouchableOpacity onPress={onClose}>
-            <Entypo name='cross' size={27} color='#f1f3f5' />
+            <Entypo name='cross' size={27} color={GRAY_1} />
           </TouchableOpacity>
+
           <TouchableOpacity
             onPress={handleSave}
             style={{ flexDirection: 'row' }}
           >
-            <Text style={{ color: '#f1f3f5', paddingRight: 2 }}>save</Text>
-            <Entypo name='check' size={25} color='#f1f3f5' />
+            <Text style={{ color: GRAY_1, paddingRight: 2 }}>save</Text>
+            <Entypo name='check' size={25} color={GRAY_1} />
           </TouchableOpacity>
         </View>
         {/* <Text style={styles.modalTitle}>액션 수정하기</Text> */}
@@ -135,7 +151,8 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
         />
         <TextInput
           style={styles.inputDetail}
-          placeholder='Detail'
+          placeholder='설명'
+          placeholderTextColor={GRAY_5}
           value={detail}
           onChangeText={setDetail}
         />
@@ -162,19 +179,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 8,
     elevation: 5, //그림자 효과 안드로이드
   },
-  modalTitle: {
-    paddingHorizontal: 8,
-    marginTop: '1%',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: GRAY_7,
-  },
   action: {
     marginTop: 10,
     marginBottom: 5,
     color: GRAY_7,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
   },
   actionTitle: {
     fontSize: 11,
@@ -191,6 +200,7 @@ const styles = StyleSheet.create({
     borderColor: GRAY_4,
     backgroundColor: 'white',
     marginHorizontal: '2.5%',
+    marginTop: 5,
     width: '95%',
     color: GRAY_7,
     textAlignVertical: 'top', //안드로이드에서 텍스트 위쪽부터 입력되도록
