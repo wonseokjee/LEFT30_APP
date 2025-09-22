@@ -11,7 +11,7 @@ import CheckBox from './checkbox';
 import useNumStore from '@/store/timerStore';
 import { createTimeSlotInfo } from '@/api/timetableApi';
 import * as SecureStore from 'expo-secure-store';
-import { GRAY_7, GRAY_8 } from '@/assets/palette';
+import { GRAY_3, GRAY_4, GRAY_5, GRAY_6, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 import { updateInfoFromZustand } from '@/store/timeTableStore';
 
@@ -78,12 +78,17 @@ const ActionTrackerModal = () => {
               items={['수면', '휴식', '운동', '관계', '자기개발', '업무']}
               checkValue={checkboxHandler}
             />
-            {checkboxValue ? <></> : <Text>한 일을 눌러주세요!</Text>}
+            {checkboxValue ? (
+              <></>
+            ) : (
+              <Text style={{ color: GRAY_6 }}>한 일을 눌러주세요!</Text>
+            )}
             <TextInput
               style={styles.input}
               placeholder='세부계획을 입력해주세요'
               value={inputValue}
               onChangeText={setInputValue}
+              placeholderTextColor={GRAY_4}
             />
             <View style={styles.buttonContainer}>
               <TouchableOpacity
@@ -127,9 +132,13 @@ const styles = StyleSheet.create({
   },
   alertTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 10,
     color: GRAY_8,
+    width: '100%',
+    textAlign: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderColor: GRAY_4,
   },
   input: {
     width: '100%',
@@ -138,6 +147,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 20,
+    marginTop: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -152,10 +162,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: GRAY_4,
   },
   confirmButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: GRAY_9,
   },
   buttonText: {
     color: 'white',
