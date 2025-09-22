@@ -1,8 +1,8 @@
 import { TouchableOpacity, View, Text } from 'react-native';
 
 import { Button } from 'react-native-elements';
-import { handleLogin } from '@/hooks/login/handleLoginBtn';
-import checkLogin from '@/hooks/login/checkLogin';
+import { handleLogin } from '@/components/login/handleLoginBtn';
+import checkLogin from '@/components/login/checkLogin';
 import registerForPushNotificationsAsync from '../pushNotification/registerForPushNotificationsAsync';
 import SetDisturbModal from '../user/quietTimeModal';
 import { useState } from 'react';

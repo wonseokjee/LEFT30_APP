@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import TimeRangePicker from '../timetable/timeRangePicker';
 import { getQuietTimeByZustand } from '@/store/useQuietTImeStore';
-import { GRAY_4, GRAY_8 } from '@/assets/palette';
+import { GRAY_4, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { updateQuietTimeByDB } from '@/api/userApi';
 
 type SetQuietTimeModalProps = {
@@ -151,10 +151,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: GRAY_4,
   },
   confirmButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: GRAY_9,
   },
   buttonText: {
     color: 'white',

@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import ActionTrackerModal from '@/hooks/alarm/actionTrackerModal';
+import ActionTrackerModal from '@/hooks/actionModal/actionTrackerModal';
 import React from 'react';
 import { useEffect } from 'react';
 import { initializeKakaoSDK } from '@react-native-kakao/core';
