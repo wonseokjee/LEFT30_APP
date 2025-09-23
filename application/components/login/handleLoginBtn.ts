@@ -4,11 +4,17 @@ import * as SecureStore from 'expo-secure-store';
 
 export const handleLogin = async (): Promise<boolean> => {
   try {
-    const resKakao = await login();
-    console.log('Waiting for Kakao login response');
+    const RefreshToken = await SecureStore.getItemAsync('refreshToken');
+    let resKakao;
+    if (RefreshToken) {
+      resKakao = await login();
+    } else {
+      resKakao = await login({ useKakaoAccountLogin: true });
+    }
+    // console.log('Waiting for Kakao login response');
 
     // API 요청 처리
-    const res = await api.get('/auth/kakao', {
+    const res = await api.get('/auth/kakaoLogin', {
       headers: {
         Authorization: `Bearer ${resKakao.accessToken}`,
       },
@@ -24,7 +30,7 @@ export const handleLogin = async (): Promise<boolean> => {
       return false;
     }
 
-    console.log('로그인 성공');
+    // console.log('로그인 성공');
     // 토큰 및 사용자 ID를 SecureStore에 저장
     try {
       await SecureStore.setItemAsync('accessToken', accessToken);
