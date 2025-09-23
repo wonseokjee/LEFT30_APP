@@ -22,6 +22,7 @@ import {
 import CheckBox from '@/hooks/actionModal/checkbox';
 import { updateTimeSlotInfo } from '@/api/timetableApi';
 import { updateInfoFromZustand } from '@/store/timeTableStore';
+import StartendMissAlertModal from './startendMissAlertModal';
 
 type TimeTableSlotProps = {
   slotdata: timeSlotType | null;
@@ -53,12 +54,14 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
 
   const [showActionCheckBox, setShowActionCheckBox] = useState(false);
   const { isUpdated, setUpdated } = updateInfoFromZustand();
+  const [startendMissAlertModalVisible, setStartendMissAlertModalVisible] =
+    useState(false);
 
   const handleSave = async () => {
     //시작시간이 종료시간보다 늦는 경우 처리해야함.
     if (selectedStart > selectedEnd) {
       // 종료시간이 더 빠르다는 경고 메시지 표시
-      alert('시작시간이 종료시간보다 빨라야 합니다.');
+      setStartendMissAlertModalVisible(true);
       return;
     } else {
       await updateTimeSlotInfo(selectedStart, selectedEnd, detail, action);
@@ -74,90 +77,99 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
     : null;
 
   return (
-    <Modal
-      animationType='slide'
-      transparent={true}
-      visible={modalOpen}
-      onRequestClose={() => onClose()}
-    >
-      <View style={styles.modalContainer}>
-        <View
-          style={[
-            styles.buttonContainer,
-            {
-              backgroundColor: colorKey ? ACTION_TYPE_COLOR[colorKey] : 'black',
-            },
-          ]}
-        >
-          <TouchableOpacity onPress={onClose}>
-            <Entypo name='cross' size={27} color={GRAY_1} />
-          </TouchableOpacity>
+    <>
+      <Modal
+        animationType='slide'
+        transparent={true}
+        visible={modalOpen}
+        onRequestClose={() => onClose()}
+      >
+        <View style={styles.modalContainer}>
+          <View
+            style={[
+              styles.buttonContainer,
+              {
+                backgroundColor: colorKey
+                  ? ACTION_TYPE_COLOR[colorKey]
+                  : 'black',
+              },
+            ]}
+          >
+            <TouchableOpacity onPress={onClose}>
+              <Entypo name='cross' size={27} color={GRAY_1} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={handleSave}
+              style={{ flexDirection: 'row' }}
+            >
+              <Text style={{ color: GRAY_1, paddingRight: 2 }}>save</Text>
+              <Entypo name='check' size={25} color={GRAY_1} />
+            </TouchableOpacity>
+          </View>
+          {/* <Text style={styles.modalTitle}>액션 수정하기</Text> */}
 
           <TouchableOpacity
-            onPress={handleSave}
-            style={{ flexDirection: 'row' }}
+            style={styles.action}
+            onPress={() => setShowActionCheckBox((prev) => !prev)}
+            // activeOpacity={0.8}
           >
-            <Text style={{ color: GRAY_1, paddingRight: 2 }}>save</Text>
-            <Entypo name='check' size={25} color={GRAY_1} />
+            <Text style={styles.actionTitle}>한 일</Text>
+            <Text style={styles.actionValue}>
+              {action || slotdata?.action || ''}
+            </Text>
           </TouchableOpacity>
-        </View>
-        {/* <Text style={styles.modalTitle}>액션 수정하기</Text> */}
 
-        <TouchableOpacity
-          style={styles.action}
-          onPress={() => setShowActionCheckBox((prev) => !prev)}
-          // activeOpacity={0.8}
-        >
-          <Text style={styles.actionTitle}>한 일</Text>
-          <Text style={styles.actionValue}>
-            {action || slotdata?.action || ''}
-          </Text>
-        </TouchableOpacity>
-
-        {showActionCheckBox && (
-          <CheckBox
-            items={['수면', '휴식', '운동', '관계', '자기개발', '업무']}
-            checkValue={(str: string) => {
-              setAction(str);
-              setShowActionCheckBox(false);
+          {showActionCheckBox && (
+            <CheckBox
+              items={['수면', '휴식', '운동', '관계', '자기개발', '업무']}
+              checkValue={(str: string) => {
+                setAction(str);
+                setShowActionCheckBox(false);
+              }}
+            />
+          )}
+          <TimeRangePicker
+            slotData={{ time: selectedStart, label: '시작' }}
+            onChange={(time) => {
+              // start, end를 활용해 slotdata의 started_at 등 처리
+              setSelectedStart(time);
+            }}
+            timeFormatOptions={{
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
             }}
           />
-        )}
-        <TimeRangePicker
-          slotData={{ time: selectedStart, label: '시작' }}
-          onChange={(time) => {
-            // start, end를 활용해 slotdata의 started_at 등 처리
-            setSelectedStart(time);
-          }}
-          timeFormatOptions={{
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-          }}
+          <TimeRangePicker
+            slotData={{ time: selectedEnd, label: '종료' }}
+            onChange={(time) => {
+              // start, end를 활용해 slotdata의 started_at 등 처리
+              setSelectedEnd(time);
+            }}
+            timeFormatOptions={{
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            }}
+          />
+          <TextInput
+            style={styles.inputDetail}
+            placeholder='설명'
+            placeholderTextColor={GRAY_5}
+            value={detail}
+            onChangeText={setDetail}
+          />
+        </View>
+      </Modal>
+      {startendMissAlertModalVisible && (
+        <StartendMissAlertModal
+          setStartendMissAlertModalVisible={setStartendMissAlertModalVisible}
         />
-        <TimeRangePicker
-          slotData={{ time: selectedEnd, label: '종료' }}
-          onChange={(time) => {
-            // start, end를 활용해 slotdata의 started_at 등 처리
-            setSelectedEnd(time);
-          }}
-          timeFormatOptions={{
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-          }}
-        />
-        <TextInput
-          style={styles.inputDetail}
-          placeholder='설명'
-          placeholderTextColor={GRAY_5}
-          value={detail}
-          onChangeText={setDetail}
-        />
-      </View>
-    </Modal>
+      )}
+    </>
   );
 };
 
