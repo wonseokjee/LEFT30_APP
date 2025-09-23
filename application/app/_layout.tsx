@@ -1,5 +1,5 @@
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { StatusBar } from 'react-native'; //추가
 import ActionTrackerModal from '@/hooks/actionModal/actionTrackerModal';
 import React from 'react';
 import { useEffect } from 'react';
@@ -13,6 +13,11 @@ import useNumStore from '@/store/timerStore';
 import registerForPushNotificationsAsync from '@/components/pushNotification/registerForPushNotificationsAsync';
 import { handleNotification } from '@/components/pushNotification/pushNotificationHandler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import TabHeaderTitle from '@/components/tab/headerTitle';
+import TabHeaderRight from '@/components/tab/headerRight';
+import { useRouter } from 'expo-router';
+import LoginExpiredAlertModal from '@/components/user/loginExpiredModal';
+import { isLogined } from '@react-native-kakao/user';
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -23,10 +28,20 @@ Notifications.setNotificationHandler({
 export default function RootLayout() {
   const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
   const { setModalOpen } = useNumStore();
+  const router = useRouter();
   useEffect(() => {
     //카카오 로그인 SDK 초기화
     initializeKakaoSDK(kakaoNativeAppKey);
 
+    const checkIsLoggedIn = async () => {
+      const isLoggedIn = await isLogined();
+      if (isLoggedIn) {
+        router.replace('/(tabs)'); // 자동로그인 성공 시 메인 페이지로 이동
+      } else {
+        router.replace('/(login)'); // 자동로그인 실패 시 로그인 페이지로 이동
+      }
+    };
+    checkIsLoggedIn();
     //푸시 알림 토큰 등록
     registerForPushNotificationsAsync();
 
@@ -43,7 +58,15 @@ export default function RootLayout() {
   return (
     <>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <Stack>
+        <Stack
+          initialRouteName='(login)/index' // Set the login page as the initial screen
+          screenOptions={{
+            headerStyle: { backgroundColor: 'black' },
+            headerTintColor: 'white',
+            headerTitle: () => <TabHeaderTitle />,
+            headerRight: () => <TabHeaderRight />,
+          }}
+        >
           <Stack.Screen
             name='(login)/index' // Set the login page as the initial screen
             options={{
@@ -53,14 +76,25 @@ export default function RootLayout() {
           <Stack.Screen
             name='(tabs)'
             options={{
-              headerShown: false,
+              headerShown: true,
               contentStyle: { backgroundColor: 'black' },
             }}
           />
+          <Stack.Screen
+            name='(user)/index'
+            options={{
+              headerShown: true,
+            }}
+          />
         </Stack>
-        {/* 어떤 화면에 있던지 trackerModal이 보일 수 있도록 layout에 위치함. */}
         <ActionTrackerModal />
-        <StatusBar style='light' />
+        <LoginExpiredAlertModal />
+        <StatusBar
+          // react-native의 StatusBar
+          backgroundColor='black' // 배경색을 검정으로
+          barStyle='light-content' // 아이콘/글씨를 밝게
+          translucent={false} // StatusBar 아래로 내용이 내려오지 않게
+        />
       </GestureHandlerRootView>
     </>
   );
