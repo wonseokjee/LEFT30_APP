@@ -1,16 +1,17 @@
 import Entypo from '@expo/vector-icons/build/Entypo';
 import { StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function TabHeaderTitle() {
+  const router = useRouter();
   return (
     <TouchableOpacity
       onPress={() => {
         /* 원하는 동작 */
-        console.log('Pressed');
+        router.replace('/(tabs)');
       }}
     >
-      <Entypo name='plus' size={24} color='white' />
-      {/* <Text style={{ color: 'white' }}>Plan</Text> */}
+      <Entypo name='home' size={24} color='white' />
     </TouchableOpacity>
   );
 }

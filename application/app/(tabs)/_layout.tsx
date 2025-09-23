@@ -3,8 +3,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import Entypo from '@expo/vector-icons/Entypo';
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
-import TabHeaderTitle from '@/components/tab/headerTitle';
-import TabHeaderRight from '@/components/tab/headerRight';
 
 const Stack = createStackNavigator();
 
@@ -15,10 +13,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: 'white',
         tabBarStyle: styles.tabBar,
-        headerStyle: styles.header,
-        headerTintColor: 'white',
-        // headerTitle: () => <TabHeaderTitle />,
-        headerRight: () => <TabHeaderRight />,
+        headerShown: false,
       }}
     >
       <Tabs.Screen

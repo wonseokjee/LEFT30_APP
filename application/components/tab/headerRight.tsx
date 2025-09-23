@@ -12,11 +12,15 @@ import {
 import { getQuietTimeByZustand } from '@/store/useQuietTImeStore';
 import { getQuietTimeByDB } from '@/api/userApi';
 import QuietTimeModal from '../user/quietTimeModal';
+import LogoutModal from '../user/logoutModal';
+import { useRouter } from 'expo-router';
 
 export default function TabHeaderRight() {
   const [visible, setVisible] = useState(false);
   const [quietModalVisible, setQuietModalVisible] = useState(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const { setTime } = getQuietTimeByZustand();
+  const router = useRouter();
 
   const menuItems = [
     {
@@ -34,9 +38,15 @@ export default function TabHeaderRight() {
       },
     },
     {
+      label: '계정 관리',
+      onPress: async () => {
+        router.replace('/(user)');
+      },
+    },
+    {
       label: '로그아웃',
       onPress: () => {
-        /* 로그아웃 동작 */
+        setLogoutModalVisible(true);
       },
     },
   ];
@@ -70,6 +80,9 @@ export default function TabHeaderRight() {
       </Modal>
       {quietModalVisible ? (
         <QuietTimeModal setModalVisible={setQuietModalVisible} />
+      ) : null}
+      {logoutModalVisible ? (
+        <LogoutModal setLogoutModalVisible={setLogoutModalVisible} />
       ) : null}
     </>
   );
