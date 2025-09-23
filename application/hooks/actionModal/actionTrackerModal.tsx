@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -11,7 +11,7 @@ import CheckBox from './checkbox';
 import useNumStore from '@/store/timerStore';
 import { createTimeSlotInfo } from '@/api/timetableApi';
 import * as SecureStore from 'expo-secure-store';
-import { GRAY_3, GRAY_4, GRAY_5, GRAY_6, GRAY_8, GRAY_9 } from '@/assets/palette';
+import { GRAY_4, GRAY_6, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 import { updateInfoFromZustand } from '@/store/timeTableStore';
 
@@ -20,30 +20,31 @@ export interface checkProps {
 }
 
 const ActionTrackerModal = () => {
+  const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState<string>('');
   const { timerModalOpen, setModalClose, endTime } = useNumStore();
-  const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
   const checkboxHandler = (str: string) => {
     setCheckboxValue(str);
-    // console.log('여기는 부모:' + str);
   };
   const { setUpdated, isUpdated } = updateInfoFromZustand();
-  //USERID는 다른곳에서 관리
+
+  //확인 버튼 누르면 실행
   const handleConfirm = async () => {
     const user_id = await SecureStore.getItemAsync('user_id');
     //checkbox가 체크되어 있지 않으면 confirm 안되게
-    // console.log('입력된 값:', inputValue);
     if (checkboxValue && user_id) {
-      //firebase collection 'test'에 들어갈 value
       const timeSlotInfo: timeSlotType = {
         action: checkboxValue,
         description: inputValue,
-        // started_at: startTime,
         ended_at: endTime,
       };
 
-      //여기 좀 수정.
-      await createTimeSlotInfo(timeSlotInfo, user_id ? user_id : '');
+      //secureStore에 action, description 저장.
+      await SecureStore.setItemAsync('lastAction', checkboxValue);
+      await SecureStore.setItemAsync('lastDescription', inputValue);
+
+      await createTimeSlotInfo(timeSlotInfo, user_id);
+
       //모달 닫으면 updateTimeSlot변경으로 탭화면 리렌더링.
       setUpdated(!isUpdated); //상태 변경
       setModalClose();
@@ -53,7 +54,7 @@ const ActionTrackerModal = () => {
     setCheckboxValue(null);
   };
 
-  //취소하면 이전 행동 지속하게 or 이전행동 지속 버튼 만들기??
+  //취소버튼
   const handleCancel = () => {
     setModalClose();
     setCheckboxValue(null);
@@ -61,6 +62,17 @@ const ActionTrackerModal = () => {
     const insDate = new Date().toLocaleString();
     console.log(insDate + '에 취소를 눌렀습니다.');
   };
+
+  //마지막으로 체크한 action, description 불러오기
+  useEffect(() => {
+    const fetchLastValues = async () => {
+      const LastAction = await SecureStore.getItemAsync('lastAction');
+      const LastDescription = await SecureStore.getItemAsync('lastDescription');
+      setCheckboxValue(LastAction);
+      setInputValue(LastDescription ?? '');
+    };
+    fetchLastValues();
+  }, []);
 
   return (
     <View style={styles.container}>

@@ -5,7 +5,7 @@ import useNumStore from '@/store/timerStore';
 import { Text, View, StyleSheet } from 'react-native';
 
 export default function Timer() {
-  const { time, leftMinute, leftSecond } = useTimer();
+  const { leftMinute, leftSecond } = useTimer();
   const { setModalOpen } = useNumStore();
   useInterval(() => {
     if (leftSecond == '00' && leftMinute == '00') {
