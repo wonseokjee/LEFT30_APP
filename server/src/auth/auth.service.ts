@@ -65,4 +65,8 @@ export class AuthService {
       message: 'Access token reissued successfully',
     });
   }
+
+  async logoutKakao(accessToken: string): Promise<void> {
+    await this.kakaoApiService.logoutKakao(accessToken);
+  }
 }

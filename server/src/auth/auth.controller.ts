@@ -6,7 +6,7 @@ import { Response } from 'express';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Get('kakao')
+  @Get('kakaoLogin')
   async loginWithKakao(
     @Headers('authorization') authorization: string,
     @Res() res: Response,
@@ -23,5 +23,12 @@ export class AuthController {
   ) {
     const refreshToken = authorization?.replace('Bearer ', '');
     return this.authService.reissueAccessToken(refreshToken, userId, res);
+  }
+
+  @Post('kakaoLogout')
+  async logoutKakao(@Headers('authorization') authorization: string) {
+    const accessToken = authorization?.replace('Bearer ', '');
+    const result = await this.authService.logoutKakao(accessToken);
+    return { message: 'Logout successful', result };
   }
 }

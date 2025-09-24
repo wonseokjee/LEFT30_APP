@@ -53,4 +53,21 @@ export class KakaoApiService {
     }
     return user.id;
   }
+
+  async logoutKakao(accessToken: string): Promise<void> {
+    try {
+      await axios.post(
+        'https://kapi.kakao.com/v1/user/logout',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+    } catch (error: unknown) {
+      console.error('Error logging out Kakao user:', error);
+      throw new UnauthorizedException('Failed to logout Kakao user');
+    }
+  }
 }
