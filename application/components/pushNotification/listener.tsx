@@ -21,10 +21,13 @@ export function responseReceivedListener(setModalOpen: () => void) {
       response.notification.request.content.data.openModal
     );
     if (flag === 'true') {
-      //발전하면 현재 행동 등록되지 않았을 경우
-
-      // 행동체크모달열기
-      setModalOpen();
+      const now = new Date();
+      const minutes = now.getMinutes();
+      console.log('modalOpenMinute', minutes);
+      // 0~5분 또는 30~35분 구간일 때만 모달 실행
+      if ((minutes >= 0 && minutes < 5) || (minutes >= 30 && minutes < 35)) {
+        setModalOpen();
+      }
     }
 
     // 기타 동작
