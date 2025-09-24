@@ -8,7 +8,7 @@ import { sendPushNotification } from './component/sendPushNotification';
 import { Cron } from '@nestjs/schedule';
 import { TimetableEntry } from 'src/entity/timetableEntry.entity';
 import { isSameMinute } from './component/compareTime';
-import { getNotDisturbUsers } from './query/notDisturbUser';
+import { getQuietUsers } from './query/quietTimeUser';
 
 @Injectable()
 export class PushService {
@@ -62,7 +62,7 @@ export class PushService {
     const fiveMinutesAgoMinute = fiveMinutesAgo.getMinutes();
 
     // pushtoken이 있고, 5분전이 방해금지시간이 아닌 유저
-    const users = await getNotDisturbUsers(
+    const users = await getQuietUsers(
       this.userRepo,
       fiveMinutesAgoHour,
       fiveMinutesAgoMinute,
@@ -119,11 +119,13 @@ export class PushService {
     const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
     const oneMinuteAgoHour = oneMinuteAgo.getHours();
     const oneMinuteAgoMinute = oneMinuteAgo.getMinutes();
-    const users = await getNotDisturbUsers(
+    const users = await getQuietUsers(
       this.userRepo,
       oneMinuteAgoHour,
       oneMinuteAgoMinute,
     );
+
+    //마지막 action이 없는 유저.
     for (const user of users) {
       //이전 실행 가져온다면 action을 넣는게 좋을듯.
       await sendPushNotification(
