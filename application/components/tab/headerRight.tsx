@@ -1,4 +1,4 @@
-import { GRAY_0, GRAY_4, GRAY_9 } from '@/assets/palette';
+import { GRAY_0, GRAY_9 } from '@/assets/palette';
 import Entypo from '@expo/vector-icons/build/Entypo';
 import { useState } from 'react';
 import {

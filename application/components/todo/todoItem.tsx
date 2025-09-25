@@ -7,6 +7,7 @@ import {
   deleteTodoItemFromDB,
   updateTodoItemStatusFromDB,
 } from '@/api/todoApi';
+import { GRAY_0, GRAY_3, GRAY_4, GRAY_8 } from '@/assets/palette';
 
 interface TaskItemProps {
   item: { id: string; title: string; notes: string; is_done: boolean };
@@ -16,7 +17,6 @@ interface TaskItemProps {
   togle: boolean;
   selectedTaskIndex: number | null;
   setSelectedTaskIndex: (index: number | null) => void;
-  // setEditTask: (task: string) => void;
   setEditModalVisible: (visible: boolean) => void;
   editModalVisible: boolean;
   remove: boolean;
@@ -64,7 +64,9 @@ const TaskItem: React.FC<TaskItemProps> = ({
             checked={item.is_done}
             onPress={onToggleTodoCheckbox}
             containerStyle={styles.checkBoxContainer}
-            checkedColor='#fff' // 체크된 항목의 색상 변경
+            // checkedColor={GRAY_3} // 체크된 항목의 색상 변경
+            checkedIcon={<View style={styles.checkedIcon} />}
+            uncheckedIcon={<View style={styles.uncheckedIcon} />}
           />
           <Text
             style={[styles.taskText, item.is_done && styles.taskTextChecked]}
@@ -83,7 +85,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
               // setSelectedTaskIndex(null); // 버튼 클릭 시 선택 해제
             }}
           >
-            <Icon name='edit' size={24} color='black' />
+            <Icon name='edit' size={24} color={GRAY_8} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={async () => {
@@ -91,16 +93,17 @@ const TaskItem: React.FC<TaskItemProps> = ({
               setSelectedTaskIndex(null);
             }}
           >
-            <Icon name='delete' size={24} color='black' />
+            <Icon name='delete' size={24} color={GRAY_8} />
           </TouchableOpacity>
-          <EditTaskModal
-            editModalVisible={editModalVisible}
-            setEditModalVisible={setEditModalVisible}
-            setSelectedTaskIndex={setSelectedTaskIndex}
-            todoId={item.id}
-            todoTitle={item.title}
-            todoNotes={item.notes}
-          />
+          {editModalVisible && (
+            <EditTaskModal
+              setEditModalVisible={setEditModalVisible}
+              setSelectedTaskIndex={setSelectedTaskIndex}
+              todoId={item.id}
+              todoTitle={item.title}
+              todoNotes={item.notes}
+            />
+          )}
         </View>
       )}
     </View>
@@ -119,14 +122,14 @@ const styles = StyleSheet.create({
     flex: 1, // 추가된 부분
   },
   taskText: {
-    color: '#fff',
+    color: GRAY_0,
     flexShrink: 1, // 텍스트가 화면을 벗어나지 않도록 함
     textAlign: 'left', // 텍스트를 왼쪽으로 정렬
     flex: 1, // 추가된 부분
   },
   taskTextChecked: {
     textDecorationLine: 'line-through', // 가운데 줄 긋기
-    color: '#888', // 체크된 항목의 텍스트 색상 변경
+    color: GRAY_4, // 체크된 항목의 텍스트 색상 변경
   },
   checkBoxContainer: {
     backgroundColor: 'transparent',
@@ -143,6 +146,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'white', // 추가된 부분
     zIndex: 1, // 추가된 부분
     borderRadius: 5, // 추가된 부분
+  },
+  checkedIcon: {
+    width: 20,
+    height: 20,
+    backgroundColor: GRAY_4,
+    borderRadius: 4,
+  },
+  uncheckedIcon: {
+    width: 20,
+    height: 20,
+    // backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: GRAY_4,
+    borderRadius: 4,
   },
 });
 

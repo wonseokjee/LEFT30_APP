@@ -32,7 +32,7 @@ const TimeRangePicker: React.FC<Props> = ({
           value={time}
           mode='time'
           is24Hour={true}
-          display='default'
+          display='spinner' //default
           minuteInterval={30}
           onChange={(event, selectedDate) => {
             setShowTime(false);

@@ -23,7 +23,7 @@ const ACTION_KEYS = [
 export const ACTION_TYPE_COLOR: ACTION_TYPE = ACTION_KEYS.reduce(
   //user 색상 theme 설정에 따라 바뀌도록. ver2.0에...
   (acc, key, idx) => {
-    acc[key] = welcome_spring[idx % welcome_spring.length];
+    acc[key] = calm_summer[idx % calm_summer.length];
     return acc;
   },
   {} as ACTION_TYPE

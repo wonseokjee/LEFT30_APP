@@ -11,18 +11,12 @@ import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 import Entypo from '@expo/vector-icons/Entypo';
 import { ACTION_TYPE_COLOR } from '@/@types/firebase/common/actionColorType';
 import TimeRangePicker from './timeRangePicker';
-import {
-  GRAY_0,
-  GRAY_1,
-  GRAY_4,
-  GRAY_5,
-  GRAY_7,
-  GRAY_9,
-} from '@/assets/palette';
+import { GRAY_0, GRAY_1, GRAY_4, GRAY_5, GRAY_7 } from '@/assets/palette';
 import CheckBox from '@/hooks/actionModal/checkbox';
 import { updateTimeSlotInfo } from '@/api/timetableApi';
 import { updateInfoFromZustand } from '@/store/timeTableStore';
-import StartendMissAlertModal from './startendMissAlertModal';
+import useTime from '@/hooks/time/useTime';
+import AlertModal from '../asset/AlertModal';
 
 type TimeTableSlotProps = {
   slotdata: timeSlotType | null;
@@ -39,8 +33,11 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
     slotdata?.action || '한 일을 설정해주세요'
   );
   const [detail, setDetail] = useState(slotdata?.description || '');
+  const { endTime } = useTime();
   const [selectedStart, setSelectedStart] = useState(
-    slotdata?.started_at ? new Date(slotdata.started_at) : new Date()
+    slotdata?.started_at
+      ? new Date(slotdata.started_at)
+      : new Date(endTime().getTime() - 30 * 60 * 1000)
   );
   //range에 따라 end time이 결정되므로, end time은 range가 바뀔 때마다 재계산.
   const [selectedEnd, setSelectedEnd] = useState(
@@ -49,15 +46,21 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
           new Date(slotdata.started_at).getTime() +
             (slotdata?.range || 0) * 10 * 60 * 1000
         )
-      : new Date()
+      : endTime()
   );
 
   const [showActionCheckBox, setShowActionCheckBox] = useState(false);
   const { isUpdated, setUpdated } = updateInfoFromZustand();
   const [startendMissAlertModalVisible, setStartendMissAlertModalVisible] =
     useState(false);
+  const [checkboxAlert, setCheckboxAlert] = useState(false);
 
   const handleSave = async () => {
+    //checkbox가 선택되어 있지 않으면 alertModal
+    if (!action || action === '한 일을 설정해주세요') {
+      setCheckboxAlert(true);
+      return;
+    }
     //시작시간이 종료시간보다 늦는 경우 처리해야함.
     if (selectedStart > selectedEnd) {
       // 종료시간이 더 빠르다는 경고 메시지 표시
@@ -165,8 +168,15 @@ const TimeTableSlotItemInfo: React.FC<TimeTableSlotProps> = ({
         </View>
       </Modal>
       {startendMissAlertModalVisible && (
-        <StartendMissAlertModal
-          setStartendMissAlertModalVisible={setStartendMissAlertModalVisible}
+        <AlertModal
+          setAlertModalVisible={setStartendMissAlertModalVisible}
+          title='종료 시간이 시작 시간보다 빠릅니다.'
+        />
+      )}
+      {checkboxAlert && (
+        <AlertModal
+          setAlertModalVisible={setCheckboxAlert}
+          title='한 일에 체크해주세요.'
         />
       )}
     </>
