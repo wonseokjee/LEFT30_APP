@@ -1,39 +1,30 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import TimeTableSlotItem from './timeTableSlotItem';
 import {
-  useTimeSlotStore_today,
-  useTimeSlotStore_yesterday,
   useTodayTimeSlotInfoFromZustand,
   useYesterdayTimeSlotInfoFromZustand,
 } from '@/store/timeTableStore';
 import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 
 const TimeTableSlot = () => {
-  // const { todaydata } = useTimeSlotStore_today();
-  // const { yesterdaydata } = useTimeSlotStore_yesterday();
   const { todaydata } = useTodayTimeSlotInfoFromZustand();
   const { yesterdaydata } = useYesterdayTimeSlotInfoFromZustand();
 
   const mergeSlots = (slots: timeSlotType[] | null): timeSlotType[] => {
     if (!slots || slots.length === 0) return [];
-    const sortedSlots = [...slots].sort(
-      (a, b) =>
-        new Date(a.started_at ?? 0).getTime() -
-        new Date(b.started_at ?? 0).getTime()
-    );
+    // 이미 백엔드에서 정렬했음. 정렬 문제 생기면 아래 코드 사용.
+    // const sortedSlots = [...slots].sort(
+    //   (a, b) =>
+    //     new Date(a.started_at ?? 0).getTime() -
+    //     new Date(b.started_at ?? 0).getTime()
+    // );
 
     const merged: timeSlotType[] = [];
-    let prev = { ...sortedSlots[0], range: 3 }; // range 기본값 3 (30분) 현재 30분으로 하드코딩.
+    let prev = { ...slots[0], range: 3 }; // range 기본값 3 (30분) 현재 30분으로 하드코딩.
 
-    for (let i = 1; i < sortedSlots.length; i++) {
-      const curr = sortedSlots[i];
+    for (let i = 1; i < slots.length; i++) {
+      const curr = slots[i];
       // title, detail, action이 모두 같으면 range만 증가
       if (
         prev.description === curr.description &&
