@@ -54,10 +54,9 @@ const TodoContainer = () => {
           )}
         />
         <AddButton setAddModalVisible={setAddModalVisible} />
-        <AddTaskModal
-          addModalVisible={addModalVisible}
-          setAddModalVisible={setAddModalVisible}
-        />
+        {addModalVisible && (
+          <AddTaskModal setAddModalVisible={setAddModalVisible} />
+        )}
       </View>
     </TouchableWithoutFeedback>
   );

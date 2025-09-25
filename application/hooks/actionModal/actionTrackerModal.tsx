@@ -14,6 +14,7 @@ import * as SecureStore from 'expo-secure-store';
 import { GRAY_4, GRAY_6, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 import { updateInfoFromZustand } from '@/store/timeTableStore';
+import AlertModal from '@/components/asset/AlertModal';
 
 export interface checkProps {
   checkValue: (str: string) => void;
@@ -26,6 +27,7 @@ const ActionTrackerModal = () => {
   const checkboxHandler = (str: string) => {
     setCheckboxValue(str);
   };
+  const [checkboxAlert, setCheckboxAlert] = useState(false);
   const { setUpdated, isUpdated } = updateInfoFromZustand();
 
   //확인 버튼 누르면 실행
@@ -50,6 +52,8 @@ const ActionTrackerModal = () => {
       setModalClose();
     } else {
       //확인버튼 눌렀을때 checkbox 체크 안되어 있으면 '한 일을 체크해주세요' 문구가 떨리는 effect추가하기
+      setCheckboxAlert(true);
+      return;
     }
     setCheckboxValue(null);
   };
@@ -68,7 +72,7 @@ const ActionTrackerModal = () => {
     const fetchLastValues = async () => {
       const LastAction = await SecureStore.getItemAsync('lastAction');
       const LastDescription = await SecureStore.getItemAsync('lastDescription');
-      setCheckboxValue(LastAction);
+      // setCheckboxValue(LastAction);
       setInputValue(LastDescription ?? '');
     };
     fetchLastValues();
@@ -119,6 +123,12 @@ const ActionTrackerModal = () => {
           </View>
         </View>
       </Modal>
+      {checkboxAlert && (
+        <AlertModal
+          setAlertModalVisible={setCheckboxAlert}
+          title='한 일에 체크해주세요.'
+        />
+      )}
     </View>
   );
 };

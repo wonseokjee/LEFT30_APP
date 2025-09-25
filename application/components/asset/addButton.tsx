@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 25,
     right: 25,
-    backgroundColor: GRAY_8, // Blue 색상으로 변경
+    backgroundColor: GRAY_8, 
     width: 45,
     height: 45,
     borderRadius: 30,

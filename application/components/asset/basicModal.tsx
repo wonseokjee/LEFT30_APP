@@ -16,6 +16,7 @@ type SetBasicModalVisibleProps = {
   isTextInput?: boolean; // textInput을 외부에서 받을 수 있도록 추가
   inputValue?: string; // textInput의 값을 관리하는 상태
   setInputValue?: (value: string) => void; // textInput의 값을 변경하는 함수
+  inputValuePlaceholder?: string; // textInput의 placeholder
 };
 
 const BasicModal: React.FC<SetBasicModalVisibleProps> = ({
@@ -26,6 +27,7 @@ const BasicModal: React.FC<SetBasicModalVisibleProps> = ({
   isTextInput, // props로 받음
   inputValue,
   setInputValue, // textInput의 값을 관리하는 상태와 상태 변경 함수를 props로 받음
+  inputValuePlaceholder,
 }) => {
   //확인 및 취소 함수를 props로 받음
 
@@ -45,7 +47,7 @@ const BasicModal: React.FC<SetBasicModalVisibleProps> = ({
             {isTextInput ? (
               <TextInput
                 style={styles.input}
-                placeholder='세부계획을 입력해주세요'
+                placeholder={inputValuePlaceholder}
                 value={inputValue}
                 onChangeText={setInputValue}
                 placeholderTextColor={GRAY_4}
