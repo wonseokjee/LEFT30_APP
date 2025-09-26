@@ -8,6 +8,8 @@ import { TodoModule } from './todo/todo.module';
 import { PushModule } from './push/push.module';
 import { AuthModule } from './auth/auth.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AuthJWTModule } from './auth/JWT/auth.jwt.module';
+import { ConfigModule } from '@nestjs/config/dist/config.module';
 
 @Module({
   imports: [
@@ -24,11 +26,13 @@ import { ScheduleModule } from '@nestjs/schedule';
       synchronize: true, // set to false in production
     }),
     ScheduleModule.forRoot(),
+    ConfigModule.forRoot(),
     UserModule,
     TimetableModule,
     TodoModule,
     PushModule,
     AuthModule,
+    AuthJWTModule,
   ],
   controllers: [AppController],
   providers: [AppService],

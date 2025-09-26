@@ -35,7 +35,7 @@ export class PushService {
       const user = await this.userRepo.findOne({ where: { id: userId } });
       if (!user) throw new Error('User not found');
       user.pushToken = FCMPushToken;
-      console.log('FCM Push Token saved for user:', userId, FCMPushToken);
+      // console.log('FCM Push Token saved for user:', userId, FCMPushToken);
       await this.userRepo.save(user);
     } catch (error) {
       console.error('FCM Push Token save error:', error);

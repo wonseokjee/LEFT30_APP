@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TimetableController } from './timetable.controller';
 import { TimetableService } from './timetable.service';
 import { TimetableEntry } from 'src/entity/timetableEntry.entity';
+import { AuthJWTModule } from 'src/auth/JWT/auth.jwt.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TimetableEntry])],
+  imports: [TypeOrmModule.forFeature([TimetableEntry]), AuthJWTModule],
   controllers: [TimetableController],
   providers: [TimetableService],
 })

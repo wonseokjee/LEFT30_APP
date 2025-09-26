@@ -41,7 +41,7 @@ export class KakaoApiService {
     const kakaoId = kakao_Id.toString();
     // const email = kakaoProfile.kakao_account?.email ?? null;
     let user = await this.userRepo.findOne({ where: { kakaoId: kakaoId } });
-    console.log('User found:', user);
+    // console.log('User found:', user);
     if (!user) {
       user = this.userRepo.create({
         kakaoId: kakaoId,

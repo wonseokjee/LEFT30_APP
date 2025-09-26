@@ -1,6 +1,4 @@
 import * as admin from 'firebase-admin';
-import { Repository } from 'typeorm';
-import { User } from '../../entity/user.entity';
 
 export async function sendPushNotification(
   pushToken: string,
@@ -28,18 +26,5 @@ export async function sendPushNotification(
   } catch (error: unknown) {
     console.error('Error sending message:', error);
     return { success: false, error: String(error) };
-  }
-}
-
-export async function sendPushNotificationTEST(
-  userId: string,
-  userRepo: Repository<User>,
-): Promise<void> {
-  const user = await userRepo.findOne({ where: { id: userId } });
-  if (user && user.pushToken) {
-    // return { success: false, error: 'User or push token not found' };
-    await sendPushNotification(user.pushToken, 'Test 제목', 'Test 본문', {
-      key: '내용내욘ㅇㄴ내뇽',
-    });
   }
 }

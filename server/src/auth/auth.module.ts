@@ -2,24 +2,16 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { JwtModule } from '@nestjs/jwt';
+// import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entity/user.entity';
 import { KakaoApiService } from './kakao/kakaoapi.service';
 import { UserModule } from 'src/user/user.module';
 import { AuthJWTService } from './JWT/auth.jwt.service';
-import { ConfigModule } from '@nestjs/config';
+import { AuthJWTModule } from './JWT/auth.jwt.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot(),
-    TypeOrmModule.forFeature([User]),
-    UserModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '1d' },
-    }),
-  ],
+  imports: [TypeOrmModule.forFeature([User]), UserModule, AuthJWTModule],
   controllers: [AuthController],
   providers: [AuthService, KakaoApiService, AuthJWTService],
 })

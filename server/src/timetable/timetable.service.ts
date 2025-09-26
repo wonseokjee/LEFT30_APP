@@ -79,7 +79,7 @@ export class TimetableService {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    console.log('today', today);
+    // console.log('today', today);
 
     return this.timetableRepo.find({
       where: {
@@ -139,7 +139,7 @@ export class TimetableService {
         delete updatepayload.started_at;
         updatepayload.ended_at = end.toISOString();
 
-        console.log('updatepayload', updatepayload);
+        // console.log('updatepayload', updatepayload);
 
         await this.createOne(updatepayload);
       }

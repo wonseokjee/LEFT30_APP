@@ -22,7 +22,7 @@ export class UserController {
     return user;
   }
 
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('quietTime/:id')
   async updateQuietTime(
     @Param('id') id: string,
@@ -41,6 +41,7 @@ export class UserController {
     return user;
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('quietTime/:id')
   async findQuietTimeById(@Param('id') id: string) {
     return this.userService.findQuietTimeById(id);

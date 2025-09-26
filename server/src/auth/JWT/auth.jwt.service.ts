@@ -22,15 +22,15 @@ export class AuthJWTService {
   //accessToken을 생성하는 메서드
   generateAccessToken(userId: string): string {
     const payload: JWTpayload = { sub: userId };
-    console.log('Generating access token for user:', userId);
-    return this.jwtService.sign(payload, { expiresIn: '1h' });
+    // console.log('Generating access token for user:', userId);
+    return this.jwtService.sign(payload, { expiresIn: '15m' });
   }
 
   //refreshToken을 생성하는 메서드
   generateRefreshToken(userId: string): string {
     const payload: JWTpayload = { sub: userId };
     // console.log('Generating refresh token for user:', userId);
-    return this.jwtService.sign(payload, { expiresIn: '7d' });
+    return this.jwtService.sign(payload, { expiresIn: '30m' });
   }
 
   //accessToken을 검증하는 메서드

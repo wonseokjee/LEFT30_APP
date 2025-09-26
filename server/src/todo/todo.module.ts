@@ -4,9 +4,10 @@ import { Todo } from '../entity/todo.entity';
 import { TodoController } from './todo.controller';
 import { TodoService } from './todo.service';
 import { User } from 'src/entity/user.entity';
+import { AuthJWTModule } from 'src/auth/JWT/auth.jwt.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Todo, User])], // Add your entities here
+  imports: [TypeOrmModule.forFeature([Todo, User]), AuthJWTModule],
   controllers: [TodoController],
   providers: [TodoService],
 })
