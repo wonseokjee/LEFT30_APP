@@ -1,76 +1,47 @@
 import { addTodoItemFromDB } from '@/api/todoApi';
 import React, { useState } from 'react';
-import { View, Modal, TextInput, Button, StyleSheet } from 'react-native';
+import BasicModal from '../asset/basicModal';
+import AlertModal from '../asset/AlertModal';
 
 interface AddTaskModalProps {
-  addModalVisible: boolean;
   setAddModalVisible: (visible: boolean) => void;
 }
 
-const AddTaskModal: React.FC<AddTaskModalProps> = ({
-  addModalVisible,
-  setAddModalVisible,
-}) => {
+const AddTaskModal: React.FC<AddTaskModalProps> = ({ setAddModalVisible }) => {
   const [task, setTask] = useState<string>('');
-  const addTodoFromDB = (task: string) => {
-    if (task.trim() === '') return;
-    addTodoItemFromDB(task);
-    setAddModalVisible(false);
-    setTask(''); // 추가 후 입력 필드 초기화
+  const [alertModalVisible, setAlertModalVisible] = useState<boolean>(false);
+
+  const addTodoFromDB = async (task: string) => {
+    if (task.trim() === '') {
+      setAlertModalVisible(true);
+      return;
+    } else {
+      addTodoItemFromDB(task);
+      setAddModalVisible(false);
+      setTask(''); // 추가 후 입력 필드 초기화
+    }
   };
 
   return (
-    <Modal visible={addModalVisible} animationType='slide' transparent>
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <TextInput
-            style={styles.input}
-            placeholder='할 일을 입력하세요'
-            placeholderTextColor='#888'
-            value={task}
-            onChangeText={setTask}
-          />
-          <View style={styles.buttonContainer}>
-            <Button title='추가하기' onPress={() => addTodoFromDB(task)} />
-            <Button
-              title='취소'
-              color='red'
-              onPress={() => setAddModalVisible(false)}
-            />
-          </View>
-        </View>
-      </View>
-    </Modal>
+    <>
+      <BasicModal
+        setBasicModalVisible={setAddModalVisible}
+        title='새로운 Todo 추가'
+        handleConfirm={() => addTodoFromDB(task)}
+        handleCancel={() => setAddModalVisible(false)}
+        inputValuePlaceholder='할 일을 입력하세요'
+        inputValue={task}
+        setInputValue={setTask}
+        isTextInput={true} // 텍스트 입력 모달로 설정
+      ></BasicModal>
+      {alertModalVisible && (
+        <AlertModal
+          setAlertModalVisible={setAlertModalVisible}
+          title='할 일을 입력하세요.'
+        />
+      )}
+    </>
   );
 };
-
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.8)',
-  },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#333',
-    borderRadius: 10,
-    padding: 20,
-    alignItems: 'center',
-  },
-  input: {
-    width: '100%',
-    backgroundColor: '#555',
-    color: '#fff',
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-});
 
 export default AddTaskModal;

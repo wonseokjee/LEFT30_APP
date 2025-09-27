@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   View,
@@ -8,52 +8,57 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import CheckBox from './checkbox';
-// import { setFirebaseCollection_Test } from '@/api/firebase';
-import { setCollection_Test } from '@/@types/firebase/collections';
 import useNumStore from '@/store/timerStore';
 import { createTimeSlotInfo } from '@/api/timetableApi';
 import * as SecureStore from 'expo-secure-store';
+import { GRAY_4, GRAY_6, GRAY_8, GRAY_9 } from '@/assets/palette';
+import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
+import { updateInfoFromZustand } from '@/store/timeTableStore';
+import AlertModal from '@/components/asset/AlertModal';
 
 export interface checkProps {
   checkValue: (str: string) => void;
 }
 
 const ActionTrackerModal = () => {
-  const [inputValue, setInputValue] = useState<string>('');
   const [checkboxValue, setCheckboxValue] = useState<string | null>(null);
-  const { timerModalOpen, setModalClose, date, startTime, endTime, newDate } =
-    useNumStore();
+  const [inputValue, setInputValue] = useState<string>('');
+  const { timerModalOpen, setModalClose, endTime } = useNumStore();
   const checkboxHandler = (str: string) => {
     setCheckboxValue(str);
-    // console.log('여기는 부모:' + str);
   };
-  //USERID는 다른곳에서 관리
+  const [checkboxAlert, setCheckboxAlert] = useState(false);
+  const { setUpdated, isUpdated } = updateInfoFromZustand();
+
+  //확인 버튼 누르면 실행
   const handleConfirm = async () => {
     const user_id = await SecureStore.getItemAsync('user_id');
     //checkbox가 체크되어 있지 않으면 confirm 안되게
-    // console.log('입력된 값:', inputValue);
     if (checkboxValue && user_id) {
-      //firebase collection 'test'에 들어갈 value
-      const testValue: setCollection_Test = {
-        userId: user_id,
-        date: date,
-        event: {
-          action: checkboxValue,
-          detail: inputValue,
-          startTime: startTime,
-          newDate: newDate,
-          endTime: endTime,
-        },
+      const timeSlotInfo: timeSlotType = {
+        action: checkboxValue,
+        description: inputValue,
+        ended_at: endTime,
       };
-      await createTimeSlotInfo(testValue);
+
+      //secureStore에 action, description 저장.
+      await SecureStore.setItemAsync('lastAction', checkboxValue);
+      await SecureStore.setItemAsync('lastDescription', inputValue);
+
+      await createTimeSlotInfo(timeSlotInfo, user_id);
+
+      //모달 닫으면 updateTimeSlot변경으로 탭화면 리렌더링.
+      setUpdated(!isUpdated); //상태 변경
       setModalClose();
     } else {
       //확인버튼 눌렀을때 checkbox 체크 안되어 있으면 '한 일을 체크해주세요' 문구가 떨리는 effect추가하기
+      setCheckboxAlert(true);
+      return;
     }
     setCheckboxValue(null);
   };
 
-  //취소하면 이전 행동 지속하게 or 이전행동 지속 버튼 만들기??
+  //취소버튼
   const handleCancel = () => {
     setModalClose();
     setCheckboxValue(null);
@@ -61,6 +66,17 @@ const ActionTrackerModal = () => {
     const insDate = new Date().toLocaleString();
     console.log(insDate + '에 취소를 눌렀습니다.');
   };
+
+  //마지막으로 체크한 action, description 불러오기
+  useEffect(() => {
+    const fetchLastValues = async () => {
+      const LastAction = await SecureStore.getItemAsync('lastAction');
+      const LastDescription = await SecureStore.getItemAsync('lastDescription');
+      // setCheckboxValue(LastAction);
+      setInputValue(LastDescription ?? '');
+    };
+    fetchLastValues();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -78,12 +94,17 @@ const ActionTrackerModal = () => {
               items={['수면', '휴식', '운동', '관계', '자기개발', '업무']}
               checkValue={checkboxHandler}
             />
-            {checkboxValue ? <></> : <Text>한 일을 체크 해주세요!</Text>}
+            {checkboxValue ? (
+              <></>
+            ) : (
+              <Text style={{ color: GRAY_6 }}>한 일을 눌러주세요!</Text>
+            )}
             <TextInput
               style={styles.input}
               placeholder='세부계획을 입력해주세요'
               value={inputValue}
               onChangeText={setInputValue}
+              placeholderTextColor={GRAY_4}
             />
             <View style={styles.buttonContainer}>
               <TouchableOpacity
@@ -102,6 +123,12 @@ const ActionTrackerModal = () => {
           </View>
         </View>
       </Modal>
+      {checkboxAlert && (
+        <AlertModal
+          setAlertModalVisible={setCheckboxAlert}
+          title='한 일에 체크해주세요.'
+        />
+      )}
     </View>
   );
 };
@@ -122,13 +149,18 @@ const styles = StyleSheet.create({
     width: 300,
     padding: 20,
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 5,
     alignItems: 'center',
   },
   alertTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 10,
+    color: GRAY_8,
+    width: '100%',
+    textAlign: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderColor: GRAY_4,
   },
   input: {
     width: '100%',
@@ -137,6 +169,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     marginBottom: 20,
+    marginTop: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -151,10 +184,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: GRAY_4,
   },
   confirmButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: GRAY_9,
   },
   buttonText: {
     color: 'white',

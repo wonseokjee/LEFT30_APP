@@ -1,4 +1,5 @@
 import api from '@/api/api';
+import loginApi from '@/api/Loginapi';
 import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 async function registerForPushNotificationsAsync() {
@@ -17,9 +18,16 @@ async function registerForPushNotificationsAsync() {
   const user_id = await SecureStore.getItemAsync('user_id');
   // 서버로 token 전송
   // console.log('푸시 알림 토큰 등록:', { user_id, FCMToken });
-  console.log('푸시 알림 토큰 등록: user_id', { user_id });
-  const res = await api.post('/push/register-token', { user_id, FCMToken });
-  console.log('푸시 알림 토큰 등록 응답:', res.data);
+  // console.log('푸시 알림 토큰 등록: user_id', { user_id });
+  try {
+    const res = await loginApi.post('/push/register-token', {
+      user_id,
+      FCMToken,
+    });
+  } catch (e) {
+    console.log('푸시 알림 토큰 등록 에러:', e);
+  }
+  // console.log('푸시 알림 토큰 등록 응답:', res.data);
 }
 
 export default registerForPushNotificationsAsync;

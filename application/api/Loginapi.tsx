@@ -2,8 +2,10 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import api from './api';
+import { use } from 'react';
+import { useLoginExpiredModalStore } from '@/store/useModalStore';
 
-const Loginapi = axios.create({
+const loginApi = axios.create({
   // baseURL: 'http://' + process.env. + ':3030', // 내 로컬 서버 IP
   //cmd -> ipconfig -> IPv4 Address
   // baseURL: 'http://' + process.env.EXPO_PUBLIC_LOCAL_IP + ':3030', // 내 로컬 서버 IP
@@ -13,7 +15,7 @@ const Loginapi = axios.create({
 //api access token을 요청 보낼 때마다 header에 넣어주기 위한 interceptor 설정
 // 이 interceptor는 로그인 이후 모든 요청에 대해 실행되며, 토큰을 헤더에 추가합니다.
 // console.log('Loginapi request interceptor registered');
-Loginapi.interceptors.request.use(
+loginApi.interceptors.request.use(
   async (config) => {
     try {
       const token = await SecureStore.getItemAsync('accessToken');
@@ -34,17 +36,21 @@ Loginapi.interceptors.request.use(
       return config;
     } catch (error) {
       console.error('Error retrieving accessToken:', error);
+      //로그인 만료 동작.
+      useLoginExpiredModalStore.getState().setLoginExpiredModalVisible(true);
       return Promise.reject(error);
     }
   },
   (error) => {
     console.error('Request error:', error);
+    //로그인 만료 동작.
+    useLoginExpiredModalStore.getState().setLoginExpiredModalVisible(true);
     return Promise.reject(error);
   }
 );
 
 // 에러 응답 interceptor (accessToken 만료 시 refreshToken 사용)
-Loginapi.interceptors.response.use(
+loginApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
@@ -88,18 +94,12 @@ Loginapi.interceptors.response.use(
               'Authorization'
             ] = `Bearer ${newAccessToken}`;
           }
-          return Loginapi(originalRequest);
+          return loginApi(originalRequest);
         } catch (refreshError) {
-          // refresh 실패 시 로그아웃 등 처리
-          await SecureStore.deleteItemAsync('accessToken');
-          await SecureStore.deleteItemAsync('refreshToken');
-          console.error('Refresh token failed:', refreshError);
-          // 여기서 로그아웃 처리나 사용자에게 알림을 할 수 있습니다.
-          // 예시: Alert.alert('로그인 정보가 만료되었습니다. 다시 로그인해주세요.');
-          // 예시: 로그인 화면으로 이동 (React Navigation 사용 시)
-          // import { navigationRef } from '@/navigation/RootNavigation';
-          // navigationRef.current?.reset({ index: 0, routes: [{ name: 'Login' }] });
-          // 또는 Alert 등으로 사용자에게 알림
+          //로그인 만료 동작.
+          useLoginExpiredModalStore
+            .getState()
+            .setLoginExpiredModalVisible(true);
           return Promise.reject(refreshError);
         }
       }
@@ -108,4 +108,4 @@ Loginapi.interceptors.response.use(
   }
 );
 
-export default Loginapi;
+export default loginApi;

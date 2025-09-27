@@ -1,3 +1,5 @@
+import { calm_summer, welcome_spring, candy_shade } from '@/assets/palette';
+
 export type ACTION_TYPE = {
   수면: string;
   휴식: string;
@@ -7,11 +9,22 @@ export type ACTION_TYPE = {
   업무: string;
 };
 
-export const ACTION_TYPE_COLOR = {
-  수면: '#141414',
-  휴식: '#357A40',
-  운동: '#35377a',
-  관계: '#73357a',
-  자기개발: '#b52222',
-  업무: '#f0eded',
-};
+// 액션 타입 키 배열
+const ACTION_KEYS = [
+  '자기개발',
+  '휴식',
+  '운동',
+  '관계',
+  '수면',
+  '업무',
+] as const;
+
+// calm_summer 팔레트 기반으로 동적으로 색상 매핑
+export const ACTION_TYPE_COLOR: ACTION_TYPE = ACTION_KEYS.reduce(
+  //user 색상 theme 설정에 따라 바뀌도록. ver2.0에...
+  (acc, key, idx) => {
+    acc[key] = calm_summer[idx % calm_summer.length];
+    return acc;
+  },
+  {} as ACTION_TYPE
+);

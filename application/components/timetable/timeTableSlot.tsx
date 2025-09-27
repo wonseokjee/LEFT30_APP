@@ -1,28 +1,24 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import TimeTableSlotItem from './timeTableSlotItem';
 import {
-  useTimeSlotStore_today,
-  useTimeSlotStore_yesterday,
   useTodayTimeSlotInfoFromZustand,
   useYesterdayTimeSlotInfoFromZustand,
 } from '@/store/timeTableStore';
 import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 
 const TimeTableSlot = () => {
-  // const { todaydata } = useTimeSlotStore_today();
-  // const { yesterdaydata } = useTimeSlotStore_yesterday();
   const { todaydata } = useTodayTimeSlotInfoFromZustand();
   const { yesterdaydata } = useYesterdayTimeSlotInfoFromZustand();
 
   const mergeSlots = (slots: timeSlotType[] | null): timeSlotType[] => {
     if (!slots || slots.length === 0) return [];
+    // 이미 백엔드에서 정렬했음. 정렬 문제 생기면 아래 코드 사용.
+    // const sortedSlots = [...slots].sort(
+    //   (a, b) =>
+    //     new Date(a.started_at ?? 0).getTime() -
+    //     new Date(b.started_at ?? 0).getTime()
+    // );
 
     const merged: timeSlotType[] = [];
     let prev = { ...slots[0], range: 3 }; // range 기본값 3 (30분) 현재 30분으로 하드코딩.
@@ -55,7 +51,7 @@ const TimeTableSlot = () => {
 
     //여기에서 start, end index로 변환해야함.
     mergedSlots?.forEach((slotdata) => {
-      const startTime = new Date(slotdata.started_at);
+      const startTime = new Date(slotdata?.started_at ?? Date.now());
       // Date.getHours()는 해당 Date 객체가 어떤 타임존(UTC, KST 등)으로 생성되었든
       // 항상 **로컬 타임존(사용자 시스템 기준)**의 시(hour)를 반환.
       const startIndex =

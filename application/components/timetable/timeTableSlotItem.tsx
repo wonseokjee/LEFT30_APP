@@ -1,8 +1,4 @@
-import { firebase_type } from '@/@types/firebase/collections';
-import {
-  ACTION_TYPE,
-  ACTION_TYPE_COLOR,
-} from '@/@types/firebase/common/actionColorType';
+import { ACTION_TYPE_COLOR } from '@/@types/firebase/common/actionColorType';
 import React, { useState } from 'react';
 import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
 import TimeTableSlotItemInfo from './timeTableSlotItemInfo';
@@ -61,7 +57,7 @@ const TimeTableSlotItem: React.FC<timeTableSlotProps> = ({ slotdata }) => {
               },
             ]}
           ></Text>
-          <Text style={styles.slotText}>
+          <Text style={styles.slotText} numberOfLines={1} ellipsizeMode='tail'>
             {slotdata!.action}: {slotdata!.description}
           </Text>
 
@@ -86,6 +82,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     // backgroundColor: 'green',
     // height: '300%',
+
     zIndex: 101,
     borderRadius: 4,
     width: '99.5%',
@@ -99,6 +96,8 @@ const styles = StyleSheet.create({
   },
   slotText: {
     color: 'white',
+    // borderWidth: 1,
+    width: '94%',
   },
 });
 export default TimeTableSlotItem;

@@ -1,5 +1,5 @@
 import api from '@/api/api';
-import Loginapi from '@/api/Loginapi';
+import loginApi from '@/api/Loginapi';
 import * as SecureStore from 'expo-secure-store';
 
 const checkLogin = async () => {
@@ -9,7 +9,7 @@ const checkLogin = async () => {
     return;
   }
   try {
-    const checkResponse = await Loginapi.get(
+    const checkResponse = await loginApi.get(
       '/user/findOneById/' + `${user_id}`
     );
     if (checkResponse.status === 200) {

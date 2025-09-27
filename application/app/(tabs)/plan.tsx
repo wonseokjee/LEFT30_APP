@@ -1,24 +1,15 @@
 import Timetable from '@/components/timetable/timeTable';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import {
   getTodayTimeSlotInfoFromDB,
   getYesterdayTimeSlotInfoFromDB,
 } from '@/api/timetableApi';
+import { updateInfoFromZustand } from '@/store/timeTableStore';
 
-type TimeSlot = {
-  startIndex: number;
-  endIndex: number;
-  activity: string;
-};
-type DaySchedule = {
-  day: string;
-  slots: TimeSlot[];
-};
-
-const onPress = async () => {
+const onTabPress = async () => {
   try {
     const user_id = await SecureStore.getItemAsync('user_id');
     if (!user_id) {
@@ -33,11 +24,12 @@ const onPress = async () => {
 };
 
 export default function Plan() {
+  const { isUpdated } = updateInfoFromZustand();
   useFocusEffect(
     useCallback(() => {
       // 탭이 활성화될 때마다 실행할 함수
-      onPress();
-    }, [])
+      onTabPress();
+    }, [isUpdated])
   );
   return (
     <View style={styles.container}>
