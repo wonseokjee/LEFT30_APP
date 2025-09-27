@@ -5,21 +5,17 @@ import api from './api';
 import { use } from 'react';
 import { useLoginExpiredModalStore } from '@/store/useModalStore';
 
-const Loginapi = axios.create({
+const loginApi = axios.create({
   // baseURL: 'http://' + process.env. + ':3030', // 내 로컬 서버 IP
   //cmd -> ipconfig -> IPv4 Address
   // baseURL: 'http://' + process.env.EXPO_PUBLIC_LOCAL_IP + ':3030', // 내 로컬 서버 IP
   baseURL: 'http://localhost:3030', // 내 로컬 서버 IP
 });
 
-const { setLoginExpiredModalVisible } = useLoginExpiredModalStore() as {
-  setLoginExpiredModalVisible: (value: boolean) => void;
-};
-
 //api access token을 요청 보낼 때마다 header에 넣어주기 위한 interceptor 설정
 // 이 interceptor는 로그인 이후 모든 요청에 대해 실행되며, 토큰을 헤더에 추가합니다.
 // console.log('Loginapi request interceptor registered');
-Loginapi.interceptors.request.use(
+loginApi.interceptors.request.use(
   async (config) => {
     try {
       const token = await SecureStore.getItemAsync('accessToken');
@@ -41,20 +37,20 @@ Loginapi.interceptors.request.use(
     } catch (error) {
       console.error('Error retrieving accessToken:', error);
       //로그인 만료 동작.
-      setLoginExpiredModalVisible(true);
+      useLoginExpiredModalStore.getState().setLoginExpiredModalVisible(true);
       return Promise.reject(error);
     }
   },
   (error) => {
     console.error('Request error:', error);
     //로그인 만료 동작.
-    setLoginExpiredModalVisible(true);
+    useLoginExpiredModalStore.getState().setLoginExpiredModalVisible(true);
     return Promise.reject(error);
   }
 );
 
 // 에러 응답 interceptor (accessToken 만료 시 refreshToken 사용)
-Loginapi.interceptors.response.use(
+loginApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
@@ -98,10 +94,12 @@ Loginapi.interceptors.response.use(
               'Authorization'
             ] = `Bearer ${newAccessToken}`;
           }
-          return Loginapi(originalRequest);
+          return loginApi(originalRequest);
         } catch (refreshError) {
           //로그인 만료 동작.
-          setLoginExpiredModalVisible(true);
+          useLoginExpiredModalStore
+            .getState()
+            .setLoginExpiredModalVisible(true);
           return Promise.reject(refreshError);
         }
       }
@@ -110,4 +108,4 @@ Loginapi.interceptors.response.use(
   }
 );
 
-export default Loginapi;
+export default loginApi;

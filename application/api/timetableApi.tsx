@@ -5,6 +5,7 @@ import {
 import api from './api';
 import * as SecureStore from 'expo-secure-store';
 import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
+import Loginapi from './Loginapi';
 
 export const createTimeSlotInfo = async (
   data: timeSlotType,
@@ -19,7 +20,7 @@ export const createTimeSlotInfo = async (
       action: data.action, // 한 일
     };
 
-    const res = await api.post('/timetable', payload); // 서버의 '/timetable' 엔드포인트 호출
+    const res = await Loginapi.post('/timetable', payload); // 서버의 '/timetable' 엔드포인트 호출
     // console.log('Time slot created:', res.data); // 응답 데이터 확인
     return res.data; // 생성된 timetable 정보 반환
   } catch (error) {
@@ -32,7 +33,7 @@ export const createTimeSlotInfo = async (
 export const getTodayTimeSlotInfoFromDB = async (user_id: string) => {
   const { setTimeSlot } = useTodayTimeSlotInfoFromZustand.getState();
   try {
-    const res = await api.get('/timetable/today/' + user_id); // 서버의 '/timetable/today/:userid' 엔드포인트 호출
+    const res = await Loginapi.get('/timetable/today/' + user_id); // 서버의 '/timetable/today/:userid' 엔드포인트 호출
     setTimeSlot(res.data); // Zustand 스토어에 오늘의 정보 저장
   } catch (error) {
     console.error('Error fetching today info:', error);
@@ -44,7 +45,7 @@ export const getTodayTimeSlotInfoFromDB = async (user_id: string) => {
 export const getYesterdayTimeSlotInfoFromDB = async (user_id: string) => {
   const { setTimeSlot } = useYesterdayTimeSlotInfoFromZustand.getState();
   try {
-    const res = await api.get('/timetable/yesterday/' + user_id);
+    const res = await Loginapi.get('/timetable/yesterday/' + user_id);
     setTimeSlot(res.data);
   } catch (error) {
     console.error('Error fetching yesterday info:', error);
@@ -69,7 +70,7 @@ export const updateTimeSlotInfo = async (
     };
 
     // console.log('Payload for update:', payload);
-    const res = await api.post('/timetable/timeUpdate/', payload); // 서버의 '/timetable' 엔드포인트 호출
+    const res = await Loginapi.post('/timetable/timeUpdate/', payload); // 서버의 '/timetable' 엔드포인트 호출
     // console.log('Time slot created:', res.data); // 응답 데이터 확인
     return res.data; // 생성된 timetable 정보 반환
   } catch (error) {

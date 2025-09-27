@@ -1,10 +1,11 @@
 import api from './api';
 import * as SecureStore from 'expo-secure-store';
+import loginApi from './Loginapi';
 
 export const getTodoLIstFromDB = async () => {
   const user_id = await SecureStore.getItemAsync('user_id');
   try {
-    const res = await api.get('/todo/user/' + user_id);
+    const res = await loginApi.get('/todo/user/' + user_id);
     const todoList = res.data;
     return todoList; // 데이터를 반환
   } catch (error) {
@@ -16,7 +17,7 @@ export const getTodoLIstFromDB = async () => {
 export const addTodoItemFromDB = async (title: string) => {
   const user_id = await SecureStore.getItemAsync('user_id');
   try {
-    const res = await api.post('/todo', {
+    const res = await loginApi.post('/todo', {
       user_id,
       title,
     });
@@ -29,7 +30,7 @@ export const addTodoItemFromDB = async (title: string) => {
 
 export const updateTodoItemFromDB = async (id: string, task: string) => {
   try {
-    const res = await api.patch(`/todo/${id}`, {
+    const res = await loginApi.patch(`/todo/${id}`, {
       title: task,
     });
     return res.data; // 업데이트된 데이터를 반환
@@ -44,7 +45,7 @@ export const updateTodoItemStatusFromDB = async (
   is_done: boolean
 ) => {
   try {
-    const res = await api.patch(`/todo/${id}`, {
+    const res = await loginApi.patch(`/todo/${id}`, {
       is_done: is_done,
     });
     return res.data; // 업데이트된 데이터를 반환
@@ -56,7 +57,7 @@ export const updateTodoItemStatusFromDB = async (
 
 export const deleteTodoItemFromDB = async (id: string) => {
   try {
-    const res = await api.delete(`/todo/${id}`); // DELETE 요청
+    const res = await loginApi.delete(`/todo/${id}`); // DELETE 요청
     return res.data; // 삭제 결과를 반환
   } catch (error) {
     console.error('Error deleting todo item:', error);
