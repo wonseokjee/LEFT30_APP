@@ -11,6 +11,7 @@ import { GRAY_4, GRAY_8, GRAY_9 } from '@/assets/palette';
 type SetBasicModalVisibleProps = {
   setBasicModalVisible: (visible: boolean) => void;
   title: string;
+  subtitle?: string;
   handleConfirm: () => Promise<void>; // handleConfirm을 props로 받음
   handleCancel?: () => void; // handleCancel을 props로 받음 (필요시)
   isTextInput?: boolean; // textInput을 외부에서 받을 수 있도록 추가
@@ -22,9 +23,10 @@ type SetBasicModalVisibleProps = {
 const BasicModal: React.FC<SetBasicModalVisibleProps> = ({
   setBasicModalVisible,
   title,
+  subtitle,
   handleConfirm,
   handleCancel,
-  isTextInput, // props로 받음
+  isTextInput,
   inputValue,
   setInputValue, // textInput의 값을 관리하는 상태와 상태 변경 함수를 props로 받음
   inputValuePlaceholder,
@@ -43,7 +45,9 @@ const BasicModal: React.FC<SetBasicModalVisibleProps> = ({
         <View style={styles.overlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>{title}</Text>
-
+            {subtitle ? (
+              <Text style={styles.modalSubtitle}>{subtitle}</Text>
+            ) : null}
             {isTextInput ? (
               <TextInput
                 style={styles.input}
@@ -100,7 +104,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: '100%',
     textAlign: 'center',
-    marginBottom: 10,
+    // marginBottom: 10,
+    paddingBottom: 10,
+    color: GRAY_8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    width: '100%',
+    textAlign: 'center',
     paddingBottom: 10,
     color: GRAY_8,
   },

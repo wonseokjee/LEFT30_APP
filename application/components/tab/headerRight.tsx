@@ -23,20 +23,20 @@ export default function TabHeaderRight() {
   const router = useRouter();
 
   const menuItems = [
-    {
-      label: '설정',
-      onPress: () => {
-        /* 설정 동작 */
-      },
-    },
-    {
-      label: '방해금지 시간',
-      onPress: async () => {
-        const quietTime = await getQuietTimeByDB();
-        setQuietModalVisible(true);
-        setTime(quietTime);
-      },
-    },
+    // {
+    //   label: '설정',
+    //   onPress: () => {
+    //     /* 설정 동작 */
+    //   },
+    // },
+    // {
+    //   label: '방해금지 시간',
+    //   onPress: async () => {
+    //     const quietTime = await getQuietTimeByDB();
+    //     setQuietModalVisible(true);
+    //     setTime(quietTime);
+    //   },
+    // },
     {
       label: '계정 관리',
       onPress: async () => {
@@ -78,9 +78,6 @@ export default function TabHeaderRight() {
           </View>
         </Pressable>
       </Modal>
-      {quietModalVisible ? (
-        <QuietTimeModal setModalVisible={setQuietModalVisible} />
-      ) : null}
       {logoutModalVisible ? (
         <LogoutModal setLogoutModalVisible={setLogoutModalVisible} />
       ) : null}
