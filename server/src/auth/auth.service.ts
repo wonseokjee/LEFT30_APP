@@ -25,6 +25,7 @@ export class AuthService {
     // 3. JWT 토큰 생성 (access, refresh) auth로 이동시키기
     const accessTokenJwt = this.authJWTService.generateAccessToken(userId);
     const refreshTokenJwt = this.authJWTService.generateRefreshToken(userId);
+    // console.log('Generated Tokens:', { accessTokenJwt, refreshTokenJwt });
 
     // 4. refreshToken을 DB에 저장 (보안상 암호화 권장)
     await this.authJWTService.saveRefreshToken(userId, refreshTokenJwt);
@@ -49,8 +50,9 @@ export class AuthService {
     userId: string,
     res: Response,
   ): Promise<void> {
-    console.log('Received userId:', userId);
-    console.log('Received refreshToken:', refreshToken);
+    // console.log('Received userId:', userId);
+    // console.log('Received refreshToken:', refreshToken);
+    // console.log('JWT_SECRET:', process.env.JWT_SECRET);
     const isValid = await this.authJWTService.validateRefreshToken(
       userId,
       refreshToken,
@@ -64,5 +66,9 @@ export class AuthService {
     res.json({
       message: 'Access token reissued successfully',
     });
+  }
+
+  async logoutKakao(accessToken: string): Promise<void> {
+    await this.kakaoApiService.logoutKakao(accessToken);
   }
 }

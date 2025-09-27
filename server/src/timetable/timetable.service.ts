@@ -5,6 +5,8 @@ import { CreateTimetableDto } from 'src/dto/timetable/createTimetable.dto';
 import { TimetableEntry } from 'src/entity/timetableEntry.entity';
 import { Between, Repository } from 'typeorm';
 import dayjs from 'dayjs';
+import { splitInto30MinEndTimes } from './component/splitInto30MinEndTimes';
+import { findSlotByEnded_at } from './query/findSlotByEnded_at';
 
 @Injectable()
 export class TimetableService {
@@ -13,15 +15,15 @@ export class TimetableService {
     private timetableRepo: Repository<TimetableEntry>,
   ) {}
 
-  async create(createTimetableDto: CreateTimetableDto) {
+  //개선 매우 필요...시작,끝 시간을 받는 걸로 변경. 현재는 끝시간만 받음. DTO도 변경필요.
+  //DTO에서는 ended_at을 "HHMM" 형식의 문자열로 받음.
+  async createOne(createTimetableDto: CreateTimetableDto) {
     const { ended_at } = createTimetableDto;
 
     // ended_at을 ISO 8601 문자열에서 Date 객체로 변환
-    const endTime = new Date(ended_at);
-    // console.log('ended_at', endedAtDate);
-
-    // ended_at에서 30분 전 시간을 계산하여 started_at 생성
-    const started_at = dayjs(endTime).subtract(30, 'minute').toDate();
+    const endedTime = new Date(ended_at);
+    //현재는 30분 고정이지만, 나중에 유저가 정할 수 있게 변경 가능
+    const started_at = dayjs(ended_at).subtract(30, 'minute').toDate();
 
     // 시작 시간과 종료 시간을 기반으로 슬롯 범위 계산
     const startTime = new Date(started_at);
@@ -29,19 +31,19 @@ export class TimetableService {
     const startIndex =
       startTime.getHours() * 6 + Math.floor(startTime.getMinutes() / 10); // 시작 시간의 인덱스
     const endIndex =
-      endTime.getHours() * 6 + Math.ceil(endTime.getMinutes() / 10); // 종료 시간의 인덱스
+      endedTime.getHours() * 6 + Math.ceil(endedTime.getMinutes() / 10); // 종료 시간의 인덱스
 
     const range = endIndex - startIndex; // 슬롯 범위 계산
 
+    console.log('createTimetableDto', createTimetableDto);
     // 새로운 TimetableEntry 생성
     const entry = this.timetableRepo.create({
       ...createTimetableDto,
-      started_at,
-      ended_at: endTime, // 계산된 started_at 추가
+      started_at: started_at,
       range,
     });
 
-    // console.log('entry', entry);
+    console.log('entry', entry);
     return this.timetableRepo.save(entry);
   }
 
@@ -77,7 +79,7 @@ export class TimetableService {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    console.log('today', today);
+    // console.log('today', today);
 
     return this.timetableRepo.find({
       where: {
@@ -104,12 +106,43 @@ export class TimetableService {
     });
   }
 
-  async update(id: string, updateData: Partial<TimetableEntry>) {
-    await this.timetableRepo.update(id, updateData);
-    return this.findOne(id);
-  }
+  // 시간범위로 받아와서 해당 시간대에 행동있으면 update, 없으면 create
+  async updateTimeSlot(updateData: CreateTimetableDto) {
+    //updateData.started_at과 updateData.ended_at를 30분 간격으로 나눔.
+    // console.log('updateData', updateData);
+    const { started_at, ended_at } = updateData;
+    if (!started_at || !ended_at) {
+      throw new Error('started_at and ended_at are required for update');
+    }
 
-  async remove(id: string): Promise<void> {
-    await this.timetableRepo.delete(id);
+    const endSlots = splitInto30MinEndTimes(
+      new Date(started_at),
+      new Date(ended_at),
+    );
+    // console.log('endSlots', endSlots);
+    // // 각 슬롯에 대해 update 또는 create 수행
+    for (const end of endSlots) {
+      const existingEntry = await findSlotByEnded_at(
+        this.timetableRepo,
+        end,
+        updateData.user_id,
+      );
+      // console.log('existingEntry', existingEntry);
+      if (existingEntry) {
+        // console.log(existingEntry);
+        existingEntry.action = updateData.action;
+        existingEntry.description = updateData.description;
+        // console.log('existingEntry after', existingEntry);
+        await this.timetableRepo.update(existingEntry.id, existingEntry);
+      } else {
+        const updatepayload = { ...updateData };
+        delete updatepayload.started_at;
+        updatepayload.ended_at = end.toISOString();
+
+        // console.log('updatepayload', updatepayload);
+
+        await this.createOne(updatepayload);
+      }
+    }
   }
 }

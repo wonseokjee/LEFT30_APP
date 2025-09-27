@@ -41,7 +41,7 @@ export class KakaoApiService {
     const kakaoId = kakao_Id.toString();
     // const email = kakaoProfile.kakao_account?.email ?? null;
     let user = await this.userRepo.findOne({ where: { kakaoId: kakaoId } });
-    console.log('User found:', user);
+    // console.log('User found:', user);
     if (!user) {
       user = this.userRepo.create({
         kakaoId: kakaoId,
@@ -52,5 +52,22 @@ export class KakaoApiService {
       await this.userRepo.save(user);
     }
     return user.id;
+  }
+
+  async logoutKakao(accessToken: string): Promise<void> {
+    try {
+      await axios.post(
+        'https://kapi.kakao.com/v1/user/logout',
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        },
+      );
+    } catch (error: unknown) {
+      console.error('Error logging out Kakao user:', error);
+      throw new UnauthorizedException('Failed to logout Kakao user');
+    }
   }
 }

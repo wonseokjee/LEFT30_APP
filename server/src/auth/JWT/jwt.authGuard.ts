@@ -19,7 +19,6 @@ export class JwtAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
-
     const token = this.extractTokenFromHeader(request);
     if (!token) {
       console.error('No token found in request headers');
@@ -35,9 +34,9 @@ export class JwtAuthGuard implements CanActivate {
 
       // 필요하다면 request.user에 payload 저장
       request['user'] = payload;
-      console.log('JWT payload:', payload);
+      // console.log('JWT payload:', payload); 9.25 여기까지는 찍힘.
     } catch (error) {
-      console.error('Token validation failed:', error);
+      console.error('Token validation failed:', error); //9.25error발생.
       throw new UnauthorizedException('Invalid token');
     }
 

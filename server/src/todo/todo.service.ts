@@ -46,11 +46,9 @@ export class TodoService {
   //   await this.todoRepository.remove(todo);
   // }
 
-  user_id = 'cddba932-7fb4-41b6-b8ba-ab17d4bcf0cf'; // 임시 user_id
-
   async create(createDto: CreateTodoDto): Promise<Todo> {
     const user = await this.userRepository.findOne({
-      where: { id: this.user_id },
+      where: { id: createDto.user_id },
     });
     if (!user) throw new NotFoundException('User not found');
 
@@ -74,6 +72,7 @@ export class TodoService {
     const todo = await this.todoRepository.find({
       where: { user: { id: id } },
       // where: { id, user: { id: this.user_id } },
+      order: { created_at: 'ASC' },
     });
     if (!todo) throw new NotFoundException('Todo not found');
     return todo;

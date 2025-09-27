@@ -4,9 +4,10 @@ import { PushService } from './push.service';
 import { TypeOrmModule } from '@nestjs/typeorm/dist/typeorm.module';
 import { User } from '../entity/user.entity';
 import { TimetableEntry } from 'src/entity/timetableEntry.entity';
+import { AuthJWTModule } from 'src/auth/JWT/auth.jwt.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, TimetableEntry])],
+  imports: [TypeOrmModule.forFeature([User, TimetableEntry]), AuthJWTModule],
   controllers: [PushController],
   providers: [PushService],
 })

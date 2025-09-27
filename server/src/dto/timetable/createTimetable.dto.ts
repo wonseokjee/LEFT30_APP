@@ -8,8 +8,8 @@ import {
 } from 'class-validator';
 
 export class CreateTimetableDto {
-  // @IsDateString()
-  // started_at!: string;
+  @IsDateString()
+  started_at?: string;
 
   @IsDateString()
   @IsNotEmpty()
