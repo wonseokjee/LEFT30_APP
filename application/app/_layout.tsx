@@ -18,6 +18,7 @@ import TabHeaderRight from '@/components/tab/headerRight';
 import { useRouter } from 'expo-router';
 import LoginExpiredAlertModal from '@/components/user/loginExpiredModal';
 import { isLogined } from '@react-native-kakao/user';
+import { handleLogin } from '@/components/login/handleLoginBtn';
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -29,6 +30,7 @@ export default function RootLayout() {
   const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
   const { setModalOpen } = useNumStore();
   const router = useRouter();
+
   useEffect(() => {
     //카카오 로그인 SDK 초기화
     initializeKakaoSDK(kakaoNativeAppKey);
@@ -36,14 +38,15 @@ export default function RootLayout() {
     const checkIsLoggedIn = async () => {
       const isLoggedIn = await isLogined();
       if (isLoggedIn) {
+        await handleLogin(); // 자동 로그인 시도
+        //푸시 알림 토큰 등록
+        await registerForPushNotificationsAsync();
         router.replace('/(tabs)'); // 자동로그인 성공 시 메인 페이지로 이동
       } else {
         router.replace('/(login)'); // 자동로그인 실패 시 로그인 페이지로 이동
       }
     };
     checkIsLoggedIn();
-    //푸시 알림 토큰 등록
-    registerForPushNotificationsAsync();
 
     // 푸시 알림 수신 및 응답 리스너 설정
     const subscription = receivedListener();

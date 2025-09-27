@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Text } from 'react-native';
 import { handleLogin } from '@/components/login/handleLoginBtn';
 import { useRouter } from 'expo-router';
+import registerForPushNotificationsAsync from '@/components/pushNotification/registerForPushNotificationsAsync';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function LoginPage() {
     try {
       const isLoggedIn = await handleLogin();
       if (isLoggedIn) {
+        await registerForPushNotificationsAsync();
         router.replace('/(tabs)'); // 로그인 성공 시 메인 페이지로 이동
       } else {
         console.error('로그인 실패');
@@ -21,21 +23,20 @@ export default function LoginPage() {
 
   return (
     <View style={styles.container}>
-
-        <View style={styles.logoContainer}>
-          <Image
-            source={require('@/assets/images/left30_logo.png')}
-            style={styles.logo}
-          />
-        </View>
-        {/* <Text style={styles.title}>Welcome to Left30</Text> */}
-        <TouchableOpacity onPress={onLoginPress}>
-          <Image
-            source={require('@/assets/images/kakao_login_medium_narrow.png')}
-            style={styles.loginImage}
-            resizeMode='contain'
-          />
-        </TouchableOpacity>
+      <View style={styles.logoContainer}>
+        <Image
+          source={require('@/assets/images/left30_logo.png')}
+          style={styles.logo}
+        />
+      </View>
+      {/* <Text style={styles.title}>Welcome to Left30</Text> */}
+      <TouchableOpacity onPress={onLoginPress}>
+        <Image
+          source={require('@/assets/images/kakao_login_medium_narrow.png')}
+          style={styles.loginImage}
+          resizeMode='contain'
+        />
+      </TouchableOpacity>
     </View>
   );
 }
