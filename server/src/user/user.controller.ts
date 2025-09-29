@@ -17,12 +17,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Get('findOneById/:id')
   async findOneById(@Param('id') id: string) {
-    // console.log('User found:', id);
     const user = await this.userService.findOneById(id);
-
-    // if (!user) {
-    //   throw new NotFoundException(`User with ID ${id} not found`);
-    // }
     return user;
   }
 

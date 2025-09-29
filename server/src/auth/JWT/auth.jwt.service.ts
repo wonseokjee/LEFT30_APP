@@ -23,14 +23,14 @@ export class AuthJWTService {
   generateAccessToken(userId: string): string {
     const payload: JWTpayload = { sub: userId };
     // console.log('Generating access token for user:', userId);
-    return this.jwtService.sign(payload, { expiresIn: '15m' });
+    return this.jwtService.sign(payload, { expiresIn: '1h' });
   }
 
   //refreshToken을 생성하는 메서드
   generateRefreshToken(userId: string): string {
     const payload: JWTpayload = { sub: userId };
     // console.log('Generating refresh token for user:', userId);
-    return this.jwtService.sign(payload, { expiresIn: '30m' });
+    return this.jwtService.sign(payload, { expiresIn: '5d' });
   }
 
   //accessToken을 검증하는 메서드
