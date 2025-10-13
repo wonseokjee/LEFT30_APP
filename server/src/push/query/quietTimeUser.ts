@@ -1,6 +1,6 @@
 // src/query/userQuery.ts
 import { Repository } from 'typeorm';
-import { User } from 'src/entity/user.entity';
+import { User } from 'src/Entity/user.entity';
 
 // 방해금지 startHour < endHour (예: 22시~7시) 인 경우
 // 방해금지 startHour > endHour (예: 1시~9시) 인 경우 모두 고려.
@@ -8,7 +8,7 @@ import { User } from 'src/entity/user.entity';
 export async function getQuietUsers(
   userRepo: Repository<User>,
   nowHour: number,
-  nowMinute: number,  
+  nowMinute: number,
 ) {
   return await userRepo
     .createQueryBuilder('user')

@@ -7,8 +7,8 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
-import { TimetableEntry } from 'src/entity/timetableEntry.entity';
-import { Todo } from 'src/entity/todo.entity';
+import { TimetableEntry } from 'src/Entity/timetableEntry.entity';
+import { Todo } from 'src/Entity/todo.entity';
 
 @Entity('user')
 export class User {

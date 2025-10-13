@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateTimetableDto } from 'src/dto/timetable/createTimetable.dto';
-import { TimetableEntry } from 'src/entity/timetableEntry.entity';
+import { TimetableEntry } from 'src/Entity/timetableEntry.entity';
 import { Between, Repository } from 'typeorm';
 import dayjs from 'dayjs';
 import { splitInto30MinEndTimes } from './component/splitInto30MinEndTimes';

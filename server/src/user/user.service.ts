@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { TimetableEntry } from 'src/entity/timetableEntry.entity';
-import { Todo } from 'src/entity/todo.entity';
-import { User } from 'src/entity/user.entity';
+import { TimetableEntry } from 'src/Entity/timetableEntry.entity';
+import { Todo } from 'src/Entity/todo.entity';
+import { User } from 'src/Entity/user.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
