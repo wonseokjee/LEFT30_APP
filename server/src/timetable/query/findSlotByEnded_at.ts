@@ -1,6 +1,6 @@
 // src/query/userQuery.ts
 import { Raw, Repository } from 'typeorm';
-import { TimetableEntry } from 'src/entity/timetableEntry.entity';
+import { TimetableEntry } from 'src/Entity/timetableEntry.entity';
 import dayjs from 'dayjs';
 
 // 방해금지 startHour < endHour (예: 22시~7시) 인 경우

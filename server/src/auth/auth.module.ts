@@ -4,7 +4,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 // import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from 'src/entity/user.entity';
+import { User } from 'src/Entity/user.entity';
 import { KakaoApiService } from './kakao/kakaoapi.service';
 import { UserModule } from 'src/user/user.module';
 import { AuthJWTService } from './JWT/auth.jwt.service';

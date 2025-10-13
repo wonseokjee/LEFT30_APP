@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import serviceAccount from '../../config/serviceAccountKey.json';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/entity/user.entity';
+import { User } from 'src/Entity/user.entity';
 import { Repository } from 'typeorm/repository/Repository';
 import { sendPushNotification } from './component/sendPushNotification';
 import { Cron } from '@nestjs/schedule';
-import { TimetableEntry } from 'src/entity/timetableEntry.entity';
+import { TimetableEntry } from 'src/Entity/timetableEntry.entity';
 import { isSameMinute } from './component/compareTime';
 import { getQuietUsers } from './query/quietTimeUser';
 

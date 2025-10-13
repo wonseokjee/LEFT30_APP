@@ -1,7 +1,7 @@
 import { HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import axios from 'axios';
-import { User } from 'src/entity/user.entity';
+import { User } from 'src/Entity/user.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()

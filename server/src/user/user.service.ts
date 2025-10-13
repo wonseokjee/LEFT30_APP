@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { TimetableEntry } from 'src/entity/timetableEntry.entity';
-import { Todo } from 'src/entity/todo.entity';
-import { User } from 'src/entity/user.entity';
+import { TimetableEntry } from 'src/Entity/timetableEntry.entity';
+import { Todo } from 'src/Entity/todo.entity';
+import { User } from 'src/Entity/user.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
@@ -26,7 +26,6 @@ export class UserService {
   //auth.repository로 가야함
   async findOrCreateByKakao(kakao_Id: number): Promise<string> {
     const kakaoId = kakao_Id.toString();
-    // const email = kakaoProfile.kakao_account?.email ?? null;
     let user = await this.userRepo.findOne({ where: { kakaoId: kakaoId } });
     if (!user) {
       user = this.userRepo.create({
@@ -58,8 +57,6 @@ export class UserService {
     quietEndHour: number,
     quietEndMinute: number,
   ) {
-    // 사용자 정보를 업데이트
-    // const userId = await this.userRepo.findOne({ where: { id: userId } });
     try {
       await this.userRepo.update(userId, {
         quietStartHour: quietStartHour,
