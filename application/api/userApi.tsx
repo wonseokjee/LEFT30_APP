@@ -33,7 +33,7 @@ export const withdrawUser = async () => {
   const user_id = await SecureStore.getItemAsync('user_id');
   try {
     const res = await loginApi.delete('/user/withdraw', { data: { user_id } });
-    console.log('res', res.data);
+    // console.log('res', res.data);
     if (res.data.status === 'success') {
       console.log('회원 탈퇴 성공:', res.data);
       return true; // 성공 시 true 반환

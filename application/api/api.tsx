@@ -6,7 +6,8 @@ const api = axios.create({
   //cmd -> ipconfig -> IPv4 Address
 
   // baseURL: 'http://' + process.env.EXPO_PUBLIC_LOCAL_IP + ':3030', // 내 로컬 서버 IP
-  baseURL: 'http://localhost:3030', // 직접 연결 시
+  // baseURL: 'http://localhost:3030', // 직접 연결 시
+  baseURL: 'https://left30m.com', // 프로덕션 도메인
 });
 
 export default api;

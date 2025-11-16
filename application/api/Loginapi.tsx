@@ -2,14 +2,14 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import api from './api';
-import { use } from 'react';
 import { useLoginExpiredModalStore } from '@/store/useModalStore';
 
 const loginApi = axios.create({
   // baseURL: 'http://' + process.env. + ':3030', // 내 로컬 서버 IP
   //cmd -> ipconfig -> IPv4 Address
   // baseURL: 'http://' + process.env.EXPO_PUBLIC_LOCAL_IP + ':3030', // 내 로컬 서버 IP
-  baseURL: 'http://localhost:3030', // 내 로컬 서버 IP
+  // baseURL: 'http://localhost:3030', // 내 로컬 서버 IP
+  baseURL: 'https://left30m.com', // 프로덕션 도메인
 });
 
 //api access token을 요청 보낼 때마다 header에 넣어주기 위한 interceptor 설정
