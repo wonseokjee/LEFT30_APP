@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'left30app',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/images/image_left30.png',
+  icon: './assets/images/left30_logo.png',
   scheme: 'myapp',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
@@ -16,10 +16,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: 'com.left30m.app',
     adaptiveIcon: {
-      foregroundImage: './assets/images/image_left30.png',
+      foregroundImage: './assets/images/left30_logo.png',
       backgroundColor: '#ffffff',
     },
-    googleServicesFile: './android/app/google-services.json',
   },
   web: {
     bundler: 'metro',
@@ -32,7 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        image: './assets/images/image_left30.png',
+        image: './assets/images/left30_logo.png',
         imageWidth: 200,
         resizeMode: 'contain',
         backgroundColor: '#ffffff',

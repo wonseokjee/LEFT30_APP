@@ -1,18 +1,22 @@
 # Gradle build cache (only cache and temp files)
+
 android/.gradle/
 android/app/build/intermediates/
 android/app/build/tmp/
 
 # IDE files
+
 .idea/
 .vscode/
-*.iml
+\*.iml
 
 # OS files
+
 .DS_Store
 Thumbs.db
 
 # Build outputs
-*.apk
-*.aab
-*.ipa
+
+_.apk
+_.aab
+\*.ipa
