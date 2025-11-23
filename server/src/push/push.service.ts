@@ -103,7 +103,7 @@ export class PushService {
           // `이번 할일이 ${action}으로 입력되었습니다. 수정하려면 클릭하세요`,
           '이번 할일이 이전과 동일하게 입력되었습니다. 수정하려면 클릭하세요',
           {
-            user: user.name,
+            user: String(user.name || ''),
             openModal: 'false',
             type: 'important',
             //type important의 경우 포어그라운드에도 알림 뜸. 데이터 변경되어서 앱이 실행중이어도 알림.
@@ -134,7 +134,7 @@ export class PushService {
         // `이번 할일이 ${action}으로 입력되었습니다. 수정하려면 클릭하세요`,
         '이번 할일을 입력해주세요',
         {
-          user: user.name,
+          user: String(user.name || ''),
           openModal: 'true',
           type: 'normal',
         },
