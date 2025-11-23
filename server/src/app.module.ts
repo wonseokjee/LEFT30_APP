@@ -19,14 +19,14 @@ import { ConfigModule } from '@nestjs/config/dist/config.module';
       host: 'localhost',
       // port: parseInt(process.env.DB_PORT, 10) || 5432, // default PostgreSQL port 5432
       port: 5432,
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'postgres', // e.g. 'password'
-      database: process.env.DB_NAME || 'postgres', // e.g. 'mydatabase'
+      username: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD, // e.g. 'password'
+      database: process.env.DB_NAME , // e.g. 'mydatabase'
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // set to false in production
     }),
     ScheduleModule.forRoot(),
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({isGlobal: true, envFilePath: '.env'}),
     UserModule,
     TimetableModule,
     TodoModule,
