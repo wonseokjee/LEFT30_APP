@@ -87,7 +87,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.left30app"
+    namespace "com.left30m.app"
     defaultConfig {
         applicationId "com.left30app"
         minSdkVersion rootProject.ext.minSdkVersion
