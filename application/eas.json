@@ -18,11 +18,13 @@
       "autoIncrement": true,
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "withoutCredentials": true
       },
       "cache": {
         "disabled": true
-      }
+      },
+      "prebuildCommand": "echo 'Skip prebuild - using existing android folder'"
     }
   },
   "submit": {
