@@ -10,6 +10,15 @@ export async function sendPushNotification(
   if (!pushToken) {
     return { success: false, error: 'Push token not found' };
   }
+  
+  // Ensure all data values are strings
+  const sanitizedData: { [key: string]: string } = {};
+  if (data) {
+    Object.keys(data).forEach(key => {
+      sanitizedData[key] = String(data[key] ?? '');
+    });
+  }
+  
   const notification = {
     token: pushToken,
     notification: { title, body: message },
@@ -17,7 +26,7 @@ export async function sendPushNotification(
       collapseKey: 'action_input', // 같은 collapseKey면 이전 알림을 덮어씀
       priority: 'high' as 'high' | 'normal' | undefined,
     },
-    data: data || {},
+    data: sanitizedData,
   };
   //notification_id: 'message_123'
   try {
