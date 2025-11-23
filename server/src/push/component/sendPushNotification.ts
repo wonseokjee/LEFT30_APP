@@ -10,7 +10,7 @@ export async function sendPushNotification(
   if (!pushToken) {
     return { success: false, error: 'Push token not found' };
   }
-  
+
   // Ensure all data values are strings
   const sanitizedData: { [key: string]: string } = {};
   if (data) {
@@ -18,7 +18,7 @@ export async function sendPushNotification(
       sanitizedData[key] = String(data[key] ?? '');
     });
   }
-  
+
   const notification = {
     token: pushToken,
     notification: { title, body: message },
