@@ -14,7 +14,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     supportsTablet: true,
   },
   android: {
-    package: 'com.yourcompany.left30app',
+    package: 'com.left30m.app',
     adaptiveIcon: {
       foregroundImage: './assets/images/image_left30.png',
       backgroundColor: '#ffffff',
