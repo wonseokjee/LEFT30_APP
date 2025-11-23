@@ -1,10 +1,7 @@
-# Gradle build cache
+# Gradle build cache (only cache and temp files)
 android/.gradle/
-android/build/
-android/app/build/
-
-# Node modules
-node_modules/
+android/app/build/intermediates/
+android/app/build/tmp/
 
 # IDE files
 .idea/
