@@ -1,4 +1,4 @@
-package com.yourcompany.left30app
+package com.left30m.app
 
 import android.app.Application
 import android.content.res.Configuration
