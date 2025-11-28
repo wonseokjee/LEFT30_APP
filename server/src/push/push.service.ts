@@ -58,8 +58,12 @@ export class PushService {
     //조건: pushtoken유무, 현재 행동등록x, 현재가 방해금지시간이 아닐 것, 이전 행동이 없으면 저장x.
 
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const fiveMinutesAgoHour = fiveMinutesAgo.getHours();
-    const fiveMinutesAgoMinute = fiveMinutesAgo.getMinutes();
+    // KST(UTC+9)로 변환
+    const fiveMinutesAgoKST = new Date(
+      fiveMinutesAgo.getTime() + 9 * 60 * 60 * 1000,
+    );
+    const fiveMinutesAgoHour = fiveMinutesAgoKST.getHours();
+    const fiveMinutesAgoMinute = fiveMinutesAgoKST.getMinutes();
 
     // pushtoken이 있고, 5분전이 방해금지시간이 아닌 유저
     const users = await getQuietUsers(
@@ -117,8 +121,12 @@ export class PushService {
   async inputPresentAction(): Promise<void> {
     // pushtoken이 있고, 1분전이(방해금지 시작시간이면 포함 안돼서 1분전으로) 방해금지시간이 아닌 유저
     const oneMinuteAgo = new Date(Date.now() - 1 * 60 * 1000);
-    const oneMinuteAgoHour = oneMinuteAgo.getHours();
-    const oneMinuteAgoMinute = oneMinuteAgo.getMinutes();
+    // KST(UTC+9)로 변환
+    const oneMinuteAgoKST = new Date(
+      oneMinuteAgo.getTime() + 9 * 60 * 60 * 1000,
+    );
+    const oneMinuteAgoHour = oneMinuteAgoKST.getHours();
+    const oneMinuteAgoMinute = oneMinuteAgoKST.getMinutes();
     const users = await getQuietUsers(
       this.userRepo,
       oneMinuteAgoHour,
