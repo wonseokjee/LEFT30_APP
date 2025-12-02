@@ -1,29 +1,73 @@
-import GetButton from '@/components/firebase/getTimeTable';
 import Timer from '@/components/timer/timer';
 import WiseSaying from '@/components/wiseSaying/wiseSaying';
-// import ModalButton from '@/hooks/alarm/modal';
-import useNumStore from '@/store/timerStore';
-import { StyleSheet, Text, View } from 'react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
+import { GRAY_6 } from '@/assets/palette';
 
 export default function Index() {
-  const { setModalOpen } = useNumStore();
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        // 화면을 떠날 때 세로로 고정
+        ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.PORTRAIT_UP
+        );
+        setIsLandscape(false);
+      };
+    }, [])
+  );
+
+  const toggleOrientation = async () => {
+    if (isLandscape) {
+      // 세로로 전환
+      await ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT_UP
+      );
+      setIsLandscape(false);
+    } else {
+      // 가로로 전환
+      await ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.LANDSCAPE
+      );
+      setIsLandscape(true);
+    }
+  };
+
   return (
     <View style={styles.appContainer}>
+      <TouchableOpacity style={styles.rotateButton} onPress={toggleOrientation}>
+        <Text style={styles.buttonText}>
+          {isLandscape ? '세로로 전환' : '가로로 전환'}
+        </Text>
+      </TouchableOpacity>
       <Timer />
       <WiseSaying />
-      {/* <ModalButton /> */}
-      {/* <Button title='Modal 열기' onPress={() => setModalOpen()} color='grey' /> */}
-      {/* <GetButton /> */}
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   appContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'black',
-    // borderWidth: 1,
-    // borderColor: 'white',
+  },
+  rotateButton: {
+    position: 'absolute',
+    top: 10,
+    right: 20,
+    backgroundColor: GRAY_6,
+    padding: 8,
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 10,
   },
 });
