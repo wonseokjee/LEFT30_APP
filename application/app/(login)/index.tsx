@@ -1,18 +1,20 @@
-import React, { Suspense } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Text } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { handleLogin } from '@/components/login/handleLoginBtn';
 import { useRouter } from 'expo-router';
 import registerForPushNotificationsAsync from '@/components/pushNotification/registerForPushNotificationsAsync';
+import * as SecureStore from 'expo-secure-store';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [showLoginButton, setShowLoginButton] = useState(false);
 
   const onLoginPress = async () => {
     try {
       const isLoggedIn = await handleLogin();
       if (isLoggedIn) {
         await registerForPushNotificationsAsync();
-        router.replace('/(tabs)'); // 로그인 성공 시 메인 페이지로 이동
+        router.replace('/(tabs)');
       } else {
         console.error('로그인 실패');
       }
@@ -20,6 +22,27 @@ export default function LoginPage() {
       console.error('Login failed:', error);
     }
   };
+
+  useEffect(() => {
+    const checkIsLoggedIn = async () => {
+      try {
+        const accessToken = await SecureStore.getItemAsync('accessToken');
+        const refreshToken = await SecureStore.getItemAsync('refreshToken');
+        const userId = await SecureStore.getItemAsync('user_id');
+
+        if (accessToken && refreshToken && userId) {
+          router.replace('/(tabs)');
+        } else {
+          setShowLoginButton(true);
+        }
+      } catch (error) {
+        console.error('로그인 상태 확인 에러:', error);
+        setShowLoginButton(true);
+      }
+    };
+
+    checkIsLoggedIn();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -29,18 +52,18 @@ export default function LoginPage() {
           style={styles.logo}
         />
       </View>
-      {/* <Text style={styles.title}>Welcome to Left30</Text> */}
-      <TouchableOpacity onPress={onLoginPress}>
-        <Image
-          source={require('@/assets/images/kakao_login_medium_narrow.png')}
-          style={styles.loginImage}
-          resizeMode='contain'
-        />
-      </TouchableOpacity>
+      {showLoginButton && (
+        <TouchableOpacity onPress={onLoginPress}>
+          <Image
+            source={require('@/assets/images/kakao_login_medium_narrow.png')}
+            style={styles.loginImage}
+            resizeMode='contain'
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
-//kakao_login_medium_narrow
 
 const styles = StyleSheet.create({
   container: {
