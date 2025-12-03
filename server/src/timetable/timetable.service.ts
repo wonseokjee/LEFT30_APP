@@ -25,15 +25,13 @@ export class TimetableService {
     //현재는 30분 고정이지만, 나중에 유저가 정할 수 있게 변경 가능
     const started_at = dayjs(ended_at).subtract(30, 'minute').toDate();
 
-    // 시작 시간과 종료 시간을 기반으로 슬롯 범위 계산
+    // 시작 시간과 종료 시간을 기반으로 슬롯 범위 계산 (10분 단위)
     const startTime = new Date(started_at);
 
-    const startIndex =
-      startTime.getHours() * 6 + Math.floor(startTime.getMinutes() / 10); // 시작 시간의 인덱스
-    const endIndex =
-      endedTime.getHours() * 6 + Math.ceil(endedTime.getMinutes() / 10); // 종료 시간의 인덱스
-
-    const range = endIndex - startIndex; // 슬롯 범위 계산
+    // 밀리초 차이를 분으로 변환 후 10분 단위로 나눔
+    const diffInMs = endedTime.getTime() - startTime.getTime();
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const range = Math.ceil(diffInMinutes / 10); // 10분 단위로 슬롯 계산
 
     console.log('createTimetableDto', createTimetableDto);
     // 새로운 TimetableEntry 생성
