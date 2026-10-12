@@ -37,8 +37,8 @@
 - [ ] 시간대 처리 KST 유틸로 통일 (크론, today/yesterday, 슬롯 조회)
 - [ ] `.env.example` 작성 (DB_*, JWT_SECRET, PORT, FIREBASE 키 경로)
 - [ ] 헬스체크 엔드포인트 (`GET /health`)
-- [ ] 기존 운영 DB 데이터 보존 여부 확인 → 이전할 데이터 없으면 새 스키마로 시작
-- [ ] 초기 마이그레이션 전에 스키마 정리 (새 DB면 지금이 비용 0): 테이블명 `timetable_entrie` → `timetable_entry`, Todo `due_time` `timestamp` → `timestamptz`
+- [x] 기존 운영 DB 데이터 보존 여부 확인 → 이전할 데이터 없음, 새 스키마로 시작
+- [ ] 초기 마이그레이션 전에 스키마 정리: 테이블명 `timetable_entrie` → `timetable_entry`, Todo `due_time` `timestamp` → `timestamptz`
 - [ ] 로그아웃 시 DB의 refreshToken 무효화 (현재 카카오 로그아웃만 호출)
 - [ ] 회원탈퇴 응답 형식 통일 (서버 `{ message }` vs 앱 `status === 'success'` 체크 불일치)
 - [ ] 만료된 FCM 토큰 정리 연결 (`handleFcmTokenError` 미사용, `removeToken`은 userId를 받는데 token 전달하는 구조)
