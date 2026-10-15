@@ -448,3 +448,212 @@ _참고(2026-10-15): 위 "Reviewer Concerns"(office-hours 스펙 리뷰가 자�
 | R6 서버 가동 감시 (S8, ops) | 동기화는 조용히 실패 | 없음 | 외부 무료 가동 감시(/health 5분 간격) + 이메일 알림, pm2 로그 회전 | approved | D23 "감시 + 로그 회전" (2026-10-15). |
 | R7 배포 전 DB 백업 (S9, ops) | 일일 pg_dump(TODO 2) | 배포 시 백업 없음 | 배포 스크립트에서 migration:run 전 pg_dump, 실패 시 배포 중단 | approved | D24 "배포 전 백업" (2026-10-15). |
 | R8 event 인덱스 (S7, server) | S1~S3 집계 쿼리 | 없음 | `event(user_id, type, ts)` 인덱스 | approved | D25 "인덱스 추가" (2026-10-15). |
+
+
+Approval readiness: PASS — 확인한 항목과 근거 답변: E1(D2), E2(D3·D13), E3(D5), E4(D6 연기), E5(D7·D12), E6(D8 연기), E7(D9→D16 연기), C1(D10), C2(D11→D17), D15, R1(D18), R2(D22 연기), R3(D19), R4(D20), R5(D21), R6(D23), R7(D24), R8(D25). 미승인 상태로 본문에 들어간 변경은 없음.
+
+## CEO Review Outputs (2026-10-15)
+
+### Review facts
+- 모드: SCOPE EXPANSION(D1, 사용자 선택)
+- 확장 제안 7개: 승인 4개(E1·E2·E3·E5), 연기 3개(E4·E6·E7)
+- 스펙 리뷰 지적에 따른 결정: C1·C2(C2는 D17로 수정), D15 의존성 정리
+- 섹션 리뷰 결정 8개(R1~R8): 승인 7개, 연기 1개(R2)
+- 이번 리뷰에서 미결로 남은 선택: 0. 보류 항목(자동 채우기)은 구현 순서 3의 실험 뒤에 정하기로 이미 결정돼 있음
+- 치명적 공백: 0
+- 외부 검토(outside voice): 실행 불가(Codex 모델 미지원, 대체 리뷰 도구 미선언)
+- Status: clean
+
+### Reality rows
+```
+REALITY: premise-table finding unverified=2 (P7 demand, P8 recruiting) docs/designs/left30-relaunch.md:12
+REALITY: already-done pass origin/main has no commits since 2026-10-12 touching these files 4999616
+REALITY: surface-check finding expo-sqlite not installed; /sync/*, /events, DELETE /me are new routes application/package.json:40
+REALITY: binding-decisions pass 4 office-hours decisions + D1–D25 honored docs/designs/left30-relaunch.md:40
+REALITY: numbers finding S1–S3 thresholds and 398-slot horizon are [estimated]; Android alarm cap [re-measure before gate] docs/designs/left30-relaunch.md:180
+REALITY: deferred-asks pass no linked issue; deferrals recorded in TODO.md TODO.md:79
+REALITY: pr-count pass no .gstack/ship-policy.json, default one PR per wave; this branch ships as one PR to main 64ea09f
+```
+PLAN_REALITY: phase=ceo rows=7/7 missing=none unverified=2 verdict=complete
+
+### NOT in scope
+- 연기(TODO.md에 기록)
+  - E4 스트릭(D6): 2주 검증을 피드백 효과로 한정하기 위해
+  - E6 Android 홈 위젯(D8): 노력 L, 네이티브 빌드 위험
+  - E7 결과 공유(D16): 의존성 축소, 나중에 디자인과 함께 검토
+  - R2 요청 횟수 제한(D22): 공개 출시 전에 넣음
+- 거절: 없음
+
+### What already exists
+- Kakao 로그인 → JWT 발급(`server/src/auth/`): 재사용한다. access와 refresh만 분리한다.
+- 카테고리 선택 UI(`application/hooks/actionModal/checkbox.tsx`): 기록 모달로 옮겨 재사용한다.
+- 시간표 렌더링(`application/components/timetable/*`): 데이터 소스만 SQLite로 바꿔 재사용한다.
+- 계정 관리 화면(`application/app/(user)/index.tsx`): 방해금지 시간, 로그아웃, 탈퇴에 재사용한다.
+- 버리는 것: `timetable`·`todo` 엔티티와 쿼리, `push` 크론. 덮어쓰기 버그의 원인이고, 데이터가 0이라 옮길 필요가 없다.
+
+### Dream state delta
+- 이번 계획으로 도달하는 곳: 30분 알림, 1탭 기록, 계획 대비 실제(F1)가 오프라인에서도 동작하고, 검증 지표(S1~S3, 커버리지)가 데이터에 남는다.
+- 12개월 뒤 이상과의 거리: F2 리포트와 F3 개인 코치는 리텐션이 확인된 뒤의 일이다. `event` 테이블과 동기화 API가 그 토대가 된다.
+
+### Error & Rescue Registry
+| 코드 경로 | 실패 | 처리 | 사용자에게 보이는 것 |
+|---|---|---|---|
+| Kakao 로그인 | SDK 취소 또는 실패 | 재시도 버튼 | "로그인 실패" |
+| `POST /sync/*`, `/events` | 네트워크·5xx | 큐 보존 + 지수 백오프 | 표시 없음(오프라인 동작) |
+| | 401 | refresh → 실패하면 재로그인 안내(큐 보존) | 로그인 안내 |
+| | 400 | R3 dead-letter로 격리 + `sync_rejected` | 표시 없음(이벤트로 관측) |
+| | 413 | 배치를 나눠서 재전송 | 표시 없음 |
+| 알림 예약 | 권한 회수 | `perm_state` + 배너 | 배너 |
+| | 상한 초과 | 상한 400 사전 차단 | 표시 없음 |
+| | 동시 재계산 | R5 single-flight | 표시 없음 |
+| 로컬 SQLite 마이그레이션 | 실패 | R1 트랜잭션 롤백 + 오류 화면 + 이벤트 | "업데이트 중 문제가 생겼어요" |
+| `DELETE /me` | 서버 실패 | 트랜잭션 롤백, 로컬 데이터 유지 | "탈퇴 실패, 다시 시도" |
+| 배포 마이그레이션 | 실패 | R7 직전 `pg_dump`로 복구 | 표시 없음(서버 다운 시 오프라인 동작) |
+
+### Failure Modes Registry
+```
+  CODEPATH          | FAILURE MODE              | RESCUED? | TEST? | USER SEES?         | LOGGED?
+  ------------------|---------------------------|----------|-------|--------------------|--------
+  sync queue        | 전송 중 같은 칸 수정       | Y (R4)   | Y     | 없음               | Y
+  sync queue        | 400 항목                  | Y (R3)   | Y     | 없음               | Y event
+  scheduler         | 동시 재계산               | Y (R5)   | Y     | 없음               | Y
+  scheduler         | 장기 미실행으로 예약 만료  | Y (C2)   | Y     | 만료 전날 안내      | Y coverage
+  scheduler         | 정확한 알람 거부          | Y        | 실기기 | 배너               | Y perm_state
+  local migration   | 업그레이드 실패           | Y (R1)   | Y     | 오류 화면           | Y
+  server down       | Oracle 회수·장애          | Y (R6)   | 수동   | 없음(오프라인 동작) | 감시 메일
+  deploy migration  | 잘못된 스키마 변경        | Y (R7)   | 수동   | 없음               | 배포 로그
+  DELETE /me        | 부분 실패                 | Y        | Y     | 실패 안내           | Y
+  account deleted   | 남은 큐 재업로드          | Y        | Y     | 없음               | -
+```
+치명적 공백: 0
+
+### Scope Expansion Decisions
+- 승인: E1, E2, E3, E5
+- 연기: E4, E6, E7
+- 건너뜀: 없음
+- 전체 기록: `~/.gstack/projects/wonseokjee-LEFT30_APP/ceo-plans/2026-10-13-left30-relaunch.md`
+
+### Diagrams
+**동기화 데이터 흐름(그림자 경로 포함)**
+```
+ 기록 탭 → 검증(category enum, slot 정렬) → SQLite upsert(slot) → sync_queue(id++)
+                                                         │
+          ┌──────────────── single-flight sync ◀─────────┘
+          ▼
+   POST /sync/slots (≤500건, ≤1MB)
+     ├ 200 → 응답받은 id만 큐에서 삭제
+     ├ 400 → sync_dead_letter + sync_rejected 이벤트
+     ├ 401 → refresh → 실패하면 재로그인 안내(큐 보존)
+     ├ 413 → 배치 나눠서 재시도
+     └ 네트워크·5xx → 백오프 후 재시도(큐 보존)
+```
+**알림 예약 상태**
+```
+ [미예약] --앱 진입/기록/방해금지 변경--> [재계산 중(single-flight)] --차이 반영--> [예약됨(N일)]
+ [예약됨] --만료 전날--> [안내 알림 발송] --앱 진입--> [재계산 중]
+ [예약됨] --권한 회수--> [권한 없음: 배너] --권한 복구--> [재계산 중]
+ 불가능한 전이: [재계산 중] → [재계산 중] (single-flight가 1회로 합쳐서 막음)
+```
+**배포 순서와 롤백**
+```
+ git push(server/**) → npm ci → build → pg_dump ─실패→ 중단
+                                          └─성공→ migration:run ─실패→ pg_dump로 복원 + 이전 커밋 재배포
+                                                                └─성공→ pm2 restart → /health 확인
+ 앱: EAS AAB → Play 내부 트랙. 문제 시 이전 빌드로 롤백, JS만 바뀐 경우 EAS Update 롤백
+```
+
+### Stale Diagram Audit
+- 이 계획이 손대는 기존 파일에는 ASCII 다이어그램이 없다(코드 주석 포함). 오래된 다이어그램: 0
+
+## Implementation Tasks
+이번 리뷰의 지적에서 나온 작업이다. 핵심 기능 구현 순서는 위 "구현 순서(F1 출시 범위)"를 따르고, 아래 작업은 그 순서 안에서 함께 처리한다.
+
+- [ ] **T1 (P1, human: ~3h / CC: ~15min)** — app — 로컬 SQLite `user_version` 마이그레이션 + 실패 화면
+  - Surfaced by: Section 2 — 로컬 스키마 변경 전략 없음(R1, D18)
+  - Files: to be determined (application 데이터 계층)
+  - Verify: v1 DB 픽스처 → v2 업그레이드 테스트, 실패 주입 시 데이터 유지와 이벤트 기록 확인
+- [ ] **T2 (P1, human: ~3h / CC: ~15min)** — app — 동기화 큐 id 기준 삭제 + single-flight
+  - Surfaced by: Section 4 — 전송 중 수정 유실(R4, D20)
+  - Files: to be determined (application 동기화 큐)
+  - Verify: 응답 대기 중 같은 칸을 수정하는 순서 테스트에서 최신 값이 서버에 남는지 확인
+- [ ] **T3 (P1, human: ~2h / CC: ~10min)** — app — 스케줄러 single-flight
+  - Surfaced by: Section 4 — 동시 재계산으로 알림 누락(R5, D21)
+  - Files: to be determined (application 스케줄러)
+  - Verify: 동시 호출 테스트에서 예약 집합이 단일 실행 결과와 같은지 확인
+- [ ] **T4 (P1, human: ~3h / CC: ~15min)** — server+app — 배치 상한(500건·1MB, 413) + 400 dead-letter
+  - Surfaced by: Section 2·3 — 400 무한 재시도, 요청 크기 무제한(R3, D19)
+  - Files: server/src (sync, events 모듈), application 동기화 큐
+  - Verify: 501건이면 413, 잘못된 항목이 섞이면 나머지는 성공하고 해당 항목은 dead-letter로 가는지 테스트
+- [ ] **T5 (P2, human: ~10min / CC: ~2min)** — server — `event(user_id, type, ts)` 인덱스
+  - Surfaced by: Section 7(R8, D25)
+  - Files: server 초기 마이그레이션
+  - Verify: 마이그레이션 후 `\d event`로 인덱스 확인
+- [ ] **T6 (P1, human: ~1h / CC: ~10min)** — ops — 외부 가동 감시 + pm2 로그 회전
+  - Surfaced by: Section 8 — 서버 다운을 알 수 없음(R6, D23)
+  - Files: 서버 VM 설정(코드 없음)
+  - Verify: 서버를 멈췄을 때 5분 안에 메일이 오는지 확인
+- [ ] **T7 (P1, human: ~30min / CC: ~5min)** — ops — 배포 전 `pg_dump`, 실패 시 중단
+  - Surfaced by: Section 9(R7, D24)
+  - Files: .github/workflows/deploy.yml(신규)
+  - Verify: 백업 실패를 주입했을 때 배포가 중단되는지 확인
+- [ ] **T8 (P2, human: ~2h / CC: ~15min)** — app — 안 쓰는 의존성 정리
+  - Surfaced by: 문서 수정 요청(D15)
+  - Files: application/package.json
+  - Verify: `npx expo-doctor`, EAS 개발 빌드 성공, 앱 실행 확인
+
+### Completion Summary
+```
+  +====================================================================+
+  |            MEGA PLAN REVIEW — COMPLETION SUMMARY                   |
+  +====================================================================+
+  | Mode selected        | SCOPE EXPANSION                             |
+  | System Audit         | 기존 결함(IDOR, ValidationPipe 없음, 덮어쓰기,|
+  |                      | 시간대)은 새 스키마로 대체, 미사용 의존성 ~20 |
+  | Step 0               | EXPANSION; E1·E2·E3·E5 승인, E4·E6·E7 연기;   |
+  |                      | C1, C2(D17), D15                            |
+  | Section 1  (Arch)    | 1 issue found (→ S4)                        |
+  | Section 2  (Errors)  | 11 error paths mapped, 2 GAPS (R1·R3 해결)   |
+  | Section 3  (Security)| 2 issues found, 0 High severity             |
+  | Section 4  (Data/UX) | 4 edge cases mapped, 2 unhandled (R4·R5 해결)|
+  | Section 5  (Quality) | 0 issues found                              |
+  | Section 6  (Tests)   | Diagram produced, 0 gaps                    |
+  | Section 7  (Perf)    | 1 issue found (R8)                          |
+  | Section 8  (Observ)  | 1 gap found (R6)                            |
+  | Section 9  (Deploy)  | 1 risk flagged (R7)                         |
+  | Section 10 (Future)  | Reversibility: 4/5, debt items: 1 (R2)      |
+  | Section 11 (Design)  | 1 issue (로딩·오류 시각 처리 → design review)|
+  +--------------------------------------------------------------------+
+  | NOT in scope         | written (4 items)                           |
+  | What already exists  | written                                     |
+  | Dream state delta    | written                                     |
+  | Error/rescue registry| 11 rows, 0 CRITICAL GAPS                    |
+  | Failure modes        | 10 total, 0 CRITICAL GAPS                   |
+  | TODOS.md updates     | 4 items (E4, E6, E7, R2)                    |
+  | Scope proposals      | 7 proposed, 4 accepted                      |
+  | CEO plan             | written                                     |
+  | Outside voice        | codex: unavailable (모델 미지원)            |
+  | Lake Score           | 4/4 recommendations chose complete option   |
+  | Diagrams produced    | 4 (architecture, data flow, state, deploy/rollback) |
+  | Stale diagrams found | 0                                           |
+  | Unresolved decisions | 0                                           |
+  | Reality rows         | 7/7 rows (PLAN_REALITY), 2 unverified       |
+  +====================================================================+
+```
+
+### Unresolved Decisions
+- 없음. 답이 없는 질문은 없다.
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | CLEAR | 7 proposals, 4 accepted, 3 deferred |
+| Outside Review | codex (`/plan-ceo-review` outside voice) | Independent 2nd opinion | 1 | unavailable | gpt-6-astra not supported on ChatGPT-account Codex; native fallback unavailable (TaskOutput not declared) — no completed external review |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 0 | — | — |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
+
+- **OUTSIDE COVERAGE:** codex, plan-review phase, unavailable. Model `gpt-6-astra` was rejected for the ChatGPT account, and the native fallback needs a TaskOutput tool this session does not declare. No completed external review.
+- **VERDICT:** CEO CLEARED — eng review required
+
+NO UNRESOLVED DECISIONS
