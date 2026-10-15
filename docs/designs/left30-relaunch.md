@@ -399,7 +399,7 @@ Mode: SCOPE EXPANSION (사용자 선택, D1). 바인딩 결정 4건 유지: 접�
 | E7 결과 공유 이미지 (app) | — | 없음 | 하루 결과 이미지 생성·카톡 공유 | deferred (reopened) | D9 답변 "Add" 이후, D16 답변(2026-10-15): "연기하고 나중에 디자인과 함께 보자". 사용자가 의존성 축소를 요청함. TODO.md 기록. |
 
 | C1 S2 정의 (spec review) | CEO 스펙 리뷰 1회차 2.6: E2·E7로 화면 밖 피드백이 생김; Success Criteria S2 | S2 = 저녁 화면을 주 3회 이상 엶(`plan_vs_actual_viewed`) | 화면 열람 + 저녁 알림 탭, 날짜별 중복 제거 | approved | D10 답변: "Include notification tap". Success Criteria S2 문구 수정. |
-| C2 7일 미실행 시 알림 끊김 (spec review) | CEO 리뷰 5.1: E3로 7일 뒤 알림이 멈춤, 핵심 이탈 원인 재발 | 7일 후 멈춤 | 최대 기간 예약(상한 400 내, 약 12~22일) + 만료 전날 안내 알림, 백그라운드 없음 | approved (revised) | D11 답변 \"Background extend + reminder\" 이후 D17 답변(2026-10-15) \"백그라운드 제거\"로 수정. 사용자의 의존성 축소 요청. expo-background-task 제거. |
+| C2 7일 미실행 시 알림 끊김 (spec review) | CEO 리뷰 5.1: E3로 7일 뒤 알림이 멈춤, 핵심 이탈 원인 재발 | 7일 후 멈춤 | 최대 기간 예약(상한 400 내, 약 12~22일) + 만료 전날 안내 알림, 백그라운드 없음 | approved (revised) | D11 답변 "Background extend + reminder" 이후 D17 답변(2026-10-15) "백그라운드 제거"로 수정. 사용자의 의존성 축소 요청. expo-background-task 제거. |
 
 _모든 확장 후보(E1~E7) 결정 완료. 승인: E1(변형), E2, E3(절충), E5. 연기: E4, E6, E7(D16에서 재연기)._
 
