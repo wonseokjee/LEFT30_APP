@@ -78,7 +78,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 - `plan(user_id, local_date, category, target_minutes)`: `UNIQUE(user_id, local_date, category)`. 아침에 카테고리별 목표 시간을 나눠 담는다.
 - `event(id uuid PK, user_id, type, ts, props)`
   - `id`는 클라이언트가 생성하며, 서버는 `ON CONFLICT (id) DO NOTHING`으로 넣는다. 큐 재전송으로 중복이 생기지 않는다.
-  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `result_shared`다.
+  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `result_shared`, `schedule_extended`다.
   - props 스키마:
     - `plan_set`: `{local_date, mode: same_as_yesterday|custom, source: yesterday_plan|yesterday_actual|manual}`
     - `evening_summary_tapped`: `{local_date}`
@@ -104,7 +104,10 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
     - 문구는 직전 60분 안의 `answered`·`continued` 칸 카테고리로 만든다(예: "방금도 업무였나요?").
     - 그런 칸이 없으면, 즉 건너뛴 칸이 있으면 기본 문구를 쓴다.
     - 과거 칸을 고치는 것은 문구에 영향을 주지 않는다.
-  - 7일 동안 앱을 열지 않았을 때의 대비책은 결정 C2에서 정한다(보류 중).
+  - 앱을 열지 않아도 예약이 끊기지 않게 하는 장치(C2)
+    - `expo-background-task`로 하루 1회 백그라운드 작업을 실행해서 7일치 예약을 자동으로 연장한다. 연장 방식은 앱 진입 때와 같다.
+    - 안전망으로 예약의 6일째 마지막 칸 뒤에 "알림이 곧 멈춰요, 앱을 한 번 열어 주세요" 안내 알림을 하나 둔다. 연장이 성공할 때마다 이 안내 알림도 뒤로 밀린다.
+    - 백그라운드 연장이 성공하면 `schedule_extended` 이벤트를 `{source: background|foreground}`로 기록한다.
 - 기록은 로컬에 먼저 쓰고 동기화 큐에 넣는다. 온라인이 되면 배치로 업로드한다.
 - 권한과 온보딩
   - 첫 실행에 Android 13+ `POST_NOTIFICATIONS`를 요청한다. 거부하면 "알림 없이는 이 앱의 핵심이 동작하지 않는다"는 화면과 설정 이동 버튼을 띄운다. 거부 상태에서는 기록·계획 화면만 쓸 수 있다.
@@ -146,7 +149,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 
 **구현 순서 (F1 출시 범위)**
 1. 서버: 새 스키마와 마이그레이션, 인증 분리, 동기화와 이벤트 API, 테스트(권한, upsert·이벤트 멱등, 시간대).
-2. 앱: SQLite 계층, 권한 온보딩, 7일치 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다.
+2. 앱: SQLite 계층, 권한 온보딩, 7일치 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, `expo-background-task` 하루 1회 자동 연장 + 6일째 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다.
 3. 실험(반나절): 앱이 종료된 상태에서 알림 액션 "그대로 계속"을 1탭으로 SQLite에 저장할 수 있는지 실기기 Android에서 확인한다. 결과를 근거로 보류 중인 자동 채우기 결정을 사용자가 내린다. 결정이 나기 전에는 `inferred`를 만들지 않는다. 즉 첫 배포의 기본값은 자동 채우기 없음이다.
 4. 앱: 아침 계획 제안(E1), 저녁 계획 대비 실제 화면과 한 줄 회고 알림(E2), 피드백 버튼(E5), 결과 공유 카드(E7), 이벤트 기록. E7은 새 네이티브 의존성이 있어 새 빌드가 필요하다. `runtimeVersion`은 `appVersion` 정책으로 바꿔서 네이티브 변경 때마다 올린다.
 5. Oracle 배포, 새 도메인, EAS AAB 빌드, Play 내부 테스트 트랙.
@@ -380,23 +383,8 @@ Mode: SCOPE EXPANSION (사용자 선택, D1). 바인딩 결정 4건 유지: 접�
 | E7 결과 공유 이미지 (app) | — | 없음 | 하루 결과 이미지 생성·카톡 공유 | approved | D9 답변: "Add to this plan's scope" (권장 B와 다름, 사용자 선택). 저녁 화면 카드 이미지 + 공유 시트, 새 의존성 2개. 개인 기록 노출 설계는 리뷰 섹션에서 다룸. F1 범위. |
 
 | C1 S2 정의 (spec review) | CEO 리뷰 2.6: E2·E7로 화면 밖 피드백이 생김; S2 L139 | S2 = 저녁 화면을 주 3회 이상 엶(`plan_vs_actual_viewed`) | 화면 열람 + 저녁 알림 탭, 날짜별 중복 제거 | approved | D10 답변: "Include notification tap". Success Criteria S2 문구 수정. |
-| C2 7일 미실행 시 알림 끊김 (spec review) | CEO 리뷰 5.1: E3로 7일 뒤 알림이 멈춤, 핵심 이탈 원인 재발 | 7일 후 멈춤 | 아래 currentDecision 참고 | unresolved | — |
+| C2 7일 미실행 시 알림 끊김 (spec review) | CEO 리뷰 5.1: E3로 7일 뒤 알림이 멈춤, 핵심 이탈 원인 재발 | 7일 후 멈춤 | 백그라운드 하루 1회 자동 연장 + 6일째 안내 알림 | approved | D11 답변(2026-10-15): "Background extend + reminder". 새 의존성 expo-background-task. 실기기 확인을 구현 순서 2에 포함. |
 
 _모든 확장 후보(E1~E7) 결정 완료. 승인: E1(변형), E2, E3(절충), E5, E7. 연기: E4, E6._
 
-
-## currentDecision (C2)
-Commitment comparison:
-Commitment | Source/approval or pending | Current | A | B | C
-7일 미실행 시 알림 | pending | 7일 후 멈춤 | 6일째 마지막 예약 칸에 "앱을 한 번 열어 주세요, 알림이 곧 멈춰요" 알림 + 백그라운드 작업(expo-background-task)으로 하루 1회 7일치 자동 연장 시도 | 6일째 안내 알림만 | 대비 없음(7일 후 멈춤 감수)
-새 의존성 | approved 목록 | 없음 | expo-background-task 1개 | 없음 | 없음
-S3 영향 | approved S3 | 창업자 기기 판정 | 백그라운드 연장이 OS에 의해 지연될 수 있음 → 안내 알림이 안전망 | 안내 알림 탭 시 연장 | 7일 이상 미실행 테스터는 알림 끊김
-
-Question: D11 — C2: 7일 동안 앱을 안 열면 알림이 멈추는 문제를 어떻게 막을까요?
-Header: C2 알림 연장
-A) Background extend + reminder (recommended)
-하루 1회 백그라운드 작업으로 7일치 예약을 자동 연장하고, 6일째에는 "앱을 한 번 열어 주세요" 안내 알림을 안전망으로 둠. 노력 M, 위험 medium(OS가 백그라운드 작업을 미룰 수 있음), 새 의존성 1개.
-B) Reminder only
-6일째 안내 알림만 두고, 탭해서 앱을 열면 연장. 노력 S, 위험 medium(안내를 무시하면 멈춤).
-C) Accept the cutoff
-대비 없이 7일 후 멈춤. 노력 S(작업 0), 위험 high(창업자 이탈 원인 재발).
+_C1·C2 결정 완료. 스펙 리뷰 2회차 대기._
