@@ -76,7 +76,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
   | source | 만드는 사용자 행동 | 성공 지표 집계 |
   |---|---|---|
   | `answered` | 해당 칸의 알림(또는 앱 안의 현재 칸)에서 카테고리를 직접 고름. `answered_at`이 칸 종료 후 60분 이내 | O |
-  | `continued` | 기록 모달의 "그대로 계속" 버튼을 직접 누름(직전 칸 값 복사). 알림 액션 실험이 성공하면 알림 버튼도 포함. `answered_at`이 칸 종료 후 60분 이내 | O |
+  | `continued` | 기록 모달의 "그대로 계속" 버튼을 직접 누름(직전 60분 안의 가장 최근 `answered`·`continued` 칸 값을 복사). 알림 액션 실험이 성공하면 알림 버튼도 포함. `answered_at`이 칸 종료 후 60분 이내 | O |
   | `late` | 칸 종료 후 60분이 지나서 시간표 화면에서 과거 칸을 채우거나 고침 | X |
   | `inferred` | 시스템 자동 채우기. 보류 결정에서 유지하기로 할 때만 존재 | X |
 
@@ -85,7 +85,9 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 - `plan(user_id, local_date, category, target_minutes)`: `UNIQUE(user_id, local_date, category)`. 아침에 카테고리별 목표 시간을 나눠 담는다.
 - `event(id uuid PK, user_id, type, ts, props)`
   - `id`는 클라이언트가 생성하며, 서버는 `ON CONFLICT (id) DO NOTHING`으로 넣는다. 큐 재전송으로 중복이 생기지 않는다.
-  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `result_shared`, `schedule_extended`다.
+  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `result_shared`, `schedule_extended`, `schedule_coverage`, `bg_task_run`다.
+  - `schedule_coverage`: 하루 1회 `{local_date, due_slots, covered_slots}`. 앱이 `scheduled_slot`으로 계산해서 서버에 보낸다. 그래서 테스터 기기의 커버리지를 서버에서 집계할 수 있다.
+  - `bg_task_run`: 백그라운드 작업이 실행될 때마다 `{result: extended|no_change|failed}`로 기록한다. 실패도 남겨서 일별 성공률의 분모가 된다.
   - props 스키마:
     - `plan_set`: `{local_date, mode: same_as_yesterday|custom, source: yesterday_plan|yesterday_actual|manual}`
     - `evening_summary_tapped`: `{local_date}`
@@ -136,13 +138,14 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
   - "동일"은 어제 `plan`을 복사한다. 어제 plan이 없으면 어제 실제 기록 중 `answered`·`continued`·`late` 칸으로 카테고리별 시간을 만든다. `inferred` 칸은 넣지 않는다.
   - 어제 plan도 없고 어제 실제 기록이 8칸 미만이면 제안 없이 바로 "새로 짜기"를 띄운다. 첫날도 여기에 해당한다.
 - 저녁 한 줄 회고(E2)
-  - 보내는 시각은 방해금지 시작 시각(`quiet_start`)이다. 방해금지가 없으면 23:30이다. 기록이 저장될 때마다 이 알림을 취소하고 다시 만들어서 최신 값을 유지한다. 앱을 열지 않는 날에는 C2 백그라운드 작업이 다시 만든다.
+  - 보내는 시각은 방해금지 시작 시각(`quiet_start`)이다. 방해금지가 없으면 23:30이다. 기록이 저장될 때마다 이 알림을 취소하고 다시 만들어서 최신 값을 유지한다. 앱을 열지 않는 날에는 C2 백그라운드 작업이 다시 만든다. 다만 백그라운드 작업은 새 기록이 없으면 기존 저녁 알림을 그대로 둔다. 기록 0칸 규칙(알림을 보내지 않음)은 앱이 직접 다시 만들 때만 적용한다.
   - 본문은 계획 대비 차이가 가장 큰 카테고리 하나다(예: "오늘 업무 계획보다 −2h"). D13 결정. 차이가 같으면 `work`>`self_dev`>`exercise`>`relationship`>`rest`>`sleep` 순으로 고른다.
   - 계획이 없으면 "오늘 가장 많이 한 일: 업무 4h"처럼 실제 1위 하나를 보여준다. 기록이 0칸이면 알림을 보내지 않는다.
   - 앱이 종료된 상태에서 알림 액션으로 기록하면 본문은 마지막 앱 실행 시점 값으로 남는다. 이 한계는 감수한다.
   - 알림을 탭하면 저녁 화면이 열리고 `evening_summary_tapped`가 기록된다.
 - 테스터 피드백(E5): 저녁 계획 대비 실제 화면과 시간표 화면 상단에 "불편해요" 버튼을 둔다. 메모는 선택이며 최대 500자다.
 - 결과 공유(E7): 저녁 화면의 "공유" 버튼을 누르면 카테고리별 계획·실제 시간만 담은 카드 이미지를 만든다. 메모, 이름, 시각별 기록은 넣지 않는다. 사용자가 직접 누를 때만 동작하며, `react-native-view-shot`과 `expo-sharing`을 쓰고 `result_shared`를 기록한다.
+- 방해금지 시간 설정, 로그아웃, 회원탈퇴는 기존 "계정 관리" 화면(`application/app/(user)/index.tsx`)을 그대로 쓴다. 이 화면은 새로 만드는 화면 수에 들어가지 않는다.
 - 화면은 네 개다.
   - 기록 모달: 6개 카테고리 1탭과 선택 메모. 현재 칸과 함께 "직전 칸(미응답)"도 보여준다. 칸 종료 후 60분 이내에 여기서 고르면 `answered`가 된다.
   - 시간표: 오늘·어제 칸을 보고, 과거 칸을 채우거나 고친다(기존 timetable 화면을 재사용). 칸 종료 후 60분이 지난 칸은 여기서만 채울 수 있고 `late`가 된다.
@@ -156,7 +159,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 - 동기화 API:
   - `POST /sync/slots`, `POST /sync/plans`: 배치 upsert. 멱등이며 충돌 시 `client_updated_at`이 최신인 쪽을 쓴다.
   - `GET /sync?since=`: 기기 복원용이다. 커서는 서버가 부여한 `updated_at`이다. 단일 기기 사용을 전제로 하며, 슬롯과 계획은 고치기만 하고 삭제하지 않는다(삭제 API 없음).
-  - `DELETE /me`: 계정 삭제다. 사용자, slot, plan, event(피드백 메모 포함), refresh token을 트랜잭션으로 지운다. 대상은 JWT `sub`로만 정한다. 앱의 회원탈퇴와 웹 삭제 요청 페이지가 이 API를 쓴다.
+  - `DELETE /me`: 계정 삭제다. 사용자, slot, plan, event(피드백 메모 포함), refresh token을 트랜잭션으로 지운다. 대상은 JWT `sub`로만 정한다. 앱의 회원탈퇴와 웹 삭제 요청 페이지가 이 API를 쓴다. 앱에서 삭제가 성공하면 로컬 SQLite 전체와 `sync_queue`를 지우고, 예약된 알림을 모두 취소한 뒤 로그아웃한다. 이렇게 해야 남아 있던 큐가 다시 로그인했을 때 데이터를 재업로드하지 않는다.
   - 동기화 큐 인증 실패: 401을 받으면 refresh를 시도한다. refresh도 실패하면 큐를 보존한 채 "다시 로그인" 안내를 띄우고, 로그인하면 이어서 보낸다. 큐는 버리지 않는다.
   - 첫 실행에는 Kakao 로그인 때문에 서버가 필요하다. 이후의 알림·기록·계획 대비 실제는 서버 없이 동작한다.
   - `POST /events`: 배치로 받는다. 클라이언트 `id` 기준으로 멱등이다. 테스트는 같은 배치를 두 번 보내도 행 수가 변하지 않는지 확인한다.
@@ -389,19 +392,19 @@ Mode: SCOPE EXPANSION (사용자 선택, D1). 바인딩 결정 4건 유지: 접�
 
 | ID and owner | Contract and evidence | Current | Proposed | Status | Exact approval and scope |
 |---|---|---|---|---|---|
-| E1 아침 계획 자동 제안 (app) | Open Q3 계획 입력 부담; plan 테이블 L78 | 사용자가 매일 아침 카테고리별 목표 직접 입력 | [어제와 동일]/[새로 짜기]. 동일 = 어제 plan, 없으면 어제 실제(본문 E1 규칙) | approved (variant) | D2 답변: "들어와서 제안 후 어제와 동일하게 선택하면 어제걸로 진행. 새로 짜면 목표시간 설정" → 앱 진입 시 [어제와 동일]/[새로 짜기] 선택. 동일 = 어제 plan 복사(어제 plan 없으면 어제 실제 기록으로 생성, 해석). 새로 짜기 = 카테고리별 목표 시간 입력. plan_set 이벤트에 mode=same_as_yesterday|custom. F1 범위. |
-| E2 저녁 한 줄 회고 알림 (app) | F1 저녁 화면 L111 | 저녁 로컬 알림은 "계획 대비 실제 보기" 안내 | 규칙 기반 한 문장(차이가 가장 큰 카테고리 1개 ±h, 본문 E2 규칙, D13에서 1개로 확정)을 알림 본문에 담음, LLM 없음 | approved | D3 답변: "Add to this plan's scope". F1 범위. 문구 생성 단위 테스트 포함. |
-| E3 맥락 있는 알림 문구 (app) | 로컬 알림 48개 L93 | 고정 문구 | 직전 칸 카테고리를 문구에 넣음("방금도 업무?") | approved (hybrid D) | D5 답변: "Add hybrid (recommended)". 하루 반복 48개 대신 1회용 7일치(336칸) 예약, 기록·앱 진입·방해금지 변경 때 차이만 반영해 재계산(다음 1칸만 맥락 문구), 앱 진입 시 7일치 재연장. Android 앱당 알람 상한 실기기 확인을 구현 순서 2에 포함. F1 범위. |
-| E4 응답 연속 기록 (app) | S1 지표 L139 | 없음 | 연속 응답 일수 표시 | deferred | D6 답변: "Defer to TODOS.md". 이유: 2주 검증이 피드백 효과만 재도록 유지. TODO.md 기록. |
-| E5 테스터 피드백 버튼 (app+event) | 검증 실험 L137 | 없음 | 1탭 "불편해요" + 메모 → event `feedback` | approved | D7 답변: "Add to this plan's scope". 저녁 계획 대비 실제 화면·시간표 화면 상단에 배치(설정 화면 없음, D12 답변 "저녁+시간표 화면"으로 확인), 화면·시각 자동 첨부, event 타입 `feedback` 추가. F1 범위. |
+| E1 아침 계획 자동 제안 (app) | Open Q3 계획 입력 부담; 본문 `plan` 테이블 | 사용자가 매일 아침 카테고리별 목표 직접 입력 | [어제와 동일]/[새로 짜기]. 동일 = 어제 plan, 없으면 어제 실제(본문 E1 규칙) | approved (variant) | D2 답변: "들어와서 제안 후 어제와 동일하게 선택하면 어제걸로 진행. 새로 짜면 목표시간 설정" → 앱 진입 시 [어제와 동일]/[새로 짜기] 선택. 동일 = 어제 plan 복사(어제 plan 없으면 어제 실제 기록으로 생성, 해석). 새로 짜기 = 카테고리별 목표 시간 입력. plan_set 이벤트에 mode=same_as_yesterday|custom. F1 범위. |
+| E2 저녁 한 줄 회고 알림 (app) | F1 저녁 화면(본문 앱 화면 목록) | 저녁 로컬 알림은 "계획 대비 실제 보기" 안내 | 규칙 기반 한 문장(차이가 가장 큰 카테고리 1개 ±h, 본문 E2 규칙, D13에서 1개로 확정)을 알림 본문에 담음, LLM 없음 | approved | D3 답변: "Add to this plan's scope". F1 범위. 문구 생성 단위 테스트 포함. |
+| E3 맥락 있는 알림 문구 (app) | 본문 "알림 예약(E3 절충안)" | 고정 문구 | 직전 칸 카테고리를 문구에 넣음("방금도 업무?") | approved (hybrid D) | D5 답변: "Add hybrid (recommended)". 하루 반복 48개 대신 1회용 7일치(336칸) 예약, 기록·앱 진입·방해금지 변경 때 차이만 반영해 재계산(다음 1칸만 맥락 문구), 앱 진입 시 7일치 재연장. Android 앱당 알람 상한 실기기 확인을 구현 순서 2에 포함. F1 범위. |
+| E4 응답 연속 기록 (app) | Success Criteria S1 | 없음 | 연속 응답 일수 표시 | deferred | D6 답변: "Defer to TODOS.md". 이유: 2주 검증이 피드백 효과만 재도록 유지. TODO.md 기록. |
+| E5 테스터 피드백 버튼 (app+event) | Success Criteria | 없음 | 1탭 "불편해요" + 메모 → event `feedback` | approved | D7 답변: "Add to this plan's scope". 저녁 계획 대비 실제 화면·시간표 화면 상단에 배치(설정 화면 없음, D12 답변 "저녁+시간표 화면"으로 확인), 화면·시각 자동 첨부, event 타입 `feedback` 추가. F1 범위. |
 | E6 Android 홈 위젯 (app native) | — | 없음 | 오늘 계획 대비 실제 막대 위젯 | deferred | D8 답변: "Defer to TODOS.md". 이유: 노력 L·네이티브 위험, E2가 앱 밖 보상 역할. S2 충족 후 F2와 함께 검토. |
 | E7 결과 공유 이미지 (app) | — | 없음 | 하루 결과 이미지 생성·카톡 공유 | approved | D9 답변: "Add to this plan's scope" (권장 B와 다름, 사용자 선택). 저녁 화면 카드 이미지 + 공유 시트, 새 의존성 2개. 개인 기록 노출 설계는 리뷰 섹션에서 다룸. F1 범위. |
 
-| C1 S2 정의 (spec review) | CEO 리뷰 2.6: E2·E7로 화면 밖 피드백이 생김; S2 L139 | S2 = 저녁 화면을 주 3회 이상 엶(`plan_vs_actual_viewed`) | 화면 열람 + 저녁 알림 탭, 날짜별 중복 제거 | approved | D10 답변: "Include notification tap". Success Criteria S2 문구 수정. |
+| C1 S2 정의 (spec review) | CEO 스펙 리뷰 1회차 2.6: E2·E7로 화면 밖 피드백이 생김; Success Criteria S2 | S2 = 저녁 화면을 주 3회 이상 엶(`plan_vs_actual_viewed`) | 화면 열람 + 저녁 알림 탭, 날짜별 중복 제거 | approved | D10 답변: "Include notification tap". Success Criteria S2 문구 수정. |
 | C2 7일 미실행 시 알림 끊김 (spec review) | CEO 리뷰 5.1: E3로 7일 뒤 알림이 멈춤, 핵심 이탈 원인 재발 | 7일 후 멈춤 | 백그라운드 하루 1회 자동 연장 + 6일째 안내 알림 | approved | D11 답변(2026-10-15): "Background extend + reminder". 새 의존성 expo-background-task. 실기기 확인을 구현 순서 2에 포함. |
 
 _모든 확장 후보(E1~E7) 결정 완료. 승인: E1(변형), E2, E3(절충), E5, E7. 연기: E4, E6._
 
-_C1·C2 결정 완료. 스펙 리뷰 2회차 대기._
+_C1·C2 결정 완료. 스펙 리뷰 3회 완료(상한), 문서 승인 대기._
 
 _참고(2026-10-15): 위 "Reviewer Concerns"(office-hours 스펙 리뷰가 자동 생성한 섹션)의 R2-1~R2-4는 이후 본문 수정으로 해결됐다(시간표 화면 추가, 핑 이벤트 uuidv5 id, S3는 창업자 기기로 판정, S3 우선 판정). "48개 반복 예약" 서술은 E3·C2로 대체됐다. R2-7·R2-9·R2-10·R2-13도 CEO 리뷰 2회차 반영으로 해소됐다._
