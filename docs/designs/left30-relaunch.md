@@ -85,9 +85,8 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 - `plan(user_id, local_date, category, target_minutes)`: `UNIQUE(user_id, local_date, category)`. 아침에 카테고리별 목표 시간을 나눠 담는다.
 - `event(id uuid PK, user_id, type, ts, props)`
   - `id`는 클라이언트가 생성하며, 서버는 `ON CONFLICT (id) DO NOTHING`으로 넣는다. 큐 재전송으로 중복이 생기지 않는다.
-  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `schedule_extended`, `schedule_coverage`, `bg_task_run`다.
+  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `schedule_extended`, `schedule_coverage`다.
   - `schedule_coverage`: 하루 1회 `{local_date, due_slots, covered_slots}`. 앱이 `scheduled_slot`으로 계산해서 서버에 보낸다. 그래서 테스터 기기의 커버리지를 서버에서 집계할 수 있다.
-  - `bg_task_run`: 백그라운드 작업이 실행될 때마다 `{result: extended|no_change|failed}`로 기록한다. 실패도 남겨서 일별 성공률의 분모가 된다.
   - props 스키마:
     - `plan_set`: `{local_date, mode: same_as_yesterday|custom, source: yesterday_plan|yesterday_actual|manual}`
     - `evening_summary_tapped`: `{local_date}`
@@ -99,25 +98,26 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 **시간대 규칙**
 - 기준 시간대는 기기의 현재 IANA 시간대다. 서버의 `user.last_tz`는 동기화할 때마다 갱신되는 참고값일 뿐, 계산에는 쓰지 않는다.
 - 슬롯의 날짜는 `local_date(slot) = slot_start를 slot.tz로 변환한 날짜`로 구한다. 앱과 서버가 같은 규칙을 쓰고, 계획 대비 실제는 이 날짜로 `plan`과 맞춘다.
-- 앱이 포그라운드로 오거나 시간대 변경이 감지되면 7일치 예약을 새 시간대 기준으로 다시 계산한다. 현재 예약과 비교해서 바뀐 칸만 취소하거나 추가한다. 방해금지 시간도 새 시간대로 해석한다.
+- 앱이 포그라운드로 오거나 시간대 변경이 감지되면 예약 기간 전체를 새 시간대 기준으로 다시 계산한다. 현재 예약과 비교해서 바뀐 칸만 취소하거나 추가한다. 방해금지 시간도 새 시간대로 해석한다.
 - 하루 중간에 시간대가 바뀌면, 이미 기록된 칸은 기록 당시 `tz`로 날짜가 정해진다. 그 이후 칸은 새 시간대의 날짜로 들어간다. 그래서 그날 실제 시간의 합이 24시간이 아닐 수 있고, 화면에 "시간대 변경" 표시를 붙인다.
 
 **앱**
 - `expo-sqlite`가 기준 데이터다.
 - 알림 예약(E3 절충안)
-  - `expo-notifications`로 앞으로 7일치 칸(최대 336개, 방해금지 시간 제외)을 **한 번만 울리는 알림**으로 예약한다. 저녁 알림 1개를 합쳐 예약 총수는 400개 이하로 제한한다.
-  - 앱 진입, 기록, 방해금지 시간 변경 때 7일치 목록을 다시 계산하고, 현재 예약과의 차이만 반영한다. 전부 지우고 다시 걸지 않는다.
+  - `expo-notifications`로 앞으로 **상한 안에 들어가는 최대 기간**의 칸(방해금지 시간 제외)을 **한 번만 울리는 알림**으로 예약한다. 저녁 알림 1개를 합쳐 예약 총수는 400개 이하로 제한한다.
+  - 예약 기간은 `floor(398 / 하루 비방해금지 칸 수)`일이다(하루 32칸이면 12일, 18칸이면 22일). 저녁 알림과 만료 안내 알림 몫으로 2개를 남긴다.
+  - 앱 진입, 기록, 방해금지 시간 변경 때 예약 기간 목록을 다시 계산하고, 현재 예약과의 차이만 반영한다. 전부 지우고 다시 걸지 않는다.
   - 알림 식별자는 `slot:<slot_start ISO>`로 결정적으로 만들고, 예약 내역은 `scheduled_slot`에 남긴다. 그래서 차이를 계산할 수 있고, 칸이 도래한 뒤 `ping_scheduled`를 소급해서 기록할 수 있다.
   - 맥락 문구는 "다음으로 도래할 칸" 하나에만 넣는다.
     - 방해금지 시간이 아닌 다음 칸이 대상이다.
     - 문구는 직전 60분 안의 `answered`·`continued` 칸 중 **가장 최근 칸**의 카테고리로 만든다(예: "방금도 업무였나요?").
     - 그런 칸이 없으면, 즉 건너뛴 칸이 있으면 기본 문구를 쓴다.
     - 과거 칸을 고치는 것은 문구에 영향을 주지 않는다.
-  - 앱을 열지 않아도 예약이 끊기지 않게 하는 장치(C2)
-    - `expo-background-task`로 하루 1회 백그라운드 작업을 실행해서 7일치 예약을 자동으로 연장한다. 연장 방식은 앱 진입 때와 같다.
-    - 안전망으로 예약의 6일째 마지막 칸 뒤에 "알림이 곧 멈춰요, 앱을 한 번 열어 주세요" 안내 알림을 하나 둔다. 연장이 성공할 때마다 이 안내 알림도 뒤로 밀린다.
-    - 연장이 성공하면 백그라운드든 앱 진입이든 `schedule_extended` 이벤트를 `{source: background|foreground}`로 기록한다.
-    - 백그라운드 작업은 오늘 저녁 회고 알림(E2)도 다시 만든다.
+  - 예약이 끊기지 않게 하는 장치(C2, D17로 수정)
+    - 백그라운드 작업은 쓰지 않는다. 알림을 탭해 답하면 앱이 열리고, 앱이 열릴 때마다 예약 기간 전체를 연장한다.
+    - 안전망으로 예약 마지막 날의 하루 전에 "알림이 곧 멈춰요, 앱을 한 번 열어 주세요" 안내 알림을 하나 둔다. 연장될 때마다 이 안내 알림도 뒤로 밀린다.
+    - 연장할 때마다 `schedule_extended`를 `{days}`로 기록한다.
+    - 3단계 실험 뒤 앱을 열지 않고 알림 버튼으로 답하는 방식을 도입하면, 그때 백그라운드 연장을 다시 검토한다.
 - 기록은 로컬에 먼저 쓰고 동기화 큐에 넣는다. 온라인이 되면 배치로 업로드한다.
 - 권한과 온보딩
   - 첫 실행에 Android 13+ `POST_NOTIFICATIONS`를 요청한다. 거부하면 "알림 없이는 이 앱의 핵심이 동작하지 않는다"는 화면과 설정 이동 버튼을 띄운다. 거부 상태에서는 기록·계획 화면만 쓸 수 있다.
@@ -137,7 +137,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
   - "동일"은 어제 `plan`을 복사한다. 어제 plan이 없으면 어제 실제 기록 중 `answered`·`continued`·`late` 칸으로 카테고리별 시간을 만든다. `inferred` 칸은 넣지 않는다.
   - 어제 plan도 없고 어제 실제 기록이 8칸 미만이면 제안 없이 바로 "새로 짜기"를 띄운다. 첫날도 여기에 해당한다.
 - 저녁 한 줄 회고(E2)
-  - 보내는 시각은 방해금지 시작 시각(`quiet_start`)이다. 방해금지가 없으면 23:30이다. 기록이 저장될 때마다 이 알림을 취소하고 다시 만들어서 최신 값을 유지한다. 앱을 열지 않는 날에는 C2 백그라운드 작업이 다시 만든다. 다만 백그라운드 작업은 새 기록이 없으면 기존 저녁 알림을 그대로 둔다. 기록 0칸 규칙(알림을 보내지 않음)은 앱이 직접 다시 만들 때만 적용한다.
+  - 보내는 시각은 방해금지 시작 시각(`quiet_start`)이다. 방해금지가 없으면 23:30이다. 기록이 저장될 때마다 이 알림을 취소하고 다시 만들어서 최신 값을 유지한다. 앱을 열지 않은 날에는 마지막으로 앱을 열었을 때의 값이 그대로 나간다. 기록 0칸 규칙(알림을 보내지 않음)은 앱이 다시 만들 때 적용한다.
   - 본문은 계획 대비 차이가 가장 큰 카테고리 하나다(예: "오늘 업무 계획보다 −2h"). D13 결정. 차이가 같으면 `work`>`self_dev`>`exercise`>`relationship`>`rest`>`sleep` 순으로 고른다.
   - 계획이 없으면 "오늘 가장 많이 한 일: 업무 4h"처럼 실제 1위 하나를 보여준다. 기록이 0칸이면 알림을 보내지 않는다.
   - 앱이 종료된 상태에서 알림 액션으로 기록하면 본문은 마지막 앱 실행 시점 값으로 남는다. 이 한계는 감수한다.
@@ -165,9 +165,9 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 
 **구현 순서 (F1 출시 범위)**
 1. 서버: 새 스키마와 마이그레이션, 인증 분리, 동기화와 이벤트 API, `DELETE /me`, 테스트(권한, upsert·이벤트 멱등, 시간대, 계정 삭제).
-2. 앱: SQLite 계층, 권한 온보딩, 7일치 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, `expo-background-task` 하루 1회 자동 연장 + 6일째 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다. 이 단계에서 안 쓰는 의존성도 정리한다(D15). 대상은 Firebase 4종, `expo-auth-session`, `expo-web-browser`, `expo-blur`, `expo-haptics`, `expo-symbols`, `expo-json-utils`, `expo-device`, `expo-modules-core`, `query-string`(+overrides), `react-native-webview`이다. Todo·디버그 코드를 지운 뒤에는 `react-native-elements`, `react-native-vector-icons`, `@react-navigation/stack`도 지우고, 웹을 쓰지 않으면 `react-native-web`, `react-dom`도 지운다. `expo-router`가 내부에서 쓰는 패키지는 남기고, 빌드로 확인한다.
+2. 앱: SQLite 계층, 권한 온보딩, 최대 기간 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, 최대 기간 예약 + 만료 전날 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다. 이 단계에서 안 쓰는 의존성도 정리한다(D15). 대상은 Firebase 4종, `expo-auth-session`, `expo-web-browser`, `expo-blur`, `expo-haptics`, `expo-symbols`, `expo-json-utils`, `expo-device`, `expo-modules-core`, `query-string`(+overrides), `react-native-webview`이다. Todo·디버그 코드를 지운 뒤에는 `react-native-elements`, `react-native-vector-icons`, `@react-navigation/stack`도 지우고, 웹을 쓰지 않으면 `react-native-web`, `react-dom`도 지운다. `expo-router`가 내부에서 쓰는 패키지는 남기고, 빌드로 확인한다.
 3. 실험(반나절): 앱이 종료된 상태에서 알림 액션 "그대로 계속"을 1탭으로 SQLite에 저장할 수 있는지 실기기 Android에서 확인한다. 결과를 근거로 보류 중인 자동 채우기 결정을 사용자가 내린다. 결정이 나기 전에는 `inferred`를 만들지 않는다. 즉 첫 배포의 기본값은 자동 채우기 없음이다.
-4. 앱: 아침 계획 제안(E1), 저녁 계획 대비 실제 화면과 한 줄 회고 알림(E2), 피드백 버튼(E5), 이벤트 기록. `expo-sqlite`·`expo-background-task` 추가로 새 빌드가 필요하므로 `runtimeVersion`은 `appVersion` 정책으로 바꿔서 네이티브 변경 때마다 올린다.
+4. 앱: 아침 계획 제안(E1), 저녁 계획 대비 실제 화면과 한 줄 회고 알림(E2), 피드백 버튼(E5), 이벤트 기록. `expo-sqlite` 추가로 새 빌드가 필요하므로 `runtimeVersion`은 `appVersion` 정책으로 바꿔서 네이티브 변경 때마다 올린다.
 5. Oracle 배포, 새 도메인, 개인정보처리방침과 계정 삭제 요청 웹 페이지 게시, EAS AAB 빌드, Play 내부 테스트 트랙.
 
 ## Open Questions
@@ -181,7 +181,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 2주 비공개 테스트 결과로 판단한다.
 - S1 리텐션: 창업자 외 1명 이상이 14일 중 12일 이상, 하루 8칸 이상 직접 응답한다(`source=answered|continued`만 집계).
 - S2 피드백 사용: S1을 충족한 사람이 저녁 계획 대비 실제를 능동적으로 주 3회 이상 확인한다. 화면 열람(`plan_vs_actual_viewed`)과 저녁 알림 탭(`evening_summary_tapped`)을 합쳐 날짜별로 중복을 제거해 센다. 알림 본문만 읽고 탭하지 않은 것은 세지 않는다(C1 결정).
-- S3 핑 신뢰성: 판정에는 창업자 기기만 쓴다. 이 기기는 매일 수동 대조로 실제 표시율을 알 수 있다. 기준은 알림 권한과 정확한 알람을 모두 허용한 상태에서 실제 표시율 95% 이상, 표시 지연 중앙값 1분 이하다. 창업자 기기에서 **예약 커버리지**(방해금지가 아닌 칸 중 도래 시점에 예약이 걸려 있던 비율, `scheduled_slot` 기준)도 99% 이상이어야 한다. 그래야 C2 연장이 실패해 생긴 공백이 지표에서 빠지지 않는다. 테스터 기기의 커버리지와 `schedule_extended` 일별 성공률은 함께 보고한다. 테스터 기기의 관측 표시율은 지운 알림을 볼 수 없어 하한값이므로 판정에 쓰지 않는다. 다만 권한 상태별로 나눠 보고하고, 하한이 창업자 기기보다 20%p 이상 낮으면 해당 기기를 직접 확인한다.
+- S3 핑 신뢰성: 판정에는 창업자 기기만 쓴다. 이 기기는 매일 수동 대조로 실제 표시율을 알 수 있다. 기준은 알림 권한과 정확한 알람을 모두 허용한 상태에서 실제 표시율 95% 이상, 표시 지연 중앙값 1분 이하다. 창업자 기기에서 **예약 커버리지**(방해금지가 아닌 칸 중 도래 시점에 예약이 걸려 있던 비율, `scheduled_slot` 기준)도 99% 이상이어야 한다. 그래야 C2 연장이 실패해 생긴 공백이 지표에서 빠지지 않는다. 테스터 기기의 커버리지와 `schedule_extended` 간격(마지막 연장 후 지난 일수)은 함께 보고한다. 테스터 기기의 관측 표시율은 지운 알림을 볼 수 없어 하한값이므로 판정에 쓰지 않는다. 다만 권한 상태별로 나눠 보고하고, 하한이 창업자 기기보다 20%p 이상 낮으면 해당 기기를 직접 확인한다.
 
 판정은 S3를 먼저 보고, 그다음 S1, S2 순서로 본다. 모든 조합이 아래 넷 중 하나에 해당한다.
 1. S3 미달(S1·S2 결과와 무관): 수요 판정은 보류한다. 알림이 빠지면 응답도 빠지므로 S1·S2가 오염됐을 수 있다. 알림 신뢰성을 고친 뒤 2주를 다시 측정한다.
@@ -399,7 +399,7 @@ Mode: SCOPE EXPANSION (사용자 선택, D1). 바인딩 결정 4건 유지: 접�
 | E7 결과 공유 이미지 (app) | — | 없음 | 하루 결과 이미지 생성·카톡 공유 | deferred (reopened) | D9 답변 "Add" 이후, D16 답변(2026-10-15): "연기하고 나중에 디자인과 함께 보자". 사용자가 의존성 축소를 요청함. TODO.md 기록. |
 
 | C1 S2 정의 (spec review) | CEO 스펙 리뷰 1회차 2.6: E2·E7로 화면 밖 피드백이 생김; Success Criteria S2 | S2 = 저녁 화면을 주 3회 이상 엶(`plan_vs_actual_viewed`) | 화면 열람 + 저녁 알림 탭, 날짜별 중복 제거 | approved | D10 답변: "Include notification tap". Success Criteria S2 문구 수정. |
-| C2 7일 미실행 시 알림 끊김 (spec review) | CEO 리뷰 5.1: E3로 7일 뒤 알림이 멈춤, 핵심 이탈 원인 재발 | 7일 후 멈춤 | 백그라운드 하루 1회 자동 연장 + 6일째 안내 알림 | approved | D11 답변(2026-10-15): "Background extend + reminder". 새 의존성 expo-background-task. 실기기 확인을 구현 순서 2에 포함. |
+| C2 7일 미실행 시 알림 끊김 (spec review) | CEO 리뷰 5.1: E3로 7일 뒤 알림이 멈춤, 핵심 이탈 원인 재발 | 7일 후 멈춤 | 최대 기간 예약(상한 400 내, 약 12~22일) + 만료 전날 안내 알림, 백그라운드 없음 | approved (revised) | D11 답변 \"Background extend + reminder\" 이후 D17 답변(2026-10-15) \"백그라운드 제거\"로 수정. 사용자의 의존성 축소 요청. expo-background-task 제거. |
 
 _모든 확장 후보(E1~E7) 결정 완료. 승인: E1(변형), E2, E3(절충), E5. 연기: E4, E6, E7(D16에서 재연기)._
 
