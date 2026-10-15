@@ -401,7 +401,7 @@ Mode: SCOPE EXPANSION (사용자 선택, D1). 바인딩 결정 4건 유지: 접�
 | C1 S2 정의 (spec review) | CEO 스펙 리뷰 1회차 2.6: E2·E7로 화면 밖 피드백이 생김; Success Criteria S2 | S2 = 저녁 화면을 주 3회 이상 엶(`plan_vs_actual_viewed`) | 화면 열람 + 저녁 알림 탭, 날짜별 중복 제거 | approved | D10 답변: "Include notification tap". Success Criteria S2 문구 수정. |
 | C2 7일 미실행 시 알림 끊김 (spec review) | CEO 리뷰 5.1: E3로 7일 뒤 알림이 멈춤, 핵심 이탈 원인 재발 | 7일 후 멈춤 | 백그라운드 하루 1회 자동 연장 + 6일째 안내 알림 | approved | D11 답변(2026-10-15): "Background extend + reminder". 새 의존성 expo-background-task. 실기기 확인을 구현 순서 2에 포함. |
 
-_모든 확장 후보(E1~E7) 결정 완료. 승인: E1(변형), E2, E3(절충), E5, E7. 연기: E4, E6._
+_모든 확장 후보(E1~E7) 결정 완료. 승인: E1(변형), E2, E3(절충), E5. 연기: E4, E6, E7(D16에서 재연기)._
 
 _C1·C2 결정 완료. 스펙 리뷰 3회 완료(상한). D15(안 쓰는 의존성 정리를 구현 순서 2에 포함)와 D16(E7 연기) 반영. 문서 승인 대기._
 
