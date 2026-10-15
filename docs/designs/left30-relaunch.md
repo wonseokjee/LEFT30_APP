@@ -119,6 +119,10 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
     - 연장할 때마다 `schedule_extended`를 `{days}`로 기록한다.
     - 3단계 실험 뒤 앱을 열지 않고 알림 버튼으로 답하는 방식을 도입하면, 그때 백그라운드 연장을 다시 검토한다.
 - 기록은 로컬에 먼저 쓰고 동기화 큐에 넣는다. 온라인이 되면 배치로 업로드한다.
+  - (R4) 큐 항목에는 증가하는 id를 붙이고, 서버가 응답한 id만 삭제한다. 동기화는 한 번에 하나만 실행하고(single-flight), 진행 중에 들어온 요청은 끝난 뒤 한 번 더 실행한다.
+  - (R3) 서버가 400(검증 실패)으로 거절한 항목은 큐에서 `sync_dead_letter` 테이블로 옮기고 `sync_rejected` 이벤트(`{kind, reason}`)를 남긴다. 그래서 나머지 큐가 막히지 않는다.
+- (R1) 로컬 SQLite는 `PRAGMA user_version`으로 버전을 관리한다. 앱이 시작할 때 버전 순서대로 마이그레이션을 각각 트랜잭션으로 실행한다. 실패하면 데이터를 지우지 않고 "업데이트 중 문제가 생겼어요" 오류 화면을 띄우며 `local_migration_failed` 이벤트를 남긴다(큐에 넣어 두고 다음에 전송).
+- (R5) 알림 예약 재계산은 한 번에 하나만 실행한다(single-flight). 실행 중 들어온 요청은 끝난 뒤 한 번으로 합쳐 다시 실행한다.
 - 권한과 온보딩
   - 첫 실행에 Android 13+ `POST_NOTIFICATIONS`를 요청한다. 거부하면 "알림 없이는 이 앱의 핵심이 동작하지 않는다"는 화면과 설정 이동 버튼을 띄운다. 거부 상태에서는 기록·계획 화면만 쓸 수 있다.
   - 정확한 시각 알림은 `SCHEDULE_EXACT_ALARM`을 설정 화면으로 보내 요청한다. `USE_EXACT_ALARM`은 Play 정책상 알람·캘린더 앱 전용이라 쓰지 않는다. Android 14+ 신규 설치는 기본 거부다. 거부하면 정확하지 않은 알람으로 대신하고, 홈 상단에 "알림이 몇 분 늦을 수 있음" 배너를 띄운다.
@@ -160,12 +164,14 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
   - `DELETE /me`: 계정 삭제다. 사용자, slot, plan, event(피드백 메모 포함), refresh token을 트랜잭션으로 지운다. 대상은 JWT `sub`로만 정한다. 앱의 회원탈퇴와 웹 삭제 요청 페이지가 이 API를 쓴다. 앱에서 삭제가 성공하면 로컬 SQLite 전체와 `sync_queue`를 지우고, 예약된 알림을 모두 취소한 뒤 로그아웃한다. 이렇게 해야 남아 있던 큐가 다시 로그인했을 때 데이터를 재업로드하지 않는다.
   - 동기화 큐 인증 실패: 401을 받으면 refresh를 시도한다. refresh도 실패하면 큐를 보존한 채 "다시 로그인" 안내를 띄우고, 로그인하면 이어서 보낸다. 큐는 버리지 않는다.
   - 첫 실행에는 Kakao 로그인 때문에 서버가 필요하다. 이후의 알림·기록·계획 대비 실제는 서버 없이 동작한다.
+  - (R3) 모든 배치 API는 요청당 최대 500건, 본문 1MB로 제한한다. 넘으면 413을 반환하고, 앱은 배치를 나눠 보낸다.
   - `POST /events`: 배치로 받는다. 클라이언트 `id` 기준으로 멱등이다. 테스트는 같은 배치를 두 번 보내도 행 수가 변하지 않는지 확인한다.
-- 운영: `synchronize: false`, 초기 마이그레이션, `forRootAsync`, `/health`. 크론과 FCM 푸시는 제거한다(코칭 단계에서 다시 검토).
+- 운영: `synchronize: false`, 초기 마이그레이션(R8 `event(user_id, type, ts)` 인덱스 포함), `forRootAsync`, `/health`.
+- (R6) 가동 감시는 무료 외부 감시 서비스가 `/health`를 5분 간격으로 확인하고 이메일로 알리는 방식이다. pm2 로그 회전(`pm2-logrotate`, 서버 측 도구)을 켠다. 크론과 FCM 푸시는 제거한다(코칭 단계에서 다시 검토).
 
 **구현 순서 (F1 출시 범위)**
 1. 서버: 새 스키마와 마이그레이션, 인증 분리, 동기화와 이벤트 API, `DELETE /me`, 테스트(권한, upsert·이벤트 멱등, 시간대, 계정 삭제).
-2. 앱: SQLite 계층, 권한 온보딩, 최대 기간 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, 최대 기간 예약 + 만료 전날 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다. 이 단계에서 안 쓰는 의존성도 정리한다(D15). 대상은 Firebase 4종, `expo-auth-session`, `expo-web-browser`, `expo-blur`, `expo-haptics`, `expo-symbols`, `expo-json-utils`, `expo-device`, `expo-modules-core`, `query-string`(+overrides), `react-native-webview`이다. Todo·디버그 코드를 지운 뒤에는 `react-native-elements`, `react-native-vector-icons`, `@react-navigation/stack`도 지우고, 웹을 쓰지 않으면 `react-native-web`, `react-dom`도 지운다. `expo-router`가 내부에서 쓰는 패키지는 남기고, 빌드로 확인한다.
+2. 앱: SQLite 계층(R1 user_version 마이그레이션 + v1→v2 업그레이드 테스트), 동기화 큐(R4 id 기준 삭제·single-flight·완료 순서 테스트, R3 dead-letter), 스케줄러 single-flight(R5 동시 호출 테스트), 권한 온보딩, 최대 기간 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, 최대 기간 예약 + 만료 전날 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다. 이 단계에서 안 쓰는 의존성도 정리한다(D15). 대상은 Firebase 4종, `expo-auth-session`, `expo-web-browser`, `expo-blur`, `expo-haptics`, `expo-symbols`, `expo-json-utils`, `expo-device`, `expo-modules-core`, `query-string`(+overrides), `react-native-webview`이다. Todo·디버그 코드를 지운 뒤에는 `react-native-elements`, `react-native-vector-icons`, `@react-navigation/stack`도 지우고, 웹을 쓰지 않으면 `react-native-web`, `react-dom`도 지운다. `expo-router`가 내부에서 쓰는 패키지는 남기고, 빌드로 확인한다.
 3. 실험(반나절): 앱이 종료된 상태에서 알림 액션 "그대로 계속"을 1탭으로 SQLite에 저장할 수 있는지 실기기 Android에서 확인한다. 결과를 근거로 보류 중인 자동 채우기 결정을 사용자가 내린다. 결정이 나기 전에는 `inferred`를 만들지 않는다. 즉 첫 배포의 기본값은 자동 채우기 없음이다.
 4. 앱: 아침 계획 제안(E1), 저녁 계획 대비 실제 화면과 한 줄 회고 알림(E2), 피드백 버튼(E5), 이벤트 기록. `expo-sqlite` 추가로 새 빌드가 필요하므로 `runtimeVersion`은 `appVersion` 정책으로 바꿔서 네이티브 변경 때마다 올린다.
 5. Oracle 배포, 새 도메인, 개인정보처리방침과 계정 삭제 요청 웹 페이지 게시, EAS AAB 빌드, Play 내부 테스트 트랙.
@@ -192,7 +198,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 ## Distribution Plan
 - 앱: EAS `production` 프로파일을 APK 대신 AAB로 빌드한다. Google Play 개발자 계정(1회 등록비)을 만들고 내부 테스트 트랙에 올려 테스터 5명을 이메일로 초대한다. JS 변경은 EAS Update로 배포한다.
 - Play 요구사항: 개인정보처리방침 URL(새 도메인), Data safety 양식(시간 기록, 피드백 메모, Kakao ID 수집 명시), 계정 삭제 경로(앱 안 회원탈퇴 + 웹 요청 페이지)를 준비한다.
-- 서버: 루트 `.github/workflows/deploy.yml`에서 `server/**`가 바뀔 때 Oracle VM에 SSH로 배포한다. 순서는 `npm ci` → build → `migration:run` → 재시작이다.
+- 서버: 루트 `.github/workflows/deploy.yml`에서 `server/**`가 바뀔 때 Oracle VM에 SSH로 배포한다. 순서는 `npm ci` → build → (R7) `pg_dump` 백업(실패하면 배포 중단, 최근 5개 보관) → `migration:run` → 재시작이다.
 
 ## Dependencies
 - TODO.md 1~2(도메인, Oracle VM), 5(배포 자동화).
@@ -406,3 +412,39 @@ _모든 확장 후보(E1~E7) 결정 완료. 승인: E1(변형), E2, E3(절충), 
 _C1·C2 결정 완료. 스펙 리뷰 3회 완료(상한). D15(안 쓰는 의존성 정리를 구현 순서 2에 포함)와 D16(E7 연기) 반영. 문서 승인 대기._
 
 _참고(2026-10-15): 위 "Reviewer Concerns"(office-hours 스펙 리뷰가 자동 생성한 섹션)의 R2-1~R2-4는 이후 본문 수정으로 해결됐다(시간표 화면 추가, 핑 이벤트 uuidv5 id, S3는 창업자 기기로 판정, S3 우선 판정). "48개 반복 예약" 서술은 E3·C2로 대체됐다. R2-7·R2-9·R2-10·R2-13도 CEO 리뷰 2회차 반영으로 해소됐다._
+
+## CEO Review — 0H 승인 및 0I 구현 순서 점검 (2026-10-15)
+
+0H 문서 승인: D14에 대해 사용자가 요약 확인, 수정(D15·D16·D17)을 거친 뒤 "승인"으로 답함. 승인 대상은 작업 계획과 CEO 범위 요약 두 문서다.
+
+**0I 시간 순 점검** (사람 기준 / CC+gstack 기준)
+- 1시간 차(기반): 구현자가 먼저 알아야 할 것
+  - 기존 데이터가 0이라 기존 엔티티(timetable·todo)와 크론은 마이그레이션 없이 버린다.
+  - 카테고리 키, 시간대 규칙, source 표를 먼저 코드 상수와 공용 타입으로 만든다.
+  - 비용: human ~0.5일 / CC ~20분
+- 2~3시간 차(핵심 로직)에 부딪힐 모호함
+  - 동기화 큐 삭제 시점과 경쟁 조건 → R4
+  - 예약 재계산을 동시에 실행했을 때 → R5
+  - 로컬 SQLite 스키마를 앱 업데이트 때 어떻게 바꿀지 → R1
+- 4~5시간 차(통합)에서 놀랄 것
+  - `expo-notifications` 1회용 날짜 트리거가 정확한 알람을 쓰는지, 앱당 알람 상한이 얼마인지(구현 순서 2 실기기 확인)
+  - Kakao SDK와 새 빌드
+  - `appVersion` 정책으로 바꾸는 runtimeVersion
+- 6시간 차 이후(마무리·테스트)에 미리 계획했어야 했다고 느낄 것
+  - 서버 가동 감시 → R6
+  - 배포 전 DB 백업 → R7
+  - 요청 크기 제한 → R3
+- 블로커: 테스터 3명 이상 확보(office-hours 과제)가 구현 시작 조건이다. 2026-10-15 기준 미확보.
+
+**섹션 리뷰 결정 원장 (R1~R8, 2026-10-15)**
+
+| ID and owner | Contract and evidence | Current | Proposed | Status | Exact approval and scope |
+|---|---|---|---|---|---|
+| R1 로컬 스키마 마이그레이션 (S2, app) | 오프라인 우선: SQLite가 기준 데이터 | 전략 없음 | `PRAGMA user_version` 순차 마이그레이션, 트랜잭션, 실패 시 오류 화면 + 이벤트, v1→v2 업그레이드 테스트 | approved | D18 "마이그레이션 추가" (2026-10-15). 구현 순서와 테스트에 반영. |
+| R2 요청 횟수 제한 (S3, server) | 공개 API | 없음 | TODO로 연기(공개 출시 전 @nestjs/throttler) | deferred | D22 \"TODO로 연기\" (2026-10-15). 공개 출시 전 체크리스트. |
+| R3 배치 요청 크기 상한 + 400 처리 (S2/S3, server+app) | `/sync/*`, `/events` 배치 | 상한 없음, 400 무한 재시도 | 요청당 최대 500건·1MB, 400 응답 항목은 큐에서 격리(dead-letter) + 이벤트 | approved | D19 "상한 + 격리" (2026-10-15). 구현 순서와 테스트에 반영. |
+| R4 동기화 큐 경쟁 조건 (S4, app) | 큐 보존 원칙 | 정의 없음 | 큐 항목 증가 id, 응답받은 id만 삭제, 동기화는 한 번에 하나(single-flight), 순서 테스트 | approved | D20 "id 기준 삭제 + 1개씩" (2026-10-15). 구현 순서와 테스트에 반영. |
+| R5 알림 재계산 직렬화 (S4, app) | 예약 커버리지 99%(S3) | 정의 없음 | 스케줄러 single-flight(진행 중 요청은 1회로 합침), 동시 호출 테스트 | approved | D21 "single-flight" (2026-10-15). 구현 순서와 테스트에 반영. |
+| R6 서버 가동 감시 (S8, ops) | 동기화는 조용히 실패 | 없음 | 외부 무료 가동 감시(/health 5분 간격) + 이메일 알림, pm2 로그 회전 | approved | D23 "감시 + 로그 회전" (2026-10-15). |
+| R7 배포 전 DB 백업 (S9, ops) | 일일 pg_dump(TODO 2) | 배포 시 백업 없음 | 배포 스크립트에서 migration:run 전 pg_dump, 실패 시 배포 중단 | approved | D24 "배포 전 백업" (2026-10-15). |
+| R8 event 인덱스 (S7, server) | S1~S3 집계 쿼리 | 없음 | `event(user_id, type, ts)` 인덱스 | approved | D25 "인덱스 추가" (2026-10-15). |
