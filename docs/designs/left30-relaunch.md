@@ -85,14 +85,13 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 - `plan(user_id, local_date, category, target_minutes)`: `UNIQUE(user_id, local_date, category)`. 아침에 카테고리별 목표 시간을 나눠 담는다.
 - `event(id uuid PK, user_id, type, ts, props)`
   - `id`는 클라이언트가 생성하며, 서버는 `ON CONFLICT (id) DO NOTHING`으로 넣는다. 큐 재전송으로 중복이 생기지 않는다.
-  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `result_shared`, `schedule_extended`, `schedule_coverage`, `bg_task_run`다.
+  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `schedule_extended`, `schedule_coverage`, `bg_task_run`다.
   - `schedule_coverage`: 하루 1회 `{local_date, due_slots, covered_slots}`. 앱이 `scheduled_slot`으로 계산해서 서버에 보낸다. 그래서 테스터 기기의 커버리지를 서버에서 집계할 수 있다.
   - `bg_task_run`: 백그라운드 작업이 실행될 때마다 `{result: extended|no_change|failed}`로 기록한다. 실패도 남겨서 일별 성공률의 분모가 된다.
   - props 스키마:
     - `plan_set`: `{local_date, mode: same_as_yesterday|custom, source: yesterday_plan|yesterday_actual|manual}`
     - `evening_summary_tapped`: `{local_date}`
     - `feedback`: `{screen, memo?}`. `memo`는 최대 500자다.
-    - `result_shared`: `{local_date}`
   - `ping_scheduled`는 칸이 실제로 도래한 시점(앱이 다음에 실행될 때 소급)에 한 번만 기록한다. 그래서 방해금지 시간 변경 등으로 취소된 미래 칸은 S3 분모에 들어가지 않는다.
   - 핑 이벤트(`ping_scheduled`·`ping_displayed`·`ping_answered`)의 `id`는 결정적으로 만든다. 즉 `uuidv5(user_id + type + slot_start)`로 한 칸·한 타입당 하나만 생긴다. 예약을 다시 걸거나 같은 알림을 여러 경로로 다시 관측해도 첫 기록만 남는다. `ping_displayed`는 가장 이른 관측 시각을 쓴다.
 - `user`: `kakao_id`, `quiet_start_min`, `quiet_end_min`(분 단위, 그때그때의 기기 로컬 시간 기준), `refresh_token_hash`, `last_tz`.
@@ -144,7 +143,6 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
   - 앱이 종료된 상태에서 알림 액션으로 기록하면 본문은 마지막 앱 실행 시점 값으로 남는다. 이 한계는 감수한다.
   - 알림을 탭하면 저녁 화면이 열리고 `evening_summary_tapped`가 기록된다.
 - 테스터 피드백(E5): 저녁 계획 대비 실제 화면과 시간표 화면 상단에 "불편해요" 버튼을 둔다. 메모는 선택이며 최대 500자다.
-- 결과 공유(E7): 저녁 화면의 "공유" 버튼을 누르면 카테고리별 계획·실제 시간만 담은 카드 이미지를 만든다. 메모, 이름, 시각별 기록은 넣지 않는다. 사용자가 직접 누를 때만 동작하며, `react-native-view-shot`과 `expo-sharing`을 쓰고 `result_shared`를 기록한다.
 - 방해금지 시간 설정, 로그아웃, 회원탈퇴는 기존 "계정 관리" 화면(`application/app/(user)/index.tsx`)을 그대로 쓴다. 이 화면은 새로 만드는 화면 수에 들어가지 않는다.
 - 화면은 네 개다.
   - 기록 모달: 6개 카테고리 1탭과 선택 메모. 현재 칸과 함께 "직전 칸(미응답)"도 보여준다. 칸 종료 후 60분 이내에 여기서 고르면 `answered`가 된다.
@@ -167,9 +165,9 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 
 **구현 순서 (F1 출시 범위)**
 1. 서버: 새 스키마와 마이그레이션, 인증 분리, 동기화와 이벤트 API, `DELETE /me`, 테스트(권한, upsert·이벤트 멱등, 시간대, 계정 삭제).
-2. 앱: SQLite 계층, 권한 온보딩, 7일치 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, `expo-background-task` 하루 1회 자동 연장 + 6일째 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다.
+2. 앱: SQLite 계층, 권한 온보딩, 7일치 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, `expo-background-task` 하루 1회 자동 연장 + 6일째 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다. 이 단계에서 안 쓰는 의존성도 정리한다(D15). 대상은 Firebase 4종, `expo-auth-session`, `expo-web-browser`, `expo-blur`, `expo-haptics`, `expo-symbols`, `expo-json-utils`, `expo-device`, `expo-modules-core`, `query-string`(+overrides), `react-native-webview`이다. Todo·디버그 코드를 지운 뒤에는 `react-native-elements`, `react-native-vector-icons`, `@react-navigation/stack`도 지우고, 웹을 쓰지 않으면 `react-native-web`, `react-dom`도 지운다. `expo-router`가 내부에서 쓰는 패키지는 남기고, 빌드로 확인한다.
 3. 실험(반나절): 앱이 종료된 상태에서 알림 액션 "그대로 계속"을 1탭으로 SQLite에 저장할 수 있는지 실기기 Android에서 확인한다. 결과를 근거로 보류 중인 자동 채우기 결정을 사용자가 내린다. 결정이 나기 전에는 `inferred`를 만들지 않는다. 즉 첫 배포의 기본값은 자동 채우기 없음이다.
-4. 앱: 아침 계획 제안(E1), 저녁 계획 대비 실제 화면과 한 줄 회고 알림(E2), 피드백 버튼(E5), 결과 공유 카드(E7), 이벤트 기록. E7은 새 네이티브 의존성이 있어 새 빌드가 필요하다. `runtimeVersion`은 `appVersion` 정책으로 바꿔서 네이티브 변경 때마다 올린다.
+4. 앱: 아침 계획 제안(E1), 저녁 계획 대비 실제 화면과 한 줄 회고 알림(E2), 피드백 버튼(E5), 이벤트 기록. `expo-sqlite`·`expo-background-task` 추가로 새 빌드가 필요하므로 `runtimeVersion`은 `appVersion` 정책으로 바꿔서 네이티브 변경 때마다 올린다.
 5. Oracle 배포, 새 도메인, 개인정보처리방침과 계정 삭제 요청 웹 페이지 게시, EAS AAB 빌드, Play 내부 테스트 트랙.
 
 ## Open Questions
@@ -398,13 +396,13 @@ Mode: SCOPE EXPANSION (사용자 선택, D1). 바인딩 결정 4건 유지: 접�
 | E4 응답 연속 기록 (app) | Success Criteria S1 | 없음 | 연속 응답 일수 표시 | deferred | D6 답변: "Defer to TODOS.md". 이유: 2주 검증이 피드백 효과만 재도록 유지. TODO.md 기록. |
 | E5 테스터 피드백 버튼 (app+event) | Success Criteria | 없음 | 1탭 "불편해요" + 메모 → event `feedback` | approved | D7 답변: "Add to this plan's scope". 저녁 계획 대비 실제 화면·시간표 화면 상단에 배치(설정 화면 없음, D12 답변 "저녁+시간표 화면"으로 확인), 화면·시각 자동 첨부, event 타입 `feedback` 추가. F1 범위. |
 | E6 Android 홈 위젯 (app native) | — | 없음 | 오늘 계획 대비 실제 막대 위젯 | deferred | D8 답변: "Defer to TODOS.md". 이유: 노력 L·네이티브 위험, E2가 앱 밖 보상 역할. S2 충족 후 F2와 함께 검토. |
-| E7 결과 공유 이미지 (app) | — | 없음 | 하루 결과 이미지 생성·카톡 공유 | approved | D9 답변: "Add to this plan's scope" (권장 B와 다름, 사용자 선택). 저녁 화면 카드 이미지 + 공유 시트, 새 의존성 2개. 개인 기록 노출 설계는 리뷰 섹션에서 다룸. F1 범위. |
+| E7 결과 공유 이미지 (app) | — | 없음 | 하루 결과 이미지 생성·카톡 공유 | deferred (reopened) | D9 답변 "Add" 이후, D16 답변(2026-10-15): "연기하고 나중에 디자인과 함께 보자". 사용자가 의존성 축소를 요청함. TODO.md 기록. |
 
 | C1 S2 정의 (spec review) | CEO 스펙 리뷰 1회차 2.6: E2·E7로 화면 밖 피드백이 생김; Success Criteria S2 | S2 = 저녁 화면을 주 3회 이상 엶(`plan_vs_actual_viewed`) | 화면 열람 + 저녁 알림 탭, 날짜별 중복 제거 | approved | D10 답변: "Include notification tap". Success Criteria S2 문구 수정. |
 | C2 7일 미실행 시 알림 끊김 (spec review) | CEO 리뷰 5.1: E3로 7일 뒤 알림이 멈춤, 핵심 이탈 원인 재발 | 7일 후 멈춤 | 백그라운드 하루 1회 자동 연장 + 6일째 안내 알림 | approved | D11 답변(2026-10-15): "Background extend + reminder". 새 의존성 expo-background-task. 실기기 확인을 구현 순서 2에 포함. |
 
 _모든 확장 후보(E1~E7) 결정 완료. 승인: E1(변형), E2, E3(절충), E5, E7. 연기: E4, E6._
 
-_C1·C2 결정 완료. 스펙 리뷰 3회 완료(상한), 문서 승인 대기._
+_C1·C2 결정 완료. 스펙 리뷰 3회 완료(상한). D15(안 쓰는 의존성 정리를 구현 순서 2에 포함)와 D16(E7 연기) 반영. 문서 승인 대기._
 
 _참고(2026-10-15): 위 "Reviewer Concerns"(office-hours 스펙 리뷰가 자동 생성한 섹션)의 R2-1~R2-4는 이후 본문 수정으로 해결됐다(시간표 화면 추가, 핑 이벤트 uuidv5 id, S3는 창업자 기기로 판정, S3 우선 판정). "48개 반복 예약" 서술은 E3·C2로 대체됐다. R2-7·R2-9·R2-10·R2-13도 CEO 리뷰 2회차 반영으로 해소됐다._
