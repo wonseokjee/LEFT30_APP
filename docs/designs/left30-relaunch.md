@@ -125,8 +125,8 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 - (R5) 알림 예약 재계산은 한 번에 하나만 실행한다(single-flight). 실행 중 들어온 요청은 끝난 뒤 한 번으로 합쳐 다시 실행한다.
 - 권한과 온보딩
   - 첫 실행에 Android 13+ `POST_NOTIFICATIONS`를 요청한다. 거부하면 "알림 없이는 이 앱의 핵심이 동작하지 않는다"는 화면과 설정 이동 버튼을 띄운다. 거부 상태에서는 기록·계획 화면만 쓸 수 있다.
-  - 정확한 시각 알림은 `SCHEDULE_EXACT_ALARM`을 설정 화면으로 보내 요청한다. `USE_EXACT_ALARM`은 Play 정책상 알람·캘린더 앱 전용이라 쓰지 않는다. Android 14+ 신규 설치는 기본 거부다. 거부하면 정확하지 않은 알람으로 대신하고, 홈 상단에 "알림이 몇 분 늦을 수 있음" 배너를 띄운다.
-  - 앱이 열릴 때마다 두 권한 상태를 `perm_state` 이벤트로 남긴다.
+  - 정확한 시각 알림(`SCHEDULE_EXACT_ALARM`)은 Expo로 상태를 읽을 수 없어서, 실제 지연으로 추론한다(ENG-1, D2). 최근 10개 `ping_displayed`의 표시 지연 중앙값이 5분을 넘으면 홈 상단에 "알림이 늦게 오고 있어요, 설정에서 알람·리마인더를 허용해 주세요" 배너를 띄우고 `Linking.openSettings()`로 앱 설정을 연다. `USE_EXACT_ALARM`은 Play 정책상 알람·캘린더 앱 전용이라 쓰지 않는다.
+  - 앱이 열릴 때마다 `perm_state` 이벤트로 알림 권한과 `exact_inferred: ok|delayed`를 남긴다.
 - 핑 표시 측정(`ping_displayed`)
   - 앱이 종료된 상태에서는 표시 콜백을 받을 수 없다. 그래서 다음 세 경로로 관측한다.
     1. 포그라운드 수신 리스너
@@ -166,11 +166,11 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
   - 첫 실행에는 Kakao 로그인 때문에 서버가 필요하다. 이후의 알림·기록·계획 대비 실제는 서버 없이 동작한다.
   - (R3) 모든 배치 API는 요청당 최대 500건, 본문 1MB로 제한한다. 넘으면 413을 반환하고, 앱은 배치를 나눠 보낸다.
   - `POST /events`: 배치로 받는다. 클라이언트 `id` 기준으로 멱등이다. 테스트는 같은 배치를 두 번 보내도 행 수가 변하지 않는지 확인한다.
-- 운영: `synchronize: false`, 초기 마이그레이션(R8 `event(user_id, type, ts)` 인덱스 포함), `forRootAsync`, `/health`.
+- 운영: `synchronize: false`, 초기 마이그레이션(R8 `event(user_id, type, ts)`, ENG-3 `slot(user_id, updated_at)`·`plan(user_id, updated_at)` 인덱스 포함), `forRootAsync`, `/health`.
 - (R6) 가동 감시는 무료 외부 감시 서비스가 `/health`를 5분 간격으로 확인하고 이메일로 알리는 방식이다. pm2 로그 회전(`pm2-logrotate`, 서버 측 도구)을 켠다. 크론과 FCM 푸시는 제거한다(코칭 단계에서 다시 검토).
 
 **구현 순서 (F1 출시 범위)**
-1. 서버: 새 스키마와 마이그레이션, 인증 분리, 동기화와 이벤트 API, `DELETE /me`, 테스트(권한, upsert·이벤트 멱등, 시간대, 계정 삭제).
+1. 서버: 새 스키마와 마이그레이션, 인증 분리, 동기화와 이벤트 API, `DELETE /me`, 테스트(권한, upsert·이벤트 멱등, 시간대, 계정 삭제, ENG-2 인증 회귀 e2e 4건).
 2. 앱: SQLite 계층(R1 user_version 마이그레이션 + v1→v2 업그레이드 테스트), 동기화 큐(R4 id 기준 삭제·single-flight·완료 순서 테스트, R3 dead-letter), 스케줄러 single-flight(R5 동시 호출 테스트), 권한 온보딩, 최대 기간 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, 최대 기간 예약 + 만료 전날 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다. 이 단계에서 안 쓰는 의존성도 정리한다(D15). 대상은 Firebase 4종, `expo-auth-session`, `expo-web-browser`, `expo-blur`, `expo-haptics`, `expo-symbols`, `expo-json-utils`, `expo-device`, `expo-modules-core`, `query-string`(+overrides), `react-native-webview`이다. Todo·디버그 코드를 지운 뒤에는 `react-native-elements`, `react-native-vector-icons`, `@react-navigation/stack`도 지우고, 웹을 쓰지 않으면 `react-native-web`, `react-dom`도 지운다. `expo-router`가 내부에서 쓰는 패키지는 남기고, 빌드로 확인한다.
 3. 실험(반나절): 앱이 종료된 상태에서 알림 액션 "그대로 계속"을 1탭으로 SQLite에 저장할 수 있는지 실기기 Android에서 확인한다. 결과를 근거로 보류 중인 자동 채우기 결정을 사용자가 내린다. 결정이 나기 전에는 `inferred`를 만들지 않는다. 즉 첫 배포의 기본값은 자동 채우기 없음이다.
 4. 앱: 아침 계획 제안(E1), 저녁 계획 대비 실제 화면과 한 줄 회고 알림(E2), 피드백 버튼(E5), 이벤트 기록. `expo-sqlite` 추가로 새 빌드가 필요하므로 `runtimeVersion`은 `appVersion` 정책으로 바꿔서 네이티브 변경 때마다 올린다.
@@ -643,17 +643,172 @@ PLAN_REALITY: phase=ceo rows=7/7 missing=none unverified=2 verdict=complete
 ### Unresolved Decisions
 - 없음. 답이 없는 질문은 없다.
 
+## Eng Review (/plan-eng-review, 2026-10-16)
+
+대상: `docs/designs/left30-relaunch.md`(office-hours APPROVED, CEO 리뷰 CLEAR 2026-10-15). 리포트 파일도 이 문서다.
+
+**Scope record:** 기능 범위는 CEO 승인 그대로 유지(기능 축소 제안 없음). 구조는 D1 "Smaller arrangement" — 서버는 `auth`(+`DELETE /me`), `sync`(slots·plans·events 배치, 공통 상한·멱등·400 격리), `health`. 앱은 `db`(R1 마이그레이션), `sync`(R4 큐 포함), `scheduler`(R5 single-flight, 권한 포함), 화면 4개. 미결 개선안: 없음. Scope Challenge 결과: scope accepted as-is.
+
+## Decision ledger
+
+### ENG-1: 정확한 알람 허용 여부를 감지하는 방법
+Finding: 1, P1, confidence 7/10, docs/designs/left30-relaunch.md "앱이 열릴 때마다 두 권한 상태를 `perm_state` 이벤트로 남긴다", Section 1 reviewer(Claude)
+Plan baseline: CEO 승인 본문 — 정확한 알람이 거부되면 부정확한 알람으로 대체 + 배너 + `perm_state` 기록(D14 문서 승인)
+Runtime evidence: `canScheduleExactAlarms()`는 Android 네이티브 API이고 Expo·React Native에는 이를 감싼 API가 확인되지 않음(unknown). Android 문서: 부정확한 알람은 최소 10분까지 지연될 수 있음.
+Comparison grid:
+| 항목 | Current | A | B | C |
+|---|---|---|---|---|
+| 정확 알람 상태 확인 | 미정(감지 수단 없음) | 지연 측정으로 추론 | 로컬 Expo 모듈(Kotlin) | 감지 안 함 |
+| 새 네이티브 코드 | 없음 | 없음 | 있음 | 없음 |
+| 배너 조건 | 권한 거부 | 최근 표시 지연 중앙값이 5분 초과 | 권한 거부 | 없음 |
+| 설정 이동 | 미정 | `Linking.openSettings()`(앱 설정) | 정확 알람 설정 화면 직접 | 없음 |
+State: approved
+Actual answer: A "지연 측정으로 추론" (D2, 2026-10-16)
+Accepted scope: 정확 알람 권한을 직접 읽지 않는다. 최근 10개 `ping_displayed` 표시 지연의 중앙값이 5분을 넘으면 배너를 띄우고 `Linking.openSettings()`로 앱 설정을 안내한다. `perm_state`에는 알림 권한(`expo-notifications` 권한 API)과 `exact_inferred: ok|delayed`를 기록한다. 새 네이티브 코드·패키지는 없다. 테스트: 지연 표본 → 배너 판정 단위 테스트(경계 5분, 표본 10개 미만이면 판정 보류).
+History: 없음
+
+### ENG-2: 기존 Kakao 로그인 흐름의 회귀 계약
+Finding: 2, P1, confidence 8/10, server/src/auth/auth.service.ts `loginWithKakao`·`reissueAccessToken`(재작성 대상), Section 3 reviewer(Claude)
+Plan baseline: CEO 승인 — access와 refresh를 secret과 `type`으로 분리, JWT `sub`만 신뢰. 회귀 테스트 범위는 명시되지 않음.
+Runtime evidence: 현재 auth 테스트는 "should be defined" 하나뿐(server/src/auth/auth.service.spec.ts). 실제 흐름을 검증하는 테스트 0개.
+Comparison grid:
+| 항목 | Current | A | B |
+|---|---|---|---|
+| 유지할 동작 | 미정 | Kakao 토큰 → 사용자 조회·생성 → access·refresh 발급, refresh → 새 access | 미정 |
+| 의도한 변경 | 분리(승인) | refresh 토큰을 access로 쓰면 401, `type` 불일치 401 | 동일 |
+| 테스트 | 없음 | supertest e2e 4건(정상 로그인, 재발급, refresh로 API 호출 401, 만료 401) + Kakao API 목킹 | 단위 테스트만 |
+State: approved
+Actual answer: A "e2e 4건 + 목킹" (D3, 2026-10-16)
+Accepted scope: 회귀 계약. 유지할 동작은 Kakao 토큰 → 사용자 조회·생성 → access·refresh 발급, refresh → 새 access. 의도한 변경은 refresh 토큰으로 API를 부르면 401, `type`이 맞지 않으면 401, 만료되면 401이다. `server/test/`의 supertest e2e 4건에서 Kakao `/v2/user/me`는 목킹하고 테스트 DB는 격리한다. 새 패키지는 없다.
+History: 없음
+
+### ENG-3: 동기화 커서용 인덱스
+Finding: 3, P2, confidence 8/10, 본문 "`GET /sync?since=` ... 커서는 서버가 부여한 `updated_at`", Section 4 reviewer(Claude)
+Plan baseline: R8은 `event(user_id, type, ts)` 인덱스만 승인(D25). slot·plan에는 `UNIQUE(user_id, slot_start)`, `UNIQUE(user_id, local_date, category)`만 있음.
+Runtime evidence: 제안 단계라 실행 근거 없음. 조회는 `WHERE user_id = ? AND updated_at > ?`.
+Comparison grid:
+| 항목 | Current | A | B |
+|---|---|---|---|
+| slot 인덱스 | UNIQUE(user_id, slot_start) | + (user_id, updated_at) | 변경 없음 |
+| plan 인덱스 | UNIQUE(user_id, local_date, category) | + (user_id, updated_at) | 변경 없음 |
+State: approved
+Actual answer: A "인덱스 추가" (D4, 2026-10-16)
+Accepted scope: 초기 마이그레이션에 `slot(user_id, updated_at)`, `plan(user_id, updated_at)` 인덱스를 넣는다. 확인은 마이그레이션 후 인덱스 존재 여부로 한다.
+History: 없음
+
+Approval readiness: PASS — ENG-1(D2 "지연 측정으로 추론"), ENG-2(D3 "e2e 4건 + 목킹"), ENG-3(D4 "인덱스 추가"). 구조 D1 "Smaller arrangement". CEO 승인(E1~E7, C1·C2, D15, R1~R8)은 그대로 이어받음.
+
+## Eng Review Outputs (2026-10-16)
+
+### Reality rows
+```
+REALITY: premise-table finding unverified=3 (P7 demand, P8 recruiting, expo date-trigger exactness) docs/designs/left30-relaunch.md:12
+REALITY: already-done pass no origin/main commits since 2026-10-12 touching server or application 4999616c55be5ea543d3cd6149d5957bdfb3a036
+REALITY: surface-check finding expo-sqlite not in application/package.json; /sync/*, /events, DELETE /me, /health are new routes application/package.json:40
+REALITY: binding-decisions pass CEO D1–D25 + office-hours decisions honored, no overruled default reintroduced docs/designs/left30-relaunch.md:400
+REALITY: numbers finding 398-slot horizon, 400 cap, 500-item batch are [estimated]; Android alarm cap [re-measure before gate] docs/designs/left30-relaunch.md:108
+REALITY: deferred-asks pass no linked issue; deferrals in TODO.md TODO.md:79
+REALITY: pr-count pass no .gstack/ship-policy.json, one PR to main f6389b0
+```
+PLAN_REALITY: phase=eng rows=7/7 missing=none unverified=3 verdict=complete
+
+### NOT in scope
+- E4 스트릭, E6 Android 위젯, E7 결과 공유, R2 요청 횟수 제한: CEO 리뷰에서 연기했고 TODO.md에 기록돼 있다.
+- 정확 알람 권한을 직접 읽는 네이티브 모듈: ENG-1(D2)에서 지연으로 추론하는 방식을 택했기 때문이다.
+
+### What already exists
+- `server/src/auth/`: Kakao 로그인과 JWT 발급을 재사용한다. 분리와 회귀 e2e(ENG-2)를 추가한다.
+- `server/test/jest-e2e.json` + supertest: e2e 환경이 이미 있어 그대로 쓴다.
+- `expo-sqlite`의 `SQLiteProvider`·`onInit` + `PRAGMA user_version`: Expo 공식 패턴을 따라 R1을 구현한다.
+- `expo-notifications` 0.31: 이미 설치돼 있다. 날짜 트리거, 표시된 알림 조회, 권한 API를 쓴다.
+- 기존 UI(카테고리 선택, 시간표 렌더링, 계정 관리 화면): 재사용한다.
+
+### Diagrams
+**모듈 구조 (D1 Smaller arrangement)**
+```
+ server/src                          application/
+ ├── auth   (Kakao→JWT, refresh,     ├── db        (expo-sqlite, user_version 마이그레이션)
+ │          DELETE /me)              ├── sync      (sync_queue, single-flight, dead-letter)
+ ├── sync   (slots·plans·events      ├── scheduler (최대 기간 예약, 차이 반영, single-flight,
+ │          배치: ≤500건·1MB, 멱등,  │              지연 추론 배너, 권한)
+ │          400 격리, since 커서)    └── app/      (기록 모달, 시간표, 아침 계획, 저녁 화면,
+ └── health                                         계정 관리[기존])
+```
+**알림 지연 추론 (ENG-1)**
+```
+ ping_displayed(최근 10개) ─▶ 표본 < 10 ─▶ 판정 보류
+                           └▶ 지연 중앙값 ≤ 5분 ─▶ exact_inferred=ok
+                           └▶ 지연 중앙값 > 5분 ─▶ exact_inferred=delayed ─▶ 배너 + openSettings()
+```
+- 인라인 다이어그램이 필요한 파일: 앱 `scheduler`(예약 상태 전이), 앱 `sync` 큐(전송·응답·삭제 순서). CEO 리뷰의 상태·동기화 다이어그램을 코드 주석으로 옮긴다.
+
+### Failure modes (이번 리뷰에서 추가된 경로)
+| 경로 | 현실적인 실패 | 테스트 | 오류 처리 | 사용자 |
+|---|---|---|---|---|
+| 정확 알람 거부 | 알림이 10분 이상 늦게 옴 | 지연 판정 단위 테스트 | 배너 + 설정 안내 | 배너 |
+| 인증 재작성 | refresh 토큰으로 API 호출이 통과 | e2e(ENG-2) | 가드가 `type` 검사 | 401 → 재로그인 |
+| 기기 복원 | 인덱스 없이 since 조회가 느려짐 | 인덱스 존재 확인 | — | 복원 지연 |
+치명적 공백: 0
+
+### Worktree parallelization strategy
+| Step | Modules touched | Depends on |
+|------|----------------|------------|
+| 서버 auth 분리 + 회귀 e2e | server/src/auth, server/test | — |
+| 서버 sync 모듈 + 스키마·인덱스 | server/src/sync, 마이그레이션 | — |
+| 앱 db + sync 큐 | application db, sync | 서버 sync API 계약(문서로 고정) |
+| 앱 scheduler + 권한·지연 추론 | application scheduler | 앱 db |
+| 앱 화면(4개) + 이벤트 | application app/ | 앱 db, sync, scheduler |
+
+**Parallel lanes:** Lane A: 서버 auth → 서버 sync (server/src 공유) / Lane B: 앱 db → 앱 sync → 앱 scheduler → 화면
+**Execution order:** A와 B를 동시에 시작한다. B는 API 계약(이 문서의 동기화 절)만 보고 가짜 서버로 진행한다. 둘 다 끝나면 실기기 통합 확인(구현 순서 3의 실험 포함) → 배포.
+**Conflict flags:** 동기화 요청·응답 타입은 두 lane이 공유하는 계약이다. 바꾸면 양쪽을 함께 고친다.
+
+## Implementation Tasks (Eng Review)
+CEO 리뷰의 T1~T8에 더해, 이번 리뷰의 지적에서 나온 작업이다.
+
+- [ ] **T9 (P1, human: ~2h / CC: ~10min)** — app — 표시 지연 기반 정확 알람 추론 + 배너
+  - Surfaced by: Section 1 — 정확 알람 상태를 읽을 API 없음(ENG-1, D2)
+  - Files: to be determined (application scheduler)
+  - Verify: 지연 표본 단위 테스트(중앙값 5분 경계, 표본 10개 미만이면 보류), 실기기에서 정확 알람을 끄고 배너가 뜨는지 확인
+- [ ] **T10 (P1, human: ~4h / CC: ~20min)** — server — 인증 회귀 e2e 4건
+  - Surfaced by: Section 3 — auth 재작성에 회귀 테스트 없음(ENG-2, D3)
+  - Files: server/test/auth.e2e-spec.ts(신규), server/src/auth
+  - Verify: `cd server && npm run test:e2e`에서 4건 통과
+- [ ] **T11 (P2, human: ~10min / CC: ~2min)** — server — slot·plan `(user_id, updated_at)` 인덱스
+  - Surfaced by: Section 4(ENG-3, D4)
+  - Files: server 초기 마이그레이션
+  - Verify: 마이그레이션 후 인덱스 존재 확인
+
+### Completion summary
+- Step 0: Scope Challenge — scope accepted as-is (구조 D1 Smaller arrangement)
+- Reality rows: 7/7 applicable rows emitted (PLAN_REALITY complete), 3 unverified premises
+- Architecture Review: 1 issue found
+- Code Quality Review: 0 issues found
+- Test Review: diagram produced, 1 gap identified (auth 회귀)
+- Performance Review: 1 issue found
+- NOT in scope: written
+- What already exists: written
+- TODOS.md updates: 0 items proposed to user
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 0 in this review
+- Outside voice: codex unavailable (gpt-6-astra not supported on ChatGPT-account Codex; native fallback not declared)
+- Parallelization: 2 lanes, 2 parallel / 0 sequential
+- Lake Score: 2/3 = answers picking a 10/10 option / answers scored for Completeness
+
+### Unresolved decisions
+- 없음
+
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | CLEAR | 7 proposals, 4 accepted, 3 deferred |
-| Outside Review | codex (`/plan-ceo-review` outside voice) | Independent 2nd opinion | 1 | unavailable | gpt-6-astra not supported on ChatGPT-account Codex; native fallback unavailable (TaskOutput not declared) — no completed external review |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 0 | — | — |
+| Outside Review | codex (`/plan-ceo-review`, `/plan-eng-review` outside voice) | Independent 2nd opinion | 2 | unavailable | gpt-6-astra not supported on ChatGPT-account Codex; native fallback not declared — no completed external review |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | ISSUES OPEN | 3 issues, 0 critical gaps (all 3 resolved: ENG-1 D2, ENG-2 D3, ENG-3 D4) |
 | Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
-- **OUTSIDE COVERAGE:** codex, plan-review phase, unavailable. Model `gpt-6-astra` was rejected for the ChatGPT account, and the native fallback needs a TaskOutput tool this session does not declare. No completed external review.
-- **VERDICT:** CEO CLEARED — eng review required
+- **OUTSIDE COVERAGE:** codex, plan-review phase for both CEO (2026-10-15) and Eng (2026-10-16), unavailable both times. The model `gpt-6-astra` was rejected for the ChatGPT account. No completed external review.
+- **VERDICT:** CEO CLEARED — eng review required (Eng 리뷰는 완료했고 지적 3건이 모두 사용자 결정으로 해소됐지만, 규칙상 issues_found가 0보다 크면 상태가 issues_open이라 CLEAR로 표시되지 않음)
 
 NO UNRESOLVED DECISIONS
