@@ -1,45 +1,76 @@
 import {
   Controller,
-  Body,
+  Delete,
   Get,
-  Headers,
-  Res,
+  HttpCode,
   Post,
+  Req,
+  Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { Response } from 'express';
-import { JwtAuthGuard } from './JWT/jwt.authGuard';
+import {
+  AuthedRequest,
+  JwtAuthGuard,
+  extractBearer,
+} from './JWT/jwt.authGuard';
 
+// 응답 형식(헤더 Authorization·X-Refresh-Token, 본문 user_id)은 기존 앱과 같다.
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  // Authorization: Bearer <Kakao access 토큰>
   @Get('kakaoLogin')
   async loginWithKakao(
-    @Headers('authorization') authorization: string,
-    @Res() res: Response,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    const accessToken = authorization?.replace('Bearer ', '');
-    return this.authService.loginWithKakao(accessToken, res);
+    const kakaoToken = requireBearer(req);
+    const result = await this.authService.loginWithKakao(kakaoToken);
+    res.setHeader('Authorization', `Bearer ${result.accessToken}`);
+    res.setHeader('X-Refresh-Token', result.refreshToken);
+    return {
+      message: 'Login success',
+      user_id: result.userId,
+      connected_at: result.connectedAt,
+    };
   }
 
-  @UseGuards(JwtAuthGuard)
+  // Authorization: Bearer <refresh 토큰>. 본문의 userId는 쓰지 않는다.
   @Post('reissueAccessToken')
+  @HttpCode(200)
   async reissueAccessToken(
-    @Headers('authorization') authorization: string,
-    @Body('userId') userId: string,
-    @Res() res: Response,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    const refreshToken = authorization?.replace('Bearer ', '');
-    return this.authService.reissueAccessToken(refreshToken, userId, res);
+    const accessToken = await this.authService.reissueAccessToken(
+      requireBearer(req),
+    );
+    res.setHeader('Authorization', `Bearer ${accessToken}`);
+    return { message: 'Access token reissued successfully' };
   }
+}
 
+@Controller('me')
+export class MeController {
+  constructor(private authService: AuthService) {}
+
+  // 대상은 JWT sub로만 정한다.
   @UseGuards(JwtAuthGuard)
-  @Post('kakaoLogout')
-  async logoutKakao(@Headers('authorization') authorization: string) {
-    const accessToken = authorization?.replace('Bearer ', '');
-    const result = await this.authService.logoutKakao(accessToken);
-    return { message: 'Logout successful', result };
+  @Delete()
+  async deleteMe(@Req() req: AuthedRequest) {
+    await this.authService.deleteAccount(req.user.id);
+    return { message: '회원탈퇴가 완료되었습니다.' };
   }
+}
+
+function requireBearer(req: Request): string {
+  const token = extractBearer(req);
+  if (!token) {
+    throw new UnauthorizedException('No token found in request headers');
+  }
+  return token;
 }

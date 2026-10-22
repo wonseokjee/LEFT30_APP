@@ -3,18 +3,12 @@ import { AuthJWTService } from './auth.jwt.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { User } from 'src/Entity/user.entity';
+import { JwtAuthGuard } from './jwt.authGuard';
 
+// secret은 토큰 종류마다 AuthJWTService가 넘긴다.
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User]), // UserRepository 주입
-    JwtModule.registerAsync({
-      useFactory: () => ({
-        secret: process.env.JWT_SECRET,
-        signOptions: { expiresIn: '1d' },
-      }),
-    }),
-  ],
-  providers: [AuthJWTService],
-  exports: [AuthJWTService, JwtModule],
+  imports: [TypeOrmModule.forFeature([User]), JwtModule.register({})],
+  providers: [AuthJWTService, JwtAuthGuard],
+  exports: [AuthJWTService, JwtAuthGuard],
 })
 export class AuthJWTModule {}
