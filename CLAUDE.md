@@ -1,3 +1,60 @@
+# LEFT30
+
+30분마다 "지난 30분 뭐 했어?"를 묻고 하루를 칸으로 기록하는 앱. 재출시 작업 중.
+
+## 언어
+
+모든 대화, 질문, 커밋 메시지, 문서는 한국어로 쓴다. gstack 스킬 출력도 한국어로 쓴다.
+
+## 구조
+
+```
+LEFT30_APP/
+├── server/        NestJS 11 + TypeORM 0.3 + Postgres (API, 동기화)
+├── application/   Expo 53 + React Native 0.79 + expo-router + zustand (앱)
+├── docs/designs/left30-relaunch.md   재출시 설계서 (결정 R·D·ENG·E 번호의 정본)
+└── TODO.md        구현 작업 목록 (T 번호)
+```
+
+결정이나 범위가 궁금하면 설계서부터 읽는다. 설계서와 코드가 다르면 묻는다.
+
+## 서버 (`server/`)
+
+- 스키마는 마이그레이션으로만 바꾼다(`synchronize: false`). 새 변경은 `src/migrations/`에 새 파일로 추가한다.
+- 엔티티 4개: `user`, `slot`, `plan`, `event` (`src/Entity/`).
+- 인증: access와 refresh는 secret과 `type` claim이 다르다. 사용자 식별은 JWT `sub`만 믿는다.
+- 동기화 API는 항목별로 검증하고 항상 200으로 `{accepted, rejected}`를 돌려준다(R3). 500건이나 1MB를 넘으면 413.
+- 비밀값은 환경 변수로만 둔다. `.env`, `.env.test`는 커밋하지 않는다. 템플릿은 `.env.example`.
+
+### 테스트
+
+e2e는 실제 Postgres에 붙는다. Kakao만 목킹한다(`kakao-<숫자>` 토큰).
+
+1. Postgres 18 켜기(수동 시작 서비스, 관리자 권한): `Start-Service postgresql-x64-18`
+2. `server/.env.test` 확인: `localhost:5432`, `DB_NAME=left30_test`. 비밀번호는 사용자가 직접 넣는다.
+3. `cd server && npm run test:e2e` (`--runInBand`, 약 35초)
+
+`left30_test` DB가 없으면 `.env.test` 값으로 만든다. 비밀번호를 출력하지 않는다.
+
+### 기타 명령
+
+- 타입 검사: `cd server && npx tsc --noEmit`
+- 마이그레이션 실행: `npm run migration:run` (`.env` 사용)
+
+## 앱 (`application/`)
+
+- 실행: `npm start`, 안드로이드 빌드: `npm run android`, 린트: `npm run lint`
+- 테스트: `jest-expo` 설정만 있고 테스트 파일은 아직 없다. 로컬 DB·동기화 큐·알림 스케줄러를 만들 때 함께 붙인다.
+- `api/`의 timetable·todo·user API는 옛 서버용이다. 서버에서는 이미 지웠다.
+
+## 작업 규칙
+
+- 브랜치: 기본은 `main`. 재출시 작업은 `refactor/architecture`. 커밋 전에 현재 브랜치를 확인한다.
+- 커밋 메시지: `[Docs]`, `[Refactor]`, `[Chore]`, `[Feat]`, `[Fix]` 접두어 + 한국어 요약.
+- push, 배포, DB 삭제처럼 되돌리기 어려운 일은 먼저 묻는다.
+- 의존성은 신중하게 추가한다. 추가할 때는 무의존성 대안도 함께 제시한다.
+- UI 제안은 표시가 가장 적은 안을 권장안으로 둔다.
+
 ## Skill routing
 
 When the user's request matches an available skill, invoke it via the Skill tool. Route only to skills in the session's available-skills list; answer directly for quick questions or small scoped edits.
