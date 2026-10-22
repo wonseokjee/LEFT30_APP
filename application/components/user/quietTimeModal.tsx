@@ -1,53 +1,48 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import TimeRangePicker from '../timetable/timeRangePicker';
-import { getQuietTimeByZustand } from '@/store/useQuietTImeStore';
 import { GRAY_4, GRAY_8, GRAY_9 } from '@/assets/palette';
-import { updateQuietTimeByDB } from '@/api/userApi';
+import { setSetting } from '@/db/records';
+import { QUIET_KEY } from '@/scheduler/scheduler';
+import type { Quiet } from '@/scheduler/plan';
+import { getRuntime, rescheduleNow } from '@/runtime/appRuntime';
 
 type SetQuietTimeModalProps = {
+  initial: Quiet;
   setModalVisible: (visible: boolean) => void;
 };
 
-const QuietTimeModal: React.FC<SetQuietTimeModalProps> = ({
-  setModalVisible,
-}) => {
-  const { quietStartHour, quietStartMinute, quietEndHour, quietEndMinute } =
-    getQuietTimeByZustand();
-  const [startTime, setStartTime] = useState<Date | null>(
-    new Date(
-      new Date().setHours(quietStartHour ?? 0, quietStartMinute ?? 0, 0, 0)
-    )
-  );
-  const [endTime, setEndTime] = useState<Date | null>(
-    new Date(new Date().setHours(quietEndHour ?? 0, quietEndMinute ?? 0, 0, 0))
-  );
+function toDate(minuteOfDay: number): Date {
+  return new Date(new Date().setHours(Math.floor(minuteOfDay / 60), minuteOfDay % 60, 0, 0));
+}
+
+function toMinute(date: Date): number {
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+// 방해금지 시간은 앱 로컬에만 저장한다(구현 D1). 시작과 끝이 같으면 방해금지 없음.
+const QuietTimeModal: React.FC<SetQuietTimeModalProps> = ({ initial, setModalVisible }) => {
+  const [startTime, setStartTime] = useState<Date>(toDate(initial?.startMin ?? 23 * 60));
+  const [endTime, setEndTime] = useState<Date>(toDate(initial?.endMin ?? 7 * 60));
 
   //확인
   const handleConfirm = async () => {
-    updateQuietTimeByDB({
-      quietStartHour: startTime?.getHours() ?? 0,
-      quietStartMinute: startTime?.getMinutes() ?? 0,
-      quietEndHour: endTime?.getHours() ?? 0,
-      quietEndMinute: endTime?.getMinutes() ?? 0,
-    });
-    //모달로 한번 더 체크한 다음에 서버로 전송.
-    //확인 모달은 컴포넌트화 시켜서 재활용 가능하게
-    //값을 구체적으로 넘기지 않아도, 이대로 저장하시겠습니까? 정도로
+    const quiet: Quiet = { startMin: toMinute(startTime), endMin: toMinute(endTime) };
+    await setSetting(getRuntime().db, QUIET_KEY, quiet);
+    // 바뀐 칸만 취소·추가한다.
+    void rescheduleNow();
     setModalVisible(false);
   };
 
   //취소
   const handleCancel = () => {
     setModalVisible(false);
-    console.log('setDisturbModal을 취소를 눌렀습니다.');
   };
 
   return (
     <View style={styles.container}>
       <Modal
         transparent={true}
-        // visible={timerModalOpen}
         animationType='fade'
         onRequestClose={() => setModalVisible(false)}
       >
@@ -60,7 +55,7 @@ const QuietTimeModal: React.FC<SetQuietTimeModalProps> = ({
                   setStartTime(changedTime);
                 }}
                 slotData={{
-                  time: startTime || new Date(),
+                  time: startTime,
                   label: '시작 시간',
                 }}
                 timeFormatOptions={{ hour: '2-digit', minute: '2-digit' }}
@@ -72,7 +67,7 @@ const QuietTimeModal: React.FC<SetQuietTimeModalProps> = ({
                   setEndTime(changedTime);
                 }}
                 slotData={{
-                  time: endTime || new Date(),
+                  time: endTime,
                   label: '종료 시간',
                 }}
                 timeFormatOptions={{ hour: '2-digit', minute: '2-digit' }}

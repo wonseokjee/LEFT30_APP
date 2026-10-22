@@ -1,21 +1,15 @@
-export const handleNotification = async (notification: any) => {
-  const type = await notification.request.content.data?.type;
-  console.log('handleNotification type:', type);
-  if (type === 'important') {
-    return {
-      // shouldShowAlert: true,
-      shouldPlaySound: false,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    };
-  } else {
-    return {
-      // shouldShowAlert: true, // 상단에 알림표시
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-      shouldShowBanner: false,
-      shouldShowList: false,
-    };
-  }
+import type { Notification, NotificationBehavior } from 'expo-notifications';
+
+// 앱이 켜져 있을 때 도착한 알림을 보여줄지. 30분 알림과 만료 안내는 앱 안에서도 보여준다.
+export const handleNotification = async (
+  notification: Notification,
+): Promise<NotificationBehavior> => {
+  const kind = notification.request.content.data?.kind;
+  const show = kind === 'ping' || kind === 'expiry';
+  return {
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+    shouldShowBanner: show,
+    shouldShowList: show,
+  };
 };

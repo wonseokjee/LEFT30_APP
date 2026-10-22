@@ -9,17 +9,12 @@ import {
   View,
   Text,
 } from 'react-native';
-import { getQuietTimeByZustand } from '@/store/useQuietTImeStore';
-import { getQuietTimeByDB } from '@/api/userApi';
-import QuietTimeModal from '../user/quietTimeModal';
 import LogoutModal from '../user/logoutModal';
 import { useRouter } from 'expo-router';
 
 export default function TabHeaderRight() {
   const [visible, setVisible] = useState(false);
-  const [quietModalVisible, setQuietModalVisible] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
-  const { setTime } = getQuietTimeByZustand();
   const router = useRouter();
 
   const menuItems = [

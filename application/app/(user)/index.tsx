@@ -4,16 +4,18 @@ import { useRouter } from 'expo-router';
 import { unlink } from '@react-native-kakao/user';
 import * as SecureStore from 'expo-secure-store';
 import { GRAY_1, GRAY_9 } from '@/assets/palette';
-import { getQuietTimeByDB } from '@/api/userApi';
-import { getQuietTimeByZustand } from '@/store/useQuietTImeStore';
 import QuietTimeModal from '@/components/user/quietTimeModal';
 import WithdrawalModal from '@/components/user/withdrawalModal';
+import { getSetting } from '@/db/records';
+import { QUIET_KEY } from '@/scheduler/scheduler';
+import type { Quiet } from '@/scheduler/plan';
+import { getRuntime } from '@/runtime/appRuntime';
 
 export default function UserPage() {
   const router = useRouter();
   const [quietModalVisible, setQuietModalVisible] = useState(false);
+  const [quiet, setQuiet] = useState<Quiet>(null);
   const [WithdrawalModalVisible, setWithdrawalModalVisible] = useState(false);
-  const { setTime } = getQuietTimeByZustand();
 
   const unLinkKakao = async () => {
     try {
@@ -26,11 +28,10 @@ export default function UserPage() {
   };
   const quietTimeSetting = async () => {
     try {
-      const quietTime = await getQuietTimeByDB();
+      setQuiet(await getSetting<Quiet>(getRuntime().db, QUIET_KEY));
       setQuietModalVisible(true);
-      setTime(quietTime);
     } catch (error) {
-      console.error('Unlink failed:', error);
+      console.error('Load quiet time failed:', error);
     }
   };
   const handleWithdrawal = () => {
@@ -75,7 +76,7 @@ export default function UserPage() {
         </View>
       </View>
       {quietModalVisible ? (
-        <QuietTimeModal setModalVisible={setQuietModalVisible} />
+        <QuietTimeModal initial={quiet} setModalVisible={setQuietModalVisible} />
       ) : null}
       {WithdrawalModalVisible ? (
         <WithdrawalModal

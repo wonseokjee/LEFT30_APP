@@ -27,8 +27,3 @@ function wrap(raw: SQLite.SQLiteDatabase): Db {
 export async function openAppDb(): Promise<Db> {
   return wrap(await SQLite.openDatabaseAsync(DB_NAME));
 }
-
-// 회원탈퇴 후 로컬 데이터 전체 삭제(DELETE /me 성공 시).
-export async function deleteAppDb(): Promise<void> {
-  await SQLite.deleteDatabaseAsync(DB_NAME);
-}

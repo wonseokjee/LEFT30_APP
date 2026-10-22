@@ -4,6 +4,7 @@ import { router, useRouter } from 'expo-router';
 import BasicModal from '../asset/basicModal';
 import React from 'react';
 import { withdrawUser } from '@/api/userApi';
+import { clearAfterWithdrawal } from '@/runtime/appRuntime';
 
 type SetWithdrawalModalVisibleProps = {
   setWithdrawalModalVisible: (visible: boolean) => void;
@@ -31,7 +32,13 @@ const WithdrawalModal: React.FC<SetWithdrawalModalVisibleProps> = ({
   const [exit, setExit] = React.useState(false);
   //확인
   const handleFinalCheckConfirm = async () => {
-    await withdrawUser();
+    // 서버 삭제가 성공했을 때만 로컬 데이터·예약 알림을 지운다. 실패하면 아무것도 지우지 않는다.
+    if (!(await withdrawUser())) {
+      setFinalCheckWithdrawalModalVisible(false);
+      setWithdrawalModalVisible(false);
+      return;
+    }
+    await clearAfterWithdrawal();
     await SecureStore.deleteItemAsync('accessToken');
     await SecureStore.deleteItemAsync('refreshToken');
     await SecureStore.deleteItemAsync('user_id');

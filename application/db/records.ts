@@ -74,6 +74,40 @@ export async function logEvent(db: Db, event: EventRow): Promise<void> {
   });
 }
 
+// 기록 직후 토스트의 "되돌리기". 저장 전 값이 있으면 그 값을 새 시각으로 다시 저장하고,
+// 없던 칸이면 로컬 행과 아직 보내지 않은 큐 항목을 지운다(서버에는 삭제 API가 없다).
+export async function undoSlot(db: Db, saved: SlotRow, previous: SlotRow | null): Promise<void> {
+  if (previous) {
+    await saveSlot(db, { ...previous, client_updated_at: new Date().toISOString() });
+    return;
+  }
+  await db.transaction(async (tx) => {
+    await tx.run('DELETE FROM slot WHERE slot_start = ?', [saved.slot_start]);
+    await tx.run(
+      "DELETE FROM sync_queue WHERE kind = 'slot' AND json_extract(payload, '$.slot_start') = ?",
+      [saved.slot_start],
+    );
+  });
+}
+
+// 회원탈퇴(DELETE /me) 성공 후 로컬 데이터를 모두 지운다. 남은 큐가 다시 로그인했을 때 재업로드되지 않게 한다.
+export async function wipeLocalData(db: Db): Promise<void> {
+  await db.transaction(async (tx) => {
+    for (const table of [
+      'slot',
+      'plan',
+      'event',
+      'scheduled_slot',
+      'tz_change',
+      'sync_queue',
+      'sync_dead_letter',
+      'setting',
+    ]) {
+      await tx.run(`DELETE FROM ${table}`);
+    }
+  });
+}
+
 export async function getSetting<T>(db: Db, key: string): Promise<T | null> {
   const row = await db.first<{ value: string }>('SELECT value FROM setting WHERE key = ?', [key]);
   return row ? (JSON.parse(row.value) as T) : null;

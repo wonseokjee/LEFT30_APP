@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { handleLogin } from '@/components/login/handleLoginBtn';
 import { useRouter } from 'expo-router';
-import registerForPushNotificationsAsync from '@/components/pushNotification/registerForPushNotificationsAsync';
 import * as SecureStore from 'expo-secure-store';
+import { afterLogin } from '@/components/login/afterLogin';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,8 +13,7 @@ export default function LoginPage() {
     try {
       const isLoggedIn = await handleLogin();
       if (isLoggedIn) {
-        await registerForPushNotificationsAsync();
-        router.replace('/(tabs)');
+        await afterLogin(router);
       } else {
         console.error('로그인 실패');
       }
@@ -31,7 +30,7 @@ export default function LoginPage() {
         const userId = await SecureStore.getItemAsync('user_id');
 
         if (accessToken && refreshToken && userId) {
-          router.replace('/(tabs)');
+          await afterLogin(router);
         } else {
           setShowLoginButton(true);
         }
