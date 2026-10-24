@@ -69,9 +69,18 @@ export async function syncNow(): Promise<void> {
   retryTimer = setTimeout(() => void syncNow(), backoffMs(failures));
 }
 
+// 프로세스가 새로 시작된 뒤 첫 재계산은 전부 다시 건다(구현 D4: 강제 종료로 지워진 알람 복구).
+let coldStart = true;
+
 export async function rescheduleNow(): Promise<void> {
   try {
-    await getRuntime().scheduler.reschedule();
+    const { scheduler } = getRuntime();
+    if (coldStart) {
+      coldStart = false;
+      await scheduler.rearm();
+    } else {
+      await scheduler.reschedule();
+    }
   } catch (e) {
     console.warn('reschedule failed', e);
   }

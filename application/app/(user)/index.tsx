@@ -10,6 +10,7 @@ import { getSetting } from '@/db/records';
 import { QUIET_KEY } from '@/scheduler/scheduler';
 import type { Quiet } from '@/scheduler/plan';
 import { getRuntime } from '@/runtime/appRuntime';
+import DevTools from '@/components/dev/DevTools';
 
 export default function UserPage() {
   const router = useRouter();
@@ -74,6 +75,7 @@ export default function UserPage() {
             </TouchableOpacity>
           </View>
         </View>
+        {__DEV__ && <DevTools />}
       </View>
       {quietModalVisible ? (
         <QuietTimeModal initial={quiet} setModalVisible={setQuietModalVisible} />

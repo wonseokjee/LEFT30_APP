@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image, Text } from 'react-native';
 import { handleLogin } from '@/components/login/handleLoginBtn';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -60,6 +60,12 @@ export default function LoginPage() {
           />
         </TouchableOpacity>
       )}
+      {/* 개발 빌드 전용: 서버 없이 알림·기록 흐름을 확인한다(구현 D2). 배포 빌드에는 없다. */}
+      {__DEV__ && showLoginButton && (
+        <TouchableOpacity onPress={() => afterLogin(router)} style={styles.devButton}>
+          <Text style={styles.devText}>로그인 없이 시작(개발용)</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -92,5 +98,15 @@ const styles = StyleSheet.create({
   logo: {
     width: '80%',
     height: '80%',
+  },
+  devButton: {
+    marginTop: 24,
+    minHeight: 48,
+    justifyContent: 'center',
+  },
+  devText: {
+    color: '#adb5bd',
+    fontSize: 13,
+    textDecorationLine: 'underline',
   },
 });

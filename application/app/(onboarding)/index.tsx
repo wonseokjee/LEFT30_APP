@@ -3,7 +3,9 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_9 } from '@/assets/palette';
-import { rescheduleNow } from '@/runtime/appRuntime';
+import { getRuntime, rescheduleNow } from '@/runtime/appRuntime';
+import { setSetting } from '@/db/records';
+import { NOTIF_ONBOARDED_KEY } from '@/components/login/afterLogin';
 
 const MAX_SCALE = 1.3;
 
@@ -16,6 +18,7 @@ export default function NotificationOnboarding() {
     if (busy) return;
     setBusy(true);
     try {
+      await setSetting(getRuntime().db, NOTIF_ONBOARDED_KEY, true);
       const { granted } = await Notifications.requestPermissionsAsync();
       if (granted) await rescheduleNow();
     } finally {

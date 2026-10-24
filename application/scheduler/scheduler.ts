@@ -20,6 +20,10 @@ import { SLOT_MS } from '@/lib/localTime';
  *
  * 전부 지우고 다시 걸지 않는다. scheduled_slot(우리가 건 예약 기록)과 비교해 바뀐 칸만 취소·추가한다.
  * 이미 지난 칸의 행은 남겨 둔다(ping_scheduled 소급 기록에 쓴다).
+ *
+ * 예외(구현 D4): 앱 프로세스가 새로 시작된 뒤 첫 재계산은 rearm으로 원하는 예약을 같은 id로 전부 다시 건다.
+ * Android는 강제 종료 시 앱의 알람을 모두 지우는데, expo의 예약 목록에는 그대로 남아 앱이 알 수 없기 때문이다.
+ * 같은 id로 덮어쓰므로 중복이나 빈 구간은 생기지 않는다.
  */
 
 export const QUIET_KEY = 'quiet';
@@ -55,7 +59,7 @@ export function createScheduler(opts: {
   const { db, notifier } = opts;
   const now = opts.now ?? (() => new Date());
 
-  async function reschedule(): Promise<RescheduleResult> {
+  async function reconcile(rearm: boolean): Promise<RescheduleResult> {
     if (!(await notifier.hasPermission())) return { status: 'no_permission' };
 
     const at = now();
@@ -86,7 +90,7 @@ export function createScheduler(opts: {
     let added = 0;
     for (const p of desired.pings) {
       const row = have.get(p.slotStart);
-      if (row && row.text_kind === p.textKind) continue;
+      if (!rearm && row && row.text_kind === p.textKind) continue;
       const id = pingId(p.slotStart);
       await notifier.schedule(id, new Date(p.fireAt), {
         ...pingContent(p.textKind),
@@ -102,8 +106,9 @@ export function createScheduler(opts: {
 
     // 만료 안내는 예약이 연장될 때마다 뒤로 민다.
     const prevExpiry = await getSetting<string>(db, EXPIRY_KEY);
-    if (prevExpiry !== desired.expiryAt) {
-      if (prevExpiry) await notifier.cancel(EXPIRY_ID);
+    if (rearm || prevExpiry !== desired.expiryAt) {
+      // 같은 id로 예약하면 덮어쓰므로, 안내를 없앨 때만 취소한다.
+      if (prevExpiry && !desired.expiryAt) await notifier.cancel(EXPIRY_ID);
       if (desired.expiryAt) {
         await notifier.schedule(EXPIRY_ID, new Date(desired.expiryAt), {
           ...EXPIRY_CONTENT,
@@ -116,5 +121,22 @@ export function createScheduler(opts: {
     return { status: 'ok', days: desired.days, added, cancelled };
   }
 
-  return { reschedule: singleFlight(reschedule) };
+  // 재계산은 하나의 single-flight로만 돈다. rearm은 "다음 실행에서 전부 다시 걸기" 표시만 남긴다.
+  let rearmPending = false;
+  const run = singleFlight(async () => {
+    const rearm = rearmPending;
+    rearmPending = false;
+    const result = await reconcile(rearm);
+    // 권한이 없어 못 걸었으면 다음 실행에서 다시 시도한다.
+    if (rearm && result.status !== 'ok') rearmPending = true;
+    return result;
+  });
+
+  return {
+    reschedule: run,
+    rearm: () => {
+      rearmPending = true;
+      return run();
+    },
+  };
 }

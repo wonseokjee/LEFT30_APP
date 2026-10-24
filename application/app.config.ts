@@ -15,6 +15,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: 'com.left30m.app',
+    // 정시 알림. 선언하지 않으면 expo-notifications가 부정확한 알람으로 걸어 Doze에서 늦어진다.
+    // 사용자가 설정의 "알람 및 리마인더"에서 켜는 권한이다(USE_EXACT_ALARM은 쓰지 않는다, ENG-1).
+    permissions: ['android.permission.SCHEDULE_EXACT_ALARM'],
     adaptiveIcon: {
       foregroundImage: './assets/images/left30_logo.png',
       backgroundColor: '#ffffff',

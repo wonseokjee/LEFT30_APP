@@ -43,3 +43,7 @@ app-example
 
 #not upgrade
 #@react-native-firebase/app, @react-native-firebase/database, @react-native-firebase/firestore, @react-navigation/bottom-tabs, @react-navigation/native, @react-navigation/stack, axios, firebase, react-native-elements, react-native-vector-icons, zustand, @types/jest, @types/react-test-renderer, react-test-renderer
+
+# 네이티브 폴더는 빌드 때 prebuild로 만든다(managed workflow)
+/android
+/ios

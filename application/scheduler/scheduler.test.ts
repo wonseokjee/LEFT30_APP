@@ -177,6 +177,30 @@ describe('스케줄러', () => {
     expect(rows[0].n).toBe([...fake.scheduled.keys()].filter((k) => k.startsWith('slot:')).length);
   });
 
+  it('(D4) 강제 종료로 OS 알람이 사라져도 rearm하면 같은 id로 전부 다시 걸린다', async () => {
+    const { fake, scheduler } = await setup();
+    await scheduler.reschedule();
+    const before = new Map(fake.scheduled);
+    fake.scheduled.clear(); // 강제 종료: OS 알람은 사라졌지만 scheduled_slot 기록은 남아 있다
+
+    expect(await scheduler.reschedule()).toMatchObject({ added: 0, cancelled: 0 }); // 차이만 보면 못 알아챈다
+    const r = await scheduler.rearm();
+    expect(r).toMatchObject({ status: 'ok', cancelled: 0 });
+    expect(new Map([...fake.scheduled].sort())).toEqual(new Map([...before].sort()));
+  });
+
+  it('(D4) rearm은 일반 재계산과 동시에 돌지 않고 한 번으로 합쳐진다', async () => {
+    const { fake, scheduler } = await setup(3);
+    await scheduler.reschedule();
+    fake.scheduled.clear();
+    const calls = fake.calls();
+    await Promise.all([scheduler.reschedule(), scheduler.rearm(), scheduler.reschedule()]);
+    const pings = [...fake.scheduled.keys()].filter((k) => k.startsWith('slot:')).length;
+    expect(pings).toBe(12 * 32);
+    // 첫 실행(차이 없음) + 합쳐진 두 번째 실행(rearm) 한 번만 API를 부른다.
+    expect(fake.calls() - calls).toBe(pings + 1);
+  });
+
   it('권한이 없으면 아무것도 걸지 않는다', async () => {
     const { fake, scheduler } = await setup();
     fake.setGranted(false);
