@@ -124,13 +124,16 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 - 기록은 로컬에 먼저 쓰고 동기화 큐에 넣는다. 온라인이 되면 배치로 업로드한다.
   - (R4) 큐 항목에는 증가하는 id를 붙이고, 서버가 응답한 id만 삭제한다. 동기화는 한 번에 하나만 실행하고(single-flight), 진행 중에 들어온 요청은 끝난 뒤 한 번 더 실행한다.
   - (R3) 서버가 400(검증 실패)으로 거절한 항목은 큐에서 `sync_dead_letter` 테이블로 옮기고 `sync_rejected` 이벤트(`{kind, reason}`)를 남긴다. 그래서 나머지 큐가 막히지 않는다.
+- 로컬 SQLite 호출은 연결 하나에서 순서대로 하나씩 실행한다(`db/serial.ts`, eng review 2026-10-24 D2). 트랜잭션도 같은 연결에서 돌고, 끝날 때까지 다른 호출은 기다린다. expo-sqlite의 배타 트랜잭션은 별도 연결이라 그동안 다른 쓰기(알림 예약 기록 등)가 `database is locked`로 실패했기 때문이다. 트랜잭션 안에서는 넘겨받은 `tx`만 쓴다.
 - (R1) 로컬 SQLite는 `PRAGMA user_version`으로 버전을 관리한다. 앱이 시작할 때 버전 순서대로 마이그레이션을 각각 트랜잭션으로 실행한다. 실패하면 데이터를 지우지 않고 "업데이트 중 문제가 생겼어요" 오류 화면을 띄우며 `local_migration_failed` 이벤트를 남긴다(큐에 넣어 두고 다음에 전송).
 - (R5) 알림 예약 재계산은 한 번에 하나만 실행한다(single-flight). 실행 중 들어온 요청은 끝난 뒤 한 번으로 합쳐 다시 실행한다.
 - 권한과 온보딩
   - 첫 실행에 Android 13+ `POST_NOTIFICATIONS`를 요청한다. 시스템 권한 창보다 먼저 설명 한 화면("30분마다 한 번 물어볼게요. 탭 한 번이면 기록돼요" + [알림 허용])을 보여준다. Android는 두 번 거부하면 다시 물을 수 없기 때문이다. 거부해도 전용 화면은 없다. 오늘(홈)과 시간표를 그대로 쓰고, 배너 자리에 "알림이 꺼져 있어요 · 설정 열기"(`Linking.openSettings()`)를 띄운다(디자인 리뷰 D8).
   - 정확한 시각 알림(`SCHEDULE_EXACT_ALARM`)은 Expo로 상태를 읽을 수 없어서, 실제 지연으로 추론한다(ENG-1, D2). 최근 10개 `ping_displayed`의 표시 지연 중앙값이 5분을 넘으면 오늘(홈) 화면의 배너 자리에 "알림이 늦게 오고 있어요, 설정에서 알람·리마인더를 허용해 주세요" 배너를 띄우고 `Linking.openSettings()`로 앱 설정을 연다. `USE_EXACT_ALARM`은 Play 정책상 알람·캘린더 앱 전용이라 쓰지 않는다.
     - 매니페스트에는 `SCHEDULE_EXACT_ALARM`을 선언한다(에뮬레이터 확인 2026-10-24). 선언이 없으면 expo-notifications가 `canScheduleExactAlarms()` false로 보고 부정확한 알람으로 걸며, 설정에 "알람 및 리마인더" 스위치도 생기지 않는다. Android 13 에뮬레이터에서 선언 후 `window=0, exactAllowReason=permission`, 06:00 예약 알림 표시 지연 0.02초를 확인했다.
-    - 미결: Android 14 이상은 새 설치 시 이 권한이 기본으로 꺼져 있다. 지연이 감지된 뒤 배너로 안내할지, 온보딩에서 알림 허용 직후 바로 안내할지는 실제 폰 확인 뒤 정한다.
+    - 실기기 확인(2026-10-26, 갤럭시 S23·Android 16): 새 설치 시 이 권한은 꺼져 있다. 그 상태로 건 385개는 모두 부정확한 알람이었고 오차 범위가 최대 1시간(`window=+1h`)이었다. 권한을 켠 뒤 앱으로 돌아오기만 해서는 이미 걸린 알람이 바뀌지 않았다. 앱을 다시 시작해 전부 다시 걸었을 때 385개 모두 `window=0, exactAllowReason=permission`이 됐다.
+    - 결정(구현 D14·D16): Android 14 이상은 온보딩에서 알림 허용 직후 한 화면을 더 보여준다("제때 물어보려면 하나만 더 필요해요. / 설정에서 '알람 및 리마인더'를 켜 주세요." + [설정 열기] + 나중에). [설정 열기]는 `expo-intent-launcher`로 이 앱 하나의 `REQUEST_SCHEDULE_EXACT_ALARM` 화면을 연다(RN `Linking.sendIntent`는 `package:` 주소를 넘길 수 없어 전체 앱 목록이 열린다). 돌아오면 켰는지 알 수 없으므로 알림을 같은 id로 전부 다시 건다. 위의 지연 배너(ENG-1)는 나중에 끄거나 건너뛴 사람을 위한 안전망으로 그대로 둔다.
+    - 온보딩은 알림 예약이 끝날 때까지 기다리지 않고 다음 화면으로 넘어간다(구현 D15). 예약은 뒤에서 한다.
   - 앱이 열릴 때마다 `perm_state` 이벤트로 알림 권한과 `exact_inferred: ok|delayed`를 남긴다.
 - 핑 표시 측정(`ping_displayed`)
   - 앱이 종료된 상태에서는 표시 콜백을 받을 수 없다. 그래서 다음 세 경로로 관측한다.
@@ -257,12 +260,17 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 
 **서버**
 - 인증: Kakao 로그인 → JWT. access와 refresh는 secret과 `type` claim으로 분리한다. 사용자 식별은 JWT `sub`만 사용한다.
+  - 카카오 토큰은 `/v1/user/access_token_info`의 `app_id`가 서버 환경 변수 `KAKAO_APP_ID`와 같을 때만 받는다. 다른 앱에 발급된 토큰은 401이다. 값이 없으면 서버가 시작하지 않는다(eng review 2026-10-24 D3).
+  - refresh 토큰은 60일 고정이고 재발급 때 회전하지 않는다(eng review D9). 앱에 refresh 경로가 둘(동기화, 옛 `Loginapi` 인터셉터)이라 회전하면 한쪽이 새 토큰을 저장하지 않아 정상 사용자가 로그아웃되기 때문이다. 회전은 옛 API를 지운 뒤 다시 검토한다.
 - 전역 `ValidationPipe({ whitelist: true })`를 둔다.
 - 동기화 API:
   - `POST /sync/slots`, `POST /sync/plans`: 배치 upsert. 멱등이며 충돌 시 `client_updated_at`이 최신인 쪽을 쓴다.
   - `GET /sync?since=`: 기기 복원용이다. 커서는 서버가 부여한 `updated_at`이다. 단일 기기 사용을 전제로 하며, 슬롯과 계획은 고치기만 하고 삭제하지 않는다(삭제 API 없음).
   - `DELETE /me`: 계정 삭제다. 사용자, slot, plan, event(피드백 메모 포함), refresh token을 트랜잭션으로 지운다. 대상은 JWT `sub`로만 정한다. 앱의 회원탈퇴와 웹 삭제 요청 페이지가 이 API를 쓴다. 앱에서 삭제가 성공하면 로컬 SQLite 전체와 `sync_queue`를 지우고, 예약된 알림을 모두 취소한 뒤 로그아웃한다. 이렇게 해야 남아 있던 큐가 다시 로그인했을 때 데이터를 재업로드하지 않는다.
   - 동기화 큐 인증 실패: 401을 받으면 refresh를 시도한다. refresh도 실패하면 큐를 보존한 채 "다시 로그인" 안내를 띄우고, 로그인하면 이어서 보낸다. 큐는 버리지 않는다.
+    - refresh 실패는 둘로 나눈다(eng review D6). 서버가 거절(401·403)하면 다시 로그인 안내, 네트워크 오류·5xx 같은 장애면 안내 없이 백오프로 다시 시도한다. 서버가 잠깐 죽었을 때 멀쩡한 사용자에게 로그인 안내가 뜨지 않게 하기 위해서다.
+  - 계정 전환: 로그인 직후 이 기기의 마지막 계정과 비교해 다른 계정이면 로컬 데이터 전체와 예약 알림을 지운다. 같은 계정의 재로그인이나 이 기기의 첫 로그인은 지우지 않아 보내지 못한 큐를 지킨다(eng review D10).
+  - 앱의 서버 주소는 `EXPO_PUBLIC_API_URL` 환경 변수로만 정한다. 예전 운영 도메인(`left30m.com`)은 만료돼 남이 등록할 수 있으므로 코드에 두지 않는다. 값이 없으면 `app.config.ts`가 시작·빌드를 막는다. API 요청은 20초 타임아웃이 있고, 로그인이 실패하면 로그인 화면에 한 줄로 알린다.
   - 첫 실행에는 Kakao 로그인 때문에 서버가 필요하다. 이후의 알림·기록·계획 대비 실제는 서버 없이 동작한다.
   - (R3) 모든 배치 API는 요청당 최대 500건, 본문 1MB로 제한한다. 넘으면 413을 반환하고, 앱은 배치를 나눠 보낸다.
   - `POST /events`: 배치로 받는다. 클라이언트 `id` 기준으로 멱등이다. 테스트는 같은 배치를 두 번 보내도 행 수가 변하지 않는지 확인한다.
@@ -271,7 +279,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 
 **구현 순서 (F1 출시 범위)**
 1. 서버: 새 스키마와 마이그레이션, 인증 분리, 동기화와 이벤트 API, `DELETE /me`, 테스트(권한, upsert·이벤트 멱등, 시간대, 계정 삭제, ENG-2 인증 회귀 e2e 4건).
-2. 앱: SQLite 계층(R1 user_version 마이그레이션 + v1→v2 업그레이드 테스트), 동기화 큐(R4 id 기준 삭제·single-flight·완료 순서 테스트, R3 dead-letter), 스케줄러 single-flight(R5 동시 호출 테스트), 권한 온보딩, 최대 기간 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, 최대 기간 예약 + 만료 전날 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다. 이 단계에서 안 쓰는 의존성도 정리한다(D15). 대상은 Firebase 4종, `expo-auth-session`, `expo-web-browser`, `expo-blur`, `expo-haptics`, `expo-symbols`, `expo-json-utils`, `expo-device`, `expo-modules-core`, `query-string`(+overrides), `react-native-webview`이다. Todo·디버그 코드를 지운 뒤에는 `react-native-elements`, `react-native-vector-icons`, `@react-navigation/stack`도 지우고, 웹을 쓰지 않으면 `react-native-web`, `react-dom`도 지운다. `expo-router`가 내부에서 쓰는 패키지는 남기고, 빌드로 확인한다.
+2. 앱: SQLite 계층(R1 user_version 마이그레이션 + v1→v2 업그레이드 테스트), 동기화 큐(R4 id 기준 삭제·single-flight·완료 순서 테스트, R3 dead-letter), 스케줄러 single-flight(R5 동시 호출 테스트), 권한 온보딩, 최대 기간 로컬 알림 스케줄러(차이만 반영, 상한 400, 다음 칸 맥락 문구, 최대 기간 예약 + 만료 전날 안내 알림), 기록 모달("그대로 계속" 버튼 포함), 동기화 큐. 실기기에서 Android 앱당 알람 상한과 정확한 알람 여부를 확인한다. `expo-notifications`가 정확한 알람을 쓰지 않으면 대안은 `notifee`다. 이 단계에서 안 쓰는 의존성도 정리한다(D15). 대상은 Firebase 4종, `expo-auth-session`, `expo-web-browser`, `expo-blur`, `expo-haptics`, `expo-symbols`, `expo-json-utils`, `expo-device`, `expo-modules-core`, `query-string`(+overrides), `react-native-webview`이다(2026-10-26 제거, 빌드 확인). Todo·디버그 코드를 지운 뒤에는 `react-native-elements`, `react-native-vector-icons`, `@react-navigation/stack`도 지우고, 웹을 쓰지 않으면 `react-native-web`, `react-dom`도 지운다. `expo-router`가 내부에서 쓰는 패키지는 남기고, 빌드로 확인한다.
 3. 실험(반나절): 앱이 종료된 상태에서 알림 액션 "그대로 계속"을 1탭으로 SQLite에 저장할 수 있는지 실기기 Android에서 확인한다. 결과를 근거로 보류 중인 자동 채우기 결정을 사용자가 내린다. 결정이 나기 전에는 `inferred`를 만들지 않는다. 즉 첫 배포의 기본값은 자동 채우기 없음이다.
 4. 앱: 아침 계획 제안(E1), 오늘(홈)의 계획 대비 실제와 저녁 한 줄 회고 알림(E2), 피드백 버튼(E5), 이벤트 기록. `expo-sqlite` 추가로 새 빌드가 필요하므로 `runtimeVersion`은 `appVersion` 정책으로 바꿔서 네이티브 변경 때마다 올린다.
 5. Oracle 배포, 새 도메인, 개인정보처리방침과 계정 삭제 요청 웹 페이지 게시, EAS AAB 빌드, Play 내부 테스트 트랙.
@@ -279,6 +287,8 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 ## Open Questions
 1. 자동 채우기 처리: 보류 중이며 TODO.md "보류" 섹션에 있다. 구현 순서 3의 실험 결과를 보고 사용자가 정한다. 그전까지 기본값은 자동 채우기 없음이다.
 2. `expo-notifications`의 1회용 날짜 트리거가 정확한 알람을 쓰는지, Doze 상태에서 :00/:30 정각에 오는지, 앱당 알람 상한이 얼마인지 실기기로 확인해야 한다(구현 순서 2). 안 되면 `notifee`로 바꾼다.
+   - 확인됨(2026-10-26, 갤럭시 S23·Android 16): `SCHEDULE_EXACT_ALARM` 선언과 권한이 있으면 정확한 알람(`window=0`)으로 걸린다. 앱 하나에 385개를 거는 데 문제가 없었다. 권한 기본값과 안내 방식은 "권한과 온보딩"의 구현 D14 참고. `notifee`는 필요 없다.
+   - 남음: 화면이 꺼진 Doze 상태에서 정각에 실제로 표시되는지는 아직 확인하지 못했다.
 3. 계획 입력을 카테고리별 목표 시간만으로 할지, 할 일 항목(옛 Todo)도 받을지 정해야 한다. 아침 입력 부담과 직결된다.
 4. 서버를 처음부터 두는 근거로 LLM 코칭과 데이터 보존이 거론되었다. 코칭 단계(F3) 전까지 서버가 맡는 역할은 백업·복원뿐이므로, 이 비용이 타당한지 2주 테스트 후 다시 본다.
 5. 새 도메인 이름.
