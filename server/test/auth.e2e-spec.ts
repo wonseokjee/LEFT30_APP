@@ -37,12 +37,20 @@ describe('auth (e2e)', () => {
       .set('Authorization', `Bearer ${refresh}`)
       .send({ userId: 'ignored' })
       .expect(200);
-    const access = (res.headers['authorization'] as string).replace('Bearer ', '');
+    const access = res.headers['authorization'].replace('Bearer ', '');
 
     await request(app.getHttpServer())
       .get('/sync')
       .set('Authorization', `Bearer ${access}`)
       .expect(200);
+  });
+
+  it('refresh 토큰은 60일 동안 쓸 수 있다', async () => {
+    const { refresh } = await login(app, 1006);
+    const { iat, exp } = new JwtService().decode<{ iat: number; exp: number }>(
+      refresh,
+    );
+    expect(exp - iat).toBe(60 * 24 * 60 * 60);
   });
 
   it('refresh 토큰으로 API를 부르거나 access로 재발급하면 401이다', async () => {

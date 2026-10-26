@@ -43,9 +43,10 @@ export class AuthJWTService {
   generateRefreshToken(userId: string): string {
     const payload: JWTpayload = { sub: userId, type: 'refresh' };
     // jwtid: 같은 초에 다시 발급해도 이전 토큰과 달라지게 한다.
+    // 60일 고정, 회전 없음(eng review D9): 앱의 refresh 경로가 둘이라 회전하면 정상 사용자가 로그아웃된다.
     return this.jwtService.sign(payload, {
       secret: this.secret('refresh'),
-      expiresIn: '5d',
+      expiresIn: '60d',
       jwtid: randomUUID(),
     });
   }

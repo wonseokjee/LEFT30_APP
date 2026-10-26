@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import {
-  BatchResult,
-  EventItem,
-  PlanItem,
-  SlotItem,
-} from './sync.dto';
+import { BatchResult, EventItem, PlanItem, SlotItem } from './sync.dto';
 import {
   checkItem,
   emptyResult,
@@ -34,9 +29,9 @@ export class SyncService {
     tz?: string,
   ): Promise<BatchResult> {
     const result = emptyResult();
-    await this.dataSource.transaction(async (manager) => {
+    await this.dataSource.transaction(async manager => {
       for (const raw of rawItems) {
-        const checked = await checkItem(SlotItem, raw, (s) =>
+        const checked = await checkItem(SlotItem, raw, s =>
           slotAlignmentError(s.slot_start, s.tz),
         );
         if (!checked.ok) {
@@ -78,10 +73,12 @@ export class SyncService {
     tz?: string,
   ): Promise<BatchResult> {
     const result = emptyResult();
-    await this.dataSource.transaction(async (manager) => {
+    await this.dataSource.transaction(async manager => {
       for (const raw of rawItems) {
-        const checked = await checkItem(PlanItem, raw, (p) =>
-          isCalendarDate(p.local_date) ? null : 'local_date is not a valid date',
+        const checked = await checkItem(PlanItem, raw, p =>
+          isCalendarDate(p.local_date)
+            ? null
+            : 'local_date is not a valid date',
         );
         if (!checked.ok) {
           result.rejected.push({ qid: checked.qid, reason: checked.reason });
@@ -97,7 +94,13 @@ export class SyncService {
              client_updated_at = EXCLUDED.client_updated_at,
              updated_at = clock_timestamp()
            WHERE plan.client_updated_at < EXCLUDED.client_updated_at`,
-          [userId, p.local_date, p.category, p.target_minutes, p.client_updated_at],
+          [
+            userId,
+            p.local_date,
+            p.category,
+            p.target_minutes,
+            p.client_updated_at,
+          ],
         );
         result.accepted.push(p.qid);
       }
@@ -107,9 +110,12 @@ export class SyncService {
   }
 
   // 클라이언트 id 기준 멱등. 같은 배치를 다시 보내도 행 수는 그대로다.
-  async insertEvents(userId: string, rawItems: unknown[]): Promise<BatchResult> {
+  async insertEvents(
+    userId: string,
+    rawItems: unknown[],
+  ): Promise<BatchResult> {
     const result = emptyResult();
-    await this.dataSource.transaction(async (manager) => {
+    await this.dataSource.transaction(async manager => {
       for (const raw of rawItems) {
         const checked = await checkItem(EventItem, raw, eventPropsError);
         if (!checked.ok) {
@@ -133,7 +139,10 @@ export class SyncService {
    * 기기 복원. 커서는 서버가 부여한 updated_at(마이크로초 문자열)이다.
    * 한 페이지는 표마다 최대 RESTORE_PAGE행이고, 같은 updated_at은 페이지 사이에서 쪼개지 않는다.
    */
-  async restore(userId: string, since: string | undefined): Promise<RestorePage> {
+  async restore(
+    userId: string,
+    since: string | undefined,
+  ): Promise<RestorePage> {
     const from = since ?? '-infinity';
     const limit = await this.pageLimit(userId, from);
     const until = limit ?? 'infinity';
@@ -156,7 +165,7 @@ export class SyncService {
     );
 
     const last = [...slots, ...plans]
-      .map((r) => r.updated_at as string)
+      .map(r => r.updated_at as string)
       .sort()
       .pop();
     return {
@@ -168,7 +177,10 @@ export class SyncService {
   }
 
   // 어느 표든 since 이후 행이 RESTORE_PAGE를 넘으면, 두 표 중 더 이른 경계 시각을 돌려준다.
-  private async pageLimit(userId: string, from: string): Promise<string | null> {
+  private async pageLimit(
+    userId: string,
+    from: string,
+  ): Promise<string | null> {
     const [{ boundary }]: { boundary: string | null }[] =
       await this.dataSource.query(
         `SELECT ${cursorSql('b')} AS boundary FROM (SELECT LEAST(
@@ -188,7 +200,10 @@ export class SyncService {
     tz?: string,
   ): Promise<void> {
     if (!tz) return;
-    await manager.query(`UPDATE "user" SET last_tz = $2 WHERE id = $1`, [userId, tz]);
+    await manager.query(`UPDATE "user" SET last_tz = $2 WHERE id = $1`, [
+      userId,
+      tz,
+    ]);
   }
 }
 

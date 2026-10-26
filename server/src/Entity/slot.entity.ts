@@ -10,7 +10,12 @@ export const CATEGORIES = [
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
-export const SLOT_SOURCES = ['answered', 'continued', 'late', 'inferred'] as const;
+export const SLOT_SOURCES = [
+  'answered',
+  'continued',
+  'late',
+  'inferred',
+] as const;
 export type SlotSource = (typeof SLOT_SOURCES)[number];
 
 // 30분 칸 하나에 행 하나. (user_id, slot_start)가 키다.

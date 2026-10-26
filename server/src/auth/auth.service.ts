@@ -57,7 +57,7 @@ export class AuthService {
 
   // 계정 삭제: 사용자와 slot·plan·event(피드백 메모 포함)·refresh 토큰을 한 트랜잭션으로 지운다.
   async deleteAccount(userId: string): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
+    await this.dataSource.transaction(async manager => {
       await manager.delete(AppEvent, { userId });
       await manager.delete(Plan, { userId });
       await manager.delete(Slot, { userId });

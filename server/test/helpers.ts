@@ -12,10 +12,13 @@ import {
 // 테스트 DB는 .env.test(NODE_ENV=test)의 DB_NAME이다. 운영 DB와 분리한다.
 // Kakao /v2/user/me는 목킹한다: "kakao-<숫자>" 토큰을 그 숫자 id의 사용자로 본다.
 export const kakaoMock = {
-  getKakaoUser: jest.fn(async (token: string): Promise<KakaoProfile> => {
+  getKakaoUser: jest.fn((token: string): Promise<KakaoProfile> => {
     const match = /^kakao-(\d+)$/.exec(token);
-    if (!match) throw new Error('unexpected kakao token');
-    return { id: Number(match[1]), connected_at: '2026-10-21T00:00:00Z' };
+    if (!match) return Promise.reject(new Error('unexpected kakao token'));
+    return Promise.resolve({
+      id: Number(match[1]),
+      connected_at: '2026-10-21T00:00:00Z',
+    });
   }),
 };
 
@@ -53,8 +56,8 @@ export async function login(
     .set('Authorization', `Bearer kakao-${kakaoId}`)
     .expect(200);
   return {
-    userId: res.body.user_id,
-    access: (res.headers['authorization'] as string).replace('Bearer ', ''),
-    refresh: res.headers['x-refresh-token'] as string,
+    userId: (res.body as { user_id: string }).user_id,
+    access: res.headers['authorization'].replace('Bearer ', ''),
+    refresh: res.headers['x-refresh-token'],
   };
 }
