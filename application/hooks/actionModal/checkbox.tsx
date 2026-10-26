@@ -6,7 +6,7 @@ import {
   CheckboxListProps,
   CheckboxLabel,
 } from '@/@types/timeSlot/checkBoxType';
-import { GRAY_4, GRAY_5, GRAY_7, GRAY_8 } from '@/assets/palette';
+import { GRAY_4, GRAY_7, GRAY_8 } from '@/assets/palette';
 
 type CheckBoxProps = {
   items: CheckboxLabel[];

@@ -19,19 +19,20 @@ export const httpTransport: Transport = {
 export const secureStoreAuth: Auth = {
   async refresh() {
     const refreshToken = await SecureStore.getItemAsync('refreshToken');
-    if (!refreshToken) return false;
+    if (!refreshToken) return 'denied';
     try {
       const res = await api.post('/auth/reissueAccessToken', null, {
         headers: { Authorization: `Bearer ${refreshToken}` },
         validateStatus: () => true,
         timeout: 20_000,
       });
+      if (res.status === 401 || res.status === 403) return 'denied';
       const access = (res.headers['authorization'] as string | undefined)?.replace('Bearer ', '');
-      if (res.status !== 200 || !access) return false;
+      if (res.status !== 200 || !access) return 'error';
       await SecureStore.setItemAsync('accessToken', access);
-      return true;
+      return 'ok';
     } catch {
-      return false;
+      return 'error';
     }
   },
 };

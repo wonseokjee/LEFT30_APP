@@ -1,14 +1,12 @@
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { AppState, StatusBar } from 'react-native'; //추가
-import React from 'react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { initializeKakaoSDK } from '@react-native-kakao/core';
 import * as Notifications from 'expo-notifications';
 import { handleNotification } from '@/components/pushNotification/pushNotificationHandler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import TabHeaderTitle from '@/components/tab/headerTitle';
 import TabHeaderRight from '@/components/tab/headerRight';
-import { useRouter } from 'expo-router';
 import LoginExpiredAlertModal from '@/components/user/loginExpiredModal';
 import * as SecureStore from 'expo-secure-store';
 import { afterLogin } from '@/components/login/afterLogin';
@@ -17,6 +15,8 @@ import RecordToast from '@/components/record/RecordToast';
 import BootError from '@/components/app/BootError';
 import { bootRuntime, onForeground } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
+
+const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -27,8 +27,6 @@ Notifications.setNotificationHandler({
 type BootState = 'loading' | 'ready' | 'failed';
 
 export default function RootLayout() {
-  const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
-  const router = useRouter();
   const [boot, setBoot] = useState<BootState>('loading');
   const lastResponse = Notifications.useLastNotificationResponse();
 

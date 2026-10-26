@@ -6,6 +6,7 @@ import { saveSlot, undoSlot } from '@/db/records';
 import { withRo } from '@/record/recordLogic';
 import { getRuntime, rescheduleNow, syncNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
+import { SAVE_FAILED_TEXT } from './RecordSheet';
 
 const MAX_SCALE = 1.3;
 const VISIBLE_MS = 3000;
@@ -18,20 +19,23 @@ export default function RecordToast() {
   const setLastSaved = useAppStore((s) => s.setLastSaved);
   const [editing, setEditing] = useState(false);
   const [memo, setMemo] = useState('');
+  // 되돌리기·메모 저장이 실패하면 닫지 않고 한 줄로 알린다(eng review D12). 다시 누르면 재시도한다.
+  const [failed, setFailed] = useState(false);
 
   const dismiss = () => {
     setEditing(false);
     setMemo('');
+    setFailed(false);
     setLastSaved(null);
     void syncNow();
   };
 
   useEffect(() => {
-    if (!lastSaved || editing) return;
+    if (!lastSaved || editing || failed) return;
     const timer = setTimeout(dismiss, VISIBLE_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastSaved, editing]);
+  }, [lastSaved, editing, failed]);
 
   if (!lastSaved) return null;
   const { slot, previous } = lastSaved;
@@ -39,10 +43,13 @@ export default function RecordToast() {
   const undo = async () => {
     try {
       await undoSlot(getRuntime().db, slot, previous);
-      void rescheduleNow();
-    } finally {
-      dismiss();
+    } catch (e) {
+      console.warn('undo failed', e);
+      setFailed(true);
+      return;
     }
+    void rescheduleNow();
+    dismiss();
   };
 
   const saveMemo = async () => {
@@ -53,14 +60,22 @@ export default function RecordToast() {
         note: note.length > 0 ? note : null,
         client_updated_at: new Date().toISOString(),
       });
-    } finally {
-      dismiss();
+    } catch (e) {
+      console.warn('memo save failed', e);
+      setFailed(true);
+      return;
     }
+    dismiss();
   };
 
   if (editing) {
     return (
-      <View style={styles.toast}>
+      <View style={[styles.toast, styles.wrap]}>
+        {failed && (
+          <Text style={styles.failedLine} maxFontSizeMultiplier={MAX_SCALE}>
+            {SAVE_FAILED_TEXT}
+          </Text>
+        )}
         <TextInput
           style={styles.input}
           value={memo}
@@ -83,8 +98,8 @@ export default function RecordToast() {
 
   return (
     <View style={styles.toast}>
-      <Text style={styles.text} maxFontSizeMultiplier={MAX_SCALE}>
-        {withRo(CATEGORY_LABEL[slot.category])} 기록
+      <Text style={[styles.text, failed && styles.failedText]} maxFontSizeMultiplier={MAX_SCALE}>
+        {failed ? SAVE_FAILED_TEXT : `${withRo(CATEGORY_LABEL[slot.category])} 기록`}
       </Text>
       <TouchableOpacity
         style={styles.action}
@@ -122,6 +137,18 @@ const styles = StyleSheet.create({
     flex: 1,
     color: GRAY_0,
     fontSize: 13,
+  },
+  failedText: {
+    color: GRAY_5,
+  },
+  wrap: {
+    flexWrap: 'wrap',
+  },
+  failedLine: {
+    width: '100%',
+    color: GRAY_5,
+    fontSize: 13,
+    paddingTop: 8,
   },
   action: {
     minHeight: 48,

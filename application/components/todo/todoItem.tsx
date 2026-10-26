@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CheckBox } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -7,7 +7,7 @@ import {
   deleteTodoItemFromDB,
   updateTodoItemStatusFromDB,
 } from '@/api/todoApi';
-import { GRAY_0, GRAY_3, GRAY_4, GRAY_8 } from '@/assets/palette';
+import { GRAY_0, GRAY_4, GRAY_8 } from '@/assets/palette';
 
 interface TaskItemProps {
   item: { id: string; title: string; notes: string; is_done: boolean };

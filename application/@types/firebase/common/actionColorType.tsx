@@ -1,4 +1,4 @@
-import { calm_summer, welcome_spring, candy_shade } from '@/assets/palette';
+import { calm_summer } from '@/assets/palette';
 
 export type ACTION_TYPE = {
   수면: string;

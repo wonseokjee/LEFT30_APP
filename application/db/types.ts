@@ -11,7 +11,7 @@ export interface Db {
   ): Promise<{ changes: number; lastInsertRowId: number }>;
   all<T>(sql: string, params?: SqlValue[]): Promise<T[]>;
   first<T>(sql: string, params?: SqlValue[]): Promise<T | null>;
-  // 배타 트랜잭션. 안의 쿼리는 반드시 tx로 실행한다.
+  // 같은 연결의 트랜잭션. 끝날 때까지 다른 호출은 기다린다(db/serial.ts). 안의 쿼리는 반드시 tx로 실행한다.
   transaction<T>(fn: (tx: Db) => Promise<T>): Promise<T>;
 }
 

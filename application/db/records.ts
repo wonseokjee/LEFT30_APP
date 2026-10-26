@@ -108,6 +108,20 @@ export async function wipeLocalData(db: Db): Promise<void> {
   });
 }
 
+export const ACCOUNT_KEY = 'account_user_id';
+
+// 로그인 직후: 이 기기의 로컬 데이터가 다른 계정 것이면 지운다(eng review D10).
+// 같은 계정의 재로그인이나 이 기기의 첫 로그인은 지우지 않는다. 보내지 못한 큐를 지키기 위해서다.
+// 지웠으면 true. 예약된 알림 취소는 호출하는 쪽이 한다.
+export async function claimAccount(db: Db, userId: string): Promise<boolean> {
+  const previous = await getSetting<string>(db, ACCOUNT_KEY);
+  if (previous === userId) return false;
+  const wiped = previous !== null;
+  if (wiped) await wipeLocalData(db);
+  await setSetting(db, ACCOUNT_KEY, userId);
+  return wiped;
+}
+
 export async function getSetting<T>(db: Db, key: string): Promise<T | null> {
   const row = await db.first<{ value: string }>('SELECT value FROM setting WHERE key = ?', [key]);
   return row ? (JSON.parse(row.value) as T) : null;

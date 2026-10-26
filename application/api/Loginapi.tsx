@@ -5,11 +5,10 @@ import api from './api';
 import { useLoginExpiredModalStore } from '@/store/useModalStore';
 
 const loginApi = axios.create({
-  // baseURL: 'http://' + process.env. + ':3030', // 내 로컬 서버 IP
-  //cmd -> ipconfig -> IPv4 Address
-  // baseURL: 'http://' + process.env.EXPO_PUBLIC_LOCAL_IP + ':3030', // 내 로컬 서버 IP
-  // baseURL: 'http://localhost:3030', // 내 로컬 서버 IP
-  baseURL: 'https://left30m.com', // 프로덕션 도메인
+  // 서버 주소는 .env의 EXPO_PUBLIC_API_URL에서만 읽는다(값이 없으면 app.config.ts가 시작을 막는다).
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
+  // 서버에 닿지 못하면 무한히 기다리지 않고 20초 뒤 실패로 끝낸다(로그인 화면 멈춤 방지).
+  timeout: 20_000,
 });
 
 //api access token을 요청 보낼 때마다 header에 넣어주기 위한 interceptor 설정

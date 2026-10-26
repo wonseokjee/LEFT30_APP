@@ -1,5 +1,9 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY;
+// 예전 운영 도메인은 만료됐다. 주소를 코드에 두지 않고, 없으면 시작·빌드를 바로 멈춘다.
+if (!process.env.EXPO_PUBLIC_API_URL) {
+  throw new Error('EXPO_PUBLIC_API_URL이 없습니다. application/.env.example을 참고해 .env에 서버 주소를 넣어 주세요.');
+}
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'left30app',
@@ -54,7 +58,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       '@react-native-kakao/core',
       {
-        nativeAppKey: 'db4ba8bb6eb816db894d051a140aa9ff',
+        nativeAppKey: kakaoNativeAppKey,
         android: {
           authCodeHandlerActivity: true,
         },

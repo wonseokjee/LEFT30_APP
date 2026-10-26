@@ -1,4 +1,4 @@
-import { GRAY_0, GRAY_1 } from '@/assets/palette';
+import { GRAY_1 } from '@/assets/palette';
 import useInterval from '@/hooks/timer/useInterval';
 import useTimer from '@/hooks/timer/useTimer';
 import useNumStore from '@/store/timerStore';

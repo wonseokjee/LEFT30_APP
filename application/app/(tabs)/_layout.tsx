@@ -1,10 +1,7 @@
 import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
 import Entypo from '@expo/vector-icons/Entypo';
 import { Tabs } from 'expo-router';
 import { StyleSheet } from 'react-native';
-
-const Stack = createStackNavigator();
 
 export default function TabLayout() {
   return (

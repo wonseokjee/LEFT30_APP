@@ -1,6 +1,6 @@
 import { ACTION_TYPE_COLOR } from '@/@types/firebase/common/actionColorType';
 import React, { useState } from 'react';
-import { Text, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity } from 'react-native';
 import TimeTableSlotItemInfo from './timeTableSlotItemInfo';
 import { timeSlotType } from '@/@types/timeSlot/timeSlotType';
 

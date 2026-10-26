@@ -1,46 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, Text } from 'react-native';
 import { handleLogin } from '@/components/login/handleLoginBtn';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { afterLogin } from '@/components/login/afterLogin';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [showLoginButton, setShowLoginButton] = useState(false);
+  // 로그인 중에는 다시 누르지 못하게 하고, 실패하면 한 줄로 알린다.
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const onLoginPress = async () => {
+    if (busy) return;
+    setBusy(true);
+    setFailed(false);
     try {
-      const isLoggedIn = await handleLogin();
-      if (isLoggedIn) {
+      if (await handleLogin()) {
         await afterLogin(router);
-      } else {
-        console.error('로그인 실패');
+        return;
       }
+      setFailed(true);
     } catch (error) {
       console.error('Login failed:', error);
+      setFailed(true);
+    } finally {
+      setBusy(false);
     }
   };
 
+  // 저장된 세션이 있으면 루트 _layout이 다음 화면으로 보낸다. 여기서는 버튼만 보여준다.
   useEffect(() => {
-    const checkIsLoggedIn = async () => {
-      try {
-        const accessToken = await SecureStore.getItemAsync('accessToken');
-        const refreshToken = await SecureStore.getItemAsync('refreshToken');
-        const userId = await SecureStore.getItemAsync('user_id');
-
-        if (accessToken && refreshToken && userId) {
-          await afterLogin(router);
-        } else {
-          setShowLoginButton(true);
-        }
-      } catch (error) {
-        console.error('로그인 상태 확인 에러:', error);
-        setShowLoginButton(true);
-      }
-    };
-
-    checkIsLoggedIn();
+    SecureStore.getItemAsync('refreshToken')
+      .then((refreshToken) => setShowLoginButton(!refreshToken))
+      .catch(() => setShowLoginButton(true));
   }, []);
 
   return (
@@ -52,7 +45,7 @@ export default function LoginPage() {
         />
       </View>
       {showLoginButton && (
-        <TouchableOpacity onPress={onLoginPress}>
+        <TouchableOpacity onPress={onLoginPress} disabled={busy} style={busy && styles.busy}>
           <Image
             source={require('@/assets/images/kakao_login_medium_narrow.png')}
             style={styles.loginImage}
@@ -60,6 +53,7 @@ export default function LoginPage() {
           />
         </TouchableOpacity>
       )}
+      {failed && <Text style={styles.failedText}>로그인하지 못했어요. 다시 시도해 주세요.</Text>}
       {/* 개발 빌드 전용: 서버 없이 알림·기록 흐름을 확인한다(구현 D2). 배포 빌드에는 없다. */}
       {__DEV__ && showLoginButton && (
         <TouchableOpacity onPress={() => afterLogin(router)} style={styles.devButton}>
@@ -98,6 +92,14 @@ const styles = StyleSheet.create({
   logo: {
     width: '80%',
     height: '80%',
+  },
+  busy: {
+    opacity: 0.5,
+  },
+  failedText: {
+    marginTop: 12,
+    color: '#adb5bd',
+    fontSize: 13,
   },
   devButton: {
     marginTop: 24,

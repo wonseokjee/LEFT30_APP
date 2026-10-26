@@ -1,7 +1,7 @@
 import Timetable from '@/components/timetable/timeTable';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import {
   getTodayTimeSlotInfoFromDB,

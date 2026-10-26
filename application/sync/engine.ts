@@ -12,7 +12,7 @@ import { uuidv4 } from '@/lib/uuid';
  *         ▼
  *  POST {tz, items[qid = 큐 id]}   (≤500건, ≤maxBytes)
  *    ├ 200 → accepted qid만 삭제, rejected는 sync_dead_letter + sync_rejected 이벤트
- *    ├ 401 → refresh 후 1회 재시도, 실패하면 needs_login (큐 보존)
+ *    ├ 401 → refresh 후 1회 재시도. refresh가 거절되면 needs_login, 장애면 retry (큐 보존)
  *    ├ 413 → 배치를 반으로 나눠 재시도 (1건이면 dead-letter)
  *    ├ 400 → 배치 전체 dead-letter (서버는 항목별로 검증하므로 형식 오류일 때만 온다)
  *    └ 네트워크·그 밖의 상태 → retry (큐 보존, 백오프 후 다시)
@@ -38,9 +38,12 @@ export interface Transport {
   post(path: string, body: unknown): Promise<{ status: number; data?: unknown }>;
 }
 
+// ok: 새 access를 받음. denied: 서버가 refresh를 거절(401·403)해 다시 로그인해야 함.
+// error: 네트워크·5xx 같은 장애. 로그인 문제가 아니므로 나중에 다시 시도한다(eng review D6).
+export type RefreshResult = 'ok' | 'denied' | 'error';
+
 export interface Auth {
-  // refresh 토큰으로 access 토큰을 다시 받는다. 실패하면 false.
-  refresh(): Promise<boolean>;
+  refresh(): Promise<RefreshResult>;
 }
 
 export type SyncOutcome =
@@ -126,8 +129,10 @@ export function createSyncEngine(opts: SyncOptions) {
       return 'ok';
     }
     if (res.status === 401) {
-      if (!refreshed && (await opts.auth.refresh())) return sendChunk(kind, rows, true);
-      return 'needs_login';
+      if (refreshed) return 'needs_login';
+      const refresh = await opts.auth.refresh();
+      if (refresh === 'ok') return sendChunk(kind, rows, true);
+      return refresh === 'denied' ? 'needs_login' : 'retry';
     }
     if (res.status === 413) {
       if (rows.length === 1) {

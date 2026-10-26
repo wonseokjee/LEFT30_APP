@@ -1,6 +1,6 @@
 import { GRAY_1, GRAY_8 } from '@/assets/palette';
 import React from 'react';
-import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
 type Props = {
   setAddModalVisible: (visible: boolean) => void;

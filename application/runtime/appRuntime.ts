@@ -86,6 +86,15 @@ export async function rescheduleNow(): Promise<void> {
   }
 }
 
+// 정확한 알람 권한을 켜고 돌아왔을 때(D14). 이미 걸린 알람은 부정확한 채로 남아 있어 전부 다시 건다.
+export async function rearmNow(): Promise<void> {
+  try {
+    await getRuntime().scheduler.rearm();
+  } catch (e) {
+    console.warn('rearm failed', e);
+  }
+}
+
 // 앱 시작, 포그라운드 복귀 때. 시간대 변경 기록 → 예약 연장 → 동기화.
 export async function onForeground(): Promise<void> {
   if (!runtime) return;

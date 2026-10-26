@@ -3,7 +3,7 @@ import { migrate } from '@/db/migrate';
 import { MIGRATIONS } from '@/db/schema';
 import { logEvent, saveSlot } from '@/db/records';
 import type { SlotRow } from '@/db/types';
-import { backoffMs, createSyncEngine, type Transport } from './engine';
+import { backoffMs, createSyncEngine, type Auth, type Transport } from './engine';
 
 type Item = Record<string, unknown> & { qid: number };
 type Handler = (path: string, body: { tz?: string; items: Item[] }) => Promise<{ status: number; data?: unknown }>;
@@ -56,7 +56,7 @@ function slot(i: number, extra: Partial<SlotRow> = {}): SlotRow {
   };
 }
 
-async function setup(auth = { refresh: async () => false }) {
+async function setup(auth: Auth = { refresh: async () => 'denied' }) {
   const db = openNodeDb();
   await migrate(db, MIGRATIONS);
   const server = fakeServer();
@@ -157,7 +157,10 @@ describe('동기화 큐', () => {
   it('401이면 refresh 후 다시 보낸다', async () => {
     let refreshed = false;
     const { db, server, engine, queueIds } = await setup({
-      refresh: async () => (refreshed = true),
+      refresh: async () => {
+        refreshed = true;
+        return 'ok';
+      },
     });
     await saveSlot(db, slot(0));
     server.use(async (path, body) => (refreshed ? server.accept(path, body) : { status: 401 }));
@@ -165,7 +168,15 @@ describe('동기화 큐', () => {
     expect(await queueIds()).toEqual([]);
   });
 
-  it('refresh도 실패하면 needs_login이고 큐는 그대로 남는다', async () => {
+  it('(D6) refresh가 장애(error)면 로그인 안내 없이 retry이고 큐는 그대로 남는다', async () => {
+    const { db, server, engine, queueIds } = await setup({ refresh: async () => 'error' });
+    await saveSlot(db, slot(0));
+    server.use(async () => ({ status: 401 }));
+    expect(await engine.requestSync()).toEqual({ status: 'retry', sent: 0 });
+    expect(await queueIds()).toEqual([1]);
+  });
+
+  it('refresh가 거절되면 needs_login이고 큐는 그대로 남는다', async () => {
     const { db, server, engine, queueIds } = await setup();
     await saveSlot(db, slot(0));
     server.use(async () => ({ status: 401 }));

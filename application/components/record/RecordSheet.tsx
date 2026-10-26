@@ -20,6 +20,7 @@ import { getRuntime, rescheduleNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 
 const MAX_SCALE = 1.3;
+export const SAVE_FAILED_TEXT = '저장하지 못했어요. 다시 눌러 주세요';
 
 type Loaded = {
   slotStart: string;
@@ -37,8 +38,11 @@ export default function RecordSheet() {
   const setLastSaved = useAppStore((s) => s.setLastSaved);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [saving, setSaving] = useState(false);
+  // 저장 실패 시 한 줄 안내(eng review D5). 다른 칸을 열거나 저장에 성공하면 사라진다.
+  const [saveFailed, setSaveFailed] = useState(false);
 
   useEffect(() => {
+    setSaveFailed(false);
     if (!sheetSlot) {
       setLoaded(null);
       return;
@@ -91,12 +95,14 @@ export default function RecordSheet() {
         client_updated_at: now.toISOString(),
       };
       await saveSlot(getRuntime().db, row);
+      setSaveFailed(false);
       setLastSaved({ slot: row, previous: existing });
       closeSheet();
       // 다음 칸 맥락 문구가 바뀔 수 있다. 동기화는 토스트가 닫힌 뒤(되돌리기 기회를 준 뒤) 한다.
       void rescheduleNow();
     } catch (e) {
       console.warn('save slot failed', e);
+      setSaveFailed(true);
     } finally {
       setSaving(false);
     }
@@ -114,6 +120,11 @@ export default function RecordSheet() {
             {slotRangeLabel(loaded.slotStart, loaded.tz)}
             {isNow ? ' 지금 칸' : ''}
           </Text>
+          {saveFailed && (
+            <Text style={styles.error} maxFontSizeMultiplier={MAX_SCALE}>
+              {SAVE_FAILED_TEXT}
+            </Text>
+          )}
 
           {candidate && (
             <TouchableOpacity
@@ -194,6 +205,12 @@ const styles = StyleSheet.create({
   header: {
     color: GRAY_0,
     fontSize: 16,
+    marginBottom: 12,
+  },
+  error: {
+    color: GRAY_5,
+    fontSize: 13,
+    marginTop: -4,
     marginBottom: 12,
   },
   continueButton: {

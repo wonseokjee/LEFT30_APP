@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
-import { logout, unlink } from '@react-native-kakao/user';
-import { router, useRouter } from 'expo-router';
+import { unlink } from '@react-native-kakao/user';
+import { router } from 'expo-router';
 import BasicModal from '../asset/basicModal';
 import React from 'react';
 import { withdrawUser } from '@/api/userApi';

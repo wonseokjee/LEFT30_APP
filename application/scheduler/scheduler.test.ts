@@ -201,6 +201,28 @@ describe('스케줄러', () => {
     expect(fake.calls() - calls).toBe(pings + 1);
   });
 
+  it('(D4) rearm 중 예약이 한 번 실패해도 다음 재계산이 전부 다시 건다', async () => {
+    const { fake, scheduler } = await setup();
+    await scheduler.reschedule();
+    const before = new Map(fake.scheduled);
+    fake.scheduled.clear();
+
+    const schedule = fake.notifier.schedule;
+    let failed = false;
+    fake.notifier.schedule = async (...args) => {
+      if (!failed && fake.scheduled.size === 10) {
+        failed = true;
+        throw new Error('alarm api failed');
+      }
+      return schedule(...args);
+    };
+    await expect(scheduler.rearm()).rejects.toThrow('alarm api failed');
+    expect(fake.scheduled.size).toBe(10);
+
+    expect(await scheduler.reschedule()).toMatchObject({ status: 'ok', cancelled: 0 });
+    expect(new Map([...fake.scheduled].sort())).toEqual(new Map([...before].sort()));
+  });
+
   it('권한이 없으면 아무것도 걸지 않는다', async () => {
     const { fake, scheduler } = await setup();
     fake.setGranted(false);

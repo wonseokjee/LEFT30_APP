@@ -126,10 +126,16 @@ export function createScheduler(opts: {
   const run = singleFlight(async () => {
     const rearm = rearmPending;
     rearmPending = false;
-    const result = await reconcile(rearm);
-    // 권한이 없어 못 걸었으면 다음 실행에서 다시 시도한다.
-    if (rearm && result.status !== 'ok') rearmPending = true;
-    return result;
+    let done = false;
+    try {
+      const result = await reconcile(rearm);
+      // 권한이 없어 못 걸었으면 다음 실행에서 다시 시도한다.
+      done = result.status === 'ok';
+      return result;
+    } finally {
+      // 예외(알림 API·DB 실패)로 중간에 멈춰도 다음 실행에서 전부 다시 건다.
+      if (rearm && !done) rearmPending = true;
+    }
   });
 
   return {

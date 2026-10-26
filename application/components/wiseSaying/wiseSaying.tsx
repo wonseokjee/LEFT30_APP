@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, View, Text } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { WiseSayingKOR } from './wiseSayingItemsKOR';
 
 export default function WiseSaying() {
