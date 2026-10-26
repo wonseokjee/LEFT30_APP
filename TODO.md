@@ -50,9 +50,15 @@
 - [ ] 3번 API 변경에 맞춰 호출부 수정 (user_id 전송 제거 등)
 - [ ] 카카오 개발자 콘솔 플랫폼/도메인 설정 갱신 필요 여부 확인
 - [ ] 토큰 재발급 interceptor 수정 (`Loginapi.tsx`): `_retry` 플래그로 무한 재시도 방지, 동시 401 시 재발급 1회만(single-flight), 요청 interceptor 에러에서 "로그인 만료" 모달 띄우지 않기
-- [ ] 자동 로그인 일원화: `_layout.tsx`(카카오 `isLogined` + 매번 재로그인)와 `(login)/index.tsx`(SecureStore 토큰 체크)가 동시에 `router.replace` 경쟁
+- [x] 자동 로그인 일원화: `_layout.tsx`(카카오 `isLogined` + 매번 재로그인)와 `(login)/index.tsx`(SecureStore 토큰 체크)가 동시에 `router.replace` 경쟁 → 루트 `_layout`만 분기하고 로그인 화면은 버튼만 보인다(2026-10-24)
 - [ ] 로그아웃 시 서버 로그아웃 호출 + `user_id`까지 삭제, `logoutModal`/`loginExpiredModal` 중복 로직 공통화
-- [ ] `app.config.ts` 카카오 네이티브 앱 키 하드코딩 → `EXPO_PUBLIC_KAKAO_APP_KEY` 사용 (현재 읽기만 하고 미사용)
+- [x] `app.config.ts` 카카오 네이티브 앱 키 하드코딩 → `EXPO_PUBLIC_KAKAO_APP_KEY` 사용 (현재 읽기만 하고 미사용) → `application/.env`·`.env.example`로 이동(2026-10-24)
+- [ ] **트랜잭션 안 바깥 DB 호출 감지** — 구현 순서 4 전에 결정 (2026-10-24 /plan-eng-review D13)
+  - What: 직렬 DB 래퍼(D2)에서 트랜잭션 실행 중 바깥 `db` 호출이 들어오면 조용히 교착되는 대신 바로 드러나게 한다
+  - Why: 트랜잭션 안에서 `tx` 대신 `db`를 부르면 서로 기다려 앱 DB가 오류 없이 영원히 멈춘다
+  - Pros: 멈춤을 바로 보이는 오류·로그로 바꾼다 / Cons: RN에는 AsyncLocalStorage가 없어 "같은 흐름의 호출"을 완벽히 구분하기 어렵다
+  - Context: 현재 `db/migrate.ts`, `db/records.ts`는 규칙을 지킨다. 후보는 트랜잭션 5초 초과 시 `console.error` 경고. 시작점은 D2로 만들 `db/` 직렬 래퍼
+  - Depends on: D2 직렬 래퍼 구현
 
 ## 5. 배포 자동화
 - [ ] 루트 `.github/workflows/deploy.yml` 신규 작성 (`server/**` 변경 시에만 실행)

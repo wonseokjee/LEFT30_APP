@@ -22,7 +22,7 @@ LEFT30_APP/
 
 - 스키마는 마이그레이션으로만 바꾼다(`synchronize: false`). 새 변경은 `src/migrations/`에 새 파일로 추가한다.
 - 엔티티 4개: `user`, `slot`, `plan`, `event` (`src/Entity/`).
-- 인증: access와 refresh는 secret과 `type` claim이 다르다. 사용자 식별은 JWT `sub`만 믿는다.
+- 인증: access와 refresh는 secret과 `type` claim이 다르다. 사용자 식별은 JWT `sub`만 믿는다. refresh는 60일 고정이고 회전하지 않는다. 카카오 토큰은 `KAKAO_APP_ID`와 app_id가 같을 때만 받는다(없으면 서버가 시작하지 않는다).
 - 동기화 API는 항목별로 검증하고 항상 200으로 `{accepted, rejected}`를 돌려준다(R3). 500건이나 1MB를 넘으면 413.
 - 비밀값은 환경 변수로만 둔다. `.env`, `.env.test`는 커밋하지 않는다. 템플릿은 `.env.example`.
 
@@ -44,6 +44,7 @@ e2e는 실제 Postgres에 붙는다. Kakao만 목킹한다(`kakao-<숫자>` 토�
 ## 앱 (`application/`)
 
 - 실행: `npm start`, 안드로이드 빌드: `npm run android`, 린트: `npm run lint`
+- `application/.env`에 `EXPO_PUBLIC_KAKAO_APP_KEY`와 `EXPO_PUBLIC_API_URL`(서버 주소, 에뮬레이터는 `http://10.0.2.2:3030`)이 있어야 한다. 서버 주소가 없으면 `app.config.ts`가 시작을 막는다. 템플릿은 `.env.example`.
 - 테스트: `cd application && npx jest` (`npm test`는 watch 모드). 로직(`db`, `sync`, `scheduler`, `record`)은 Node 내장 `node:sqlite`로 실제 SQLite에 붙여 테스트한다(`test/nodeDb.ts`).
 - 타입 검사: `npx tsc --noEmit`
 - 에뮬레이터 확인: `npx expo run:android --device Pixel_5`(AVD 이름). 개발 빌드에서만 로그인 화면의 "로그인 없이 시작"과 계정 관리의 개발용 도구(테스트 알림, 예약 개수)가 보인다. `/android`는 prebuild 산출물이라 커밋하지 않는다.
