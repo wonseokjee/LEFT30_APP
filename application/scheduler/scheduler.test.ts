@@ -72,10 +72,11 @@ describe('예약 계산', () => {
     expect(desiredSchedule({ now: NOW, tz: SEOUL, quiet: null, recent: late }).pings[0].textKind).toBe('default');
   });
 
-  it('문구는 받침에 맞춰 쓴다', () => {
-    expect(pingContent('context:work').body).toBe('방금도 업무였나요?');
-    expect(pingContent('context:sleep').body).toBe('방금도 수면이었나요?');
-    expect(pingContent('default').body).toBe('지난 30분, 뭐 했어요?');
+  it('문구는 높임말이고 카테고리마다 자연스러운 문장을 쓴다', () => {
+    expect(pingContent('context:work').body).toBe('방금도 일하셨나요?');
+    expect(pingContent('context:sleep').body).toBe('방금도 주무셨나요?');
+    expect(pingContent('context:relationship').body).toBe('방금도 사람들과 시간을 보내셨나요?');
+    expect(pingContent('default').body).toBe('지난 30분, 무엇을 하셨나요?');
   });
 });
 
@@ -147,7 +148,7 @@ describe('스케줄러', () => {
       client_updated_at: NOW.toISOString(),
     });
     expect(await scheduler.reschedule()).toEqual({ status: 'ok', days: 12, added: 1, cancelled: 1 });
-    expect(fake.scheduled.get('slot:2026-10-21T01:00:00.000Z')!.body).toBe('방금도 업무였나요?');
+    expect(fake.scheduled.get('slot:2026-10-21T01:00:00.000Z')!.body).toBe('방금도 일하셨나요?');
   });
 
   it('방해금지를 바꾸면 해당 칸만 취소·추가한다', async () => {

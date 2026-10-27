@@ -1,4 +1,4 @@
-import { CATEGORY_LABEL, type Category, type SlotSource } from '@/db/types';
+import type { Category, SlotSource } from '@/db/types';
 import { localParts, MINUTE_MS, SLOT_MS } from '@/lib/localTime';
 
 // 방해금지 시간(현지 분). start > end면 자정을 넘긴다. 앱 로컬에만 저장한다(구현 D1).
@@ -92,19 +92,23 @@ function contextKind(slotStart: string, recent: RecentSlot[]): string {
   return latest ? `context:${latest.category}` : 'default';
 }
 
+// 맥락 문구. 기본 문구("하셨나요")와 같은 높임으로, 카테고리마다 자연스러운 문장을 따로 둔다.
+// "○○을 하셨나요" 틀은 수면·관계에서 어색해서 쓰지 않는다.
+const CONTEXT_BODY: Record<Category, string> = {
+  sleep: '방금도 주무셨나요?',
+  rest: '방금도 쉬셨나요?',
+  exercise: '방금도 운동하셨나요?',
+  relationship: '방금도 사람들과 시간을 보내셨나요?',
+  self_dev: '방금도 자기개발을 하셨나요?',
+  work: '방금도 일하셨나요?',
+};
+
 export function pingContent(textKind: string): { title: string; body: string } {
   if (textKind.startsWith('context:')) {
-    const label = CATEGORY_LABEL[textKind.slice('context:'.length) as Category];
-    if (label) return { title: 'LEFT30', body: `방금도 ${label}${wasEnding(label)}?` };
+    const body = CONTEXT_BODY[textKind.slice('context:'.length) as Category];
+    if (body) return { title: 'LEFT30', body };
   }
-  return { title: 'LEFT30', body: '지난 30분, 뭐 했어요?' };
-}
-
-// 받침이 있으면 "이었나요"(수면이었나요), 없으면 "였나요"(업무였나요)
-function wasEnding(word: string): string {
-  const code = word.charCodeAt(word.length - 1) - 0xac00;
-  const hasFinal = code >= 0 && code < 11172 && code % 28 !== 0;
-  return hasFinal ? '이었나요' : '였나요';
+  return { title: 'LEFT30', body: '지난 30분, 무엇을 하셨나요?' };
 }
 
 export const EXPIRY_CONTENT = {

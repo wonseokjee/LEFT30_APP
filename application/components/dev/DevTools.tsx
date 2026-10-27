@@ -32,7 +32,7 @@ export default function DevTools() {
       identifier: 'dev-test',
       content: {
         title: 'LEFT30 (테스트)',
-        body: '지난 30분, 뭐 했어요?',
+        body: '지난 30분, 무엇을 하셨나요?',
         data: { kind: 'ping', slotStart },
       },
       trigger: {
