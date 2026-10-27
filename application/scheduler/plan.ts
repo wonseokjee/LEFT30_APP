@@ -1,24 +1,56 @@
 import type { Category, SlotSource } from '@/db/types';
 import { localParts, MINUTE_MS, SLOT_MS } from '@/lib/localTime';
 
-// 방해금지 시간(현지 분). start > end면 자정을 넘긴다. 앱 로컬에만 저장한다(구현 D1).
-export type Quiet = { startMin: number; endMin: number } | null;
+/*
+ * 방해금지 시간 목록(D19). 앱 로컬에만 저장한다(구현 D1).
+ * 하나는 현지 시각 [startMin, endMin)과 적용 요일(0=일 ~ 6=토)이다. start > end면 자정을 넘겨 다음 날 endMin까지 이어지고,
+ * 요일은 시작 시각의 요일로 판정한다. 예: 금요일 23:00~07:00이면 토요일 새벽 07:00까지 묻지 않는다.
+ * start == end이거나 요일이 비어 있으면 적용되지 않는다.
+ */
+export type QuietWindow = { startMin: number; endMin: number; days: number[] };
+export type Quiet = QuietWindow[];
+
+export const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
+export const WEEKDAYS = [1, 2, 3, 4, 5];
+export const MAX_QUIET_WINDOWS = 5;
 
 // 예약 총수 상한 400 중 저녁 알림·만료 안내 몫 2개를 뺀 값
 export const MAX_PINGS = 398;
 
-export function inQuiet(minuteOfDay: number, quiet: Quiet): boolean {
-  if (!quiet || quiet.startMin === quiet.endMin) return false;
-  const { startMin: s, endMin: e } = quiet;
-  return s < e ? minuteOfDay >= s && minuteOfDay < e : minuteOfDay >= s || minuteOfDay < e;
+// 저장된 값을 목록으로 읽는다. 예전 형식(하나짜리 {startMin, endMin} 또는 null)은 매일 적용으로 바꾼다.
+export function normalizeQuiet(raw: unknown): Quiet {
+  const one = (w: unknown): QuietWindow | null => {
+    if (!w || typeof w !== 'object') return null;
+    const { startMin, endMin, days } = w as Partial<QuietWindow>;
+    if (typeof startMin !== 'number' || typeof endMin !== 'number') return null;
+    return { startMin, endMin, days: Array.isArray(days) ? days : ALL_DAYS };
+  };
+  if (Array.isArray(raw)) return raw.map(one).filter((w): w is QuietWindow => w !== null);
+  const single = one(raw);
+  return single ? [single] : [];
+}
+
+export function inQuiet(at: { minuteOfDay: number; weekday: number }, quiet: Quiet): boolean {
+  const { minuteOfDay: m, weekday: d } = at;
+  return quiet.some(({ startMin: s, endMin: e, days }) => {
+    if (s === e) return false;
+    if (s < e) return days.includes(d) && m >= s && m < e;
+    // 자정을 넘기는 경우: 오늘 시작분이거나, 어제 시작해서 오늘 아침까지 이어진 부분
+    return (days.includes(d) && m >= s) || (days.includes((d + 6) % 7) && m < e);
+  });
 }
 
 // 칸은 시작 시각이 방해금지 안이면 묻지 않는다.
 // 예: 23:00~07:00이면 22:30 칸(23:00에 알림)까지 묻고, 07:00 칸(07:30에 알림)부터 다시 묻는다.
+// 요일마다 다를 수 있어 가장 많이 묻는 요일의 칸 수를 쓴다(예약 상한을 넘지 않게).
 export function pingsPerDay(quiet: Quiet): number {
-  let n = 0;
-  for (let m = 0; m < 1440; m += 30) if (!inQuiet(m, quiet)) n++;
-  return n;
+  let max = 0;
+  for (let weekday = 0; weekday < 7; weekday++) {
+    let n = 0;
+    for (let m = 0; m < 1440; m += 30) if (!inQuiet({ minuteOfDay: m, weekday }, quiet)) n++;
+    max = Math.max(max, n);
+  }
+  return max;
 }
 
 // 예약 기간 = floor(398 / 하루 비방해금지 칸 수)일. 하루 32칸이면 12일, 48칸이면 8일.
@@ -61,7 +93,7 @@ export function desiredSchedule(params: {
     const fire = new Date(t);
     if (localParts(fire, tz).minuteOfDay % 30 !== 0) continue;
     const slotStart = new Date(t - SLOT_MS);
-    if (inQuiet(localParts(slotStart, tz).minuteOfDay, quiet)) continue;
+    if (inQuiet(localParts(slotStart, tz), quiet)) continue;
     pings.push({
       slotStart: slotStart.toISOString(),
       fireAt: fire.toISOString(),

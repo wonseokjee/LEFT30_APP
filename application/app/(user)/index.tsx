@@ -6,8 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 import { GRAY_1, GRAY_9 } from '@/assets/palette';
 import QuietTimeModal from '@/components/user/quietTimeModal';
 import WithdrawalModal from '@/components/user/withdrawalModal';
-import { getSetting } from '@/db/records';
-import { QUIET_KEY } from '@/scheduler/scheduler';
+import { readQuiet } from '@/scheduler/scheduler';
 import type { Quiet } from '@/scheduler/plan';
 import { getRuntime } from '@/runtime/appRuntime';
 import DevTools from '@/components/dev/DevTools';
@@ -15,7 +14,7 @@ import DevTools from '@/components/dev/DevTools';
 export default function UserPage() {
   const router = useRouter();
   const [quietModalVisible, setQuietModalVisible] = useState(false);
-  const [quiet, setQuiet] = useState<Quiet>(null);
+  const [quiet, setQuiet] = useState<Quiet>([]);
   const [WithdrawalModalVisible, setWithdrawalModalVisible] = useState(false);
 
   const unLinkKakao = async () => {
@@ -29,7 +28,7 @@ export default function UserPage() {
   };
   const quietTimeSetting = async () => {
     try {
-      setQuiet(await getSetting<Quiet>(getRuntime().db, QUIET_KEY));
+      setQuiet(await readQuiet(getRuntime().db));
       setQuietModalVisible(true);
     } catch (error) {
       console.error('Load quiet time failed:', error);
@@ -54,13 +53,13 @@ export default function UserPage() {
           </View>
         </View>
         <View style={styles.contentContainer}>
-          <Text style={styles.subtitle}>방해 금지 시간</Text>
+          <Text style={styles.subtitle}>방해금지 시간</Text>
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.quietTimeButton}
               onPress={quietTimeSetting}
             >
-              <Text style={styles.buttonText}>방해 금지 시간 설정</Text>
+              <Text style={styles.buttonText}>방해금지 시간 설정</Text>
             </TouchableOpacity>
           </View>
         </View>

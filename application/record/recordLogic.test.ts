@@ -1,4 +1,5 @@
 import { openNodeDb } from '@/test/nodeDb';
+import { ALL_DAYS } from '@/scheduler/plan';
 import { migrate } from '@/db/migrate';
 import { MIGRATIONS } from '@/db/schema';
 import { saveSlot, undoSlot, wipeLocalData } from '@/db/records';
@@ -62,7 +63,7 @@ describe('기록 규칙', () => {
     const base = {
       slotStart: '2026-10-21T05:00:00.000Z', // 14:00 칸
       now: at('2026-10-21T05:31:00Z'),
-      quiet: null,
+      quiet: [],
       tz: SEOUL,
     };
     expect(emptySlotBefore({ ...base, filled: new Set() })).toBe('2026-10-21T04:30:00.000Z');
@@ -75,7 +76,7 @@ describe('기록 규칙', () => {
     // 15:01이면 13:30 칸(14:00 종료)은 60분이 지나 시간표에서만 채운다
     expect(emptySlotBefore({ ...base, filled: new Set(), now: at('2026-10-21T06:01:00Z') })).toBeNull();
     expect(
-      emptySlotBefore({ ...base, filled: new Set(), quiet: { startMin: 13 * 60, endMin: 14 * 60 } }),
+      emptySlotBefore({ ...base, filled: new Set(), quiet: [{ startMin: 13 * 60, endMin: 14 * 60, days: ALL_DAYS }] }),
     ).toBeNull();
   });
 

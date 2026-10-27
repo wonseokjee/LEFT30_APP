@@ -3,9 +3,12 @@ import { migrate } from '@/db/migrate';
 import { MIGRATIONS } from '@/db/schema';
 import { saveSlot, setSetting } from '@/db/records';
 import {
+  ALL_DAYS,
   desiredSchedule,
   horizonDays,
   inQuiet,
+  normalizeQuiet,
+  WEEKDAYS,
   pingContent,
   pingsPerDay,
   MAX_PINGS,
@@ -13,26 +16,71 @@ import {
 import { createScheduler, EXPIRY_ID, QUIET_KEY, type Notifier } from './scheduler';
 
 const SEOUL = 'Asia/Seoul';
-// 23:00~07:00 (현지)
-const NIGHT = { startMin: 23 * 60, endMin: 7 * 60 };
-// 2026-10-21 10:10 KST
+// 23:00~07:00 (현지, 매일)
+const NIGHT = [{ startMin: 23 * 60, endMin: 7 * 60, days: ALL_DAYS }];
+// 평일 09:00~18:00
+const WORK = [{ startMin: 9 * 60, endMin: 18 * 60, days: WEEKDAYS }];
+// 2026-10-21(수) 10:10 KST
 const NOW = new Date('2026-10-21T01:10:00.000Z');
+const at = (minuteOfDay: number, weekday: number) => ({ minuteOfDay, weekday });
+const WED = 3;
+const FRI = 5;
+const SAT = 6;
+const SUN = 0;
 
 describe('예약 계산', () => {
   it('방해금지는 자정을 넘겨도 맞게 판정한다', () => {
-    expect(inQuiet(23 * 60, NIGHT)).toBe(true);
-    expect(inQuiet(6 * 60 + 30, NIGHT)).toBe(true);
-    expect(inQuiet(7 * 60, NIGHT)).toBe(false);
-    expect(inQuiet(22 * 60 + 30, NIGHT)).toBe(false);
-    expect(inQuiet(0, null)).toBe(false);
+    expect(inQuiet(at(23 * 60, WED), NIGHT)).toBe(true);
+    expect(inQuiet(at(6 * 60 + 30, WED), NIGHT)).toBe(true);
+    expect(inQuiet(at(7 * 60, WED), NIGHT)).toBe(false);
+    expect(inQuiet(at(22 * 60 + 30, WED), NIGHT)).toBe(false);
+    expect(inQuiet(at(0, WED), [])).toBe(false);
+  });
+
+  it('(D19) 요일을 고른 방해금지는 그 요일에만 적용한다', () => {
+    expect(inQuiet(at(10 * 60, WED), WORK)).toBe(true);
+    expect(inQuiet(at(18 * 60, WED), WORK)).toBe(false);
+    expect(inQuiet(at(10 * 60, SAT), WORK)).toBe(false);
+    expect(inQuiet(at(10 * 60, SUN), WORK)).toBe(false);
+  });
+
+  it('(D19) 자정을 넘기는 방해금지는 시작한 요일 기준으로 다음 날 아침까지 이어진다', () => {
+    const fridayNight = [{ startMin: 23 * 60, endMin: 7 * 60, days: [FRI] }];
+    expect(inQuiet(at(23 * 60 + 30, FRI), fridayNight)).toBe(true);
+    expect(inQuiet(at(2 * 60, SAT), fridayNight)).toBe(true);
+    expect(inQuiet(at(2 * 60, FRI), fridayNight)).toBe(false); // 목요일 밤은 고르지 않음
+    expect(inQuiet(at(23 * 60 + 30, SAT), fridayNight)).toBe(false);
+    expect(inQuiet(at(2 * 60, SUN), fridayNight)).toBe(false);
+  });
+
+  it('(D19) 여러 방해금지 중 하나라도 걸리면 묻지 않는다', () => {
+    const both = [...NIGHT, ...WORK];
+    expect(inQuiet(at(1 * 60, SAT), both)).toBe(true);
+    expect(inQuiet(at(12 * 60, WED), both)).toBe(true);
+    expect(inQuiet(at(12 * 60, SAT), both)).toBe(false);
+  });
+
+  it('예전 한 개짜리 형식과 빈 값도 목록으로 읽는다', () => {
+    expect(normalizeQuiet({ startMin: 23 * 60, endMin: 7 * 60 })).toEqual(NIGHT);
+    expect(normalizeQuiet(null)).toEqual([]);
+    expect(normalizeQuiet(WORK)).toEqual(WORK);
   });
 
   it('예약 기간은 floor(398 / 하루 칸 수)일이다', () => {
-    expect(pingsPerDay(null)).toBe(48);
-    expect(horizonDays(null)).toBe(8);
+    expect(pingsPerDay([])).toBe(48);
+    expect(horizonDays([])).toBe(8);
     expect(pingsPerDay(NIGHT)).toBe(32);
     expect(horizonDays(NIGHT)).toBe(12);
-    expect(horizonDays({ startMin: 0, endMin: 0 })).toBe(8);
+    expect(horizonDays([{ startMin: 0, endMin: 0, days: ALL_DAYS }])).toBe(8);
+    // 요일마다 다르면 가장 많이 묻는 요일(주말 32칸) 기준
+    expect(pingsPerDay([...NIGHT, ...WORK])).toBe(32);
+  });
+
+  it('(D19) 평일 업무 시간은 평일에만 빠지고 주말에는 묻는다', () => {
+    const { pings } = desiredSchedule({ now: NOW, tz: SEOUL, quiet: WORK, recent: [] });
+    const starts = new Set(pings.map((p) => p.slotStart));
+    expect(starts.has('2026-10-21T03:00:00.000Z')).toBe(false); // 수 12:00
+    expect(starts.has('2026-10-24T03:00:00.000Z')).toBe(true); // 토 12:00
   });
 
   it('현지 :00/:30에 울리고, 방해금지 칸은 빼며, 398개를 넘지 않는다', () => {
@@ -55,7 +103,7 @@ describe('예약 계산', () => {
   });
 
   it(':45 오프셋 시간대도 현지 :00/:30에 맞춘다', () => {
-    const { pings } = desiredSchedule({ now: NOW, tz: 'Asia/Kathmandu', quiet: null, recent: [] });
+    const { pings } = desiredSchedule({ now: NOW, tz: 'Asia/Kathmandu', quiet: [], recent: [] });
     for (const p of pings.slice(0, 5)) expect(new Date(p.fireAt).getUTCMinutes() % 30).toBe(15);
   });
 
@@ -64,12 +112,12 @@ describe('예약 계산', () => {
       { slot_start: '2026-10-21T00:00:00.000Z', category: 'rest' as const, source: 'answered' as const },
       { slot_start: '2026-10-21T00:30:00.000Z', category: 'work' as const, source: 'continued' as const },
     ];
-    const { pings } = desiredSchedule({ now: NOW, tz: SEOUL, quiet: null, recent });
+    const { pings } = desiredSchedule({ now: NOW, tz: SEOUL, quiet: [], recent });
     expect(pings[0].textKind).toBe('context:work');
     expect(pings.slice(1).every((p) => p.textKind === 'default')).toBe(true);
 
     const late = [{ slot_start: '2026-10-21T00:30:00.000Z', category: 'work' as const, source: 'late' as const }];
-    expect(desiredSchedule({ now: NOW, tz: SEOUL, quiet: null, recent: late }).pings[0].textKind).toBe('default');
+    expect(desiredSchedule({ now: NOW, tz: SEOUL, quiet: [], recent: late }).pings[0].textKind).toBe('default');
   });
 
   it('문구는 높임말이고 카테고리마다 자연스러운 문장을 쓴다', () => {

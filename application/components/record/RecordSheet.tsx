@@ -2,10 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { CATEGORY_LABEL, type Category, type SlotRow } from '@/db/types';
-import { getSetting, saveSlot, tzAt } from '@/db/records';
+import { saveSlot, tzAt } from '@/db/records';
 import { deviceTz, SLOT_MS } from '@/lib/localTime';
-import { QUIET_KEY } from '@/scheduler/scheduler';
-import type { Quiet } from '@/scheduler/plan';
+import { readQuiet } from '@/scheduler/scheduler';
 import {
   continueCandidate,
   emptySlotBefore,
@@ -56,7 +55,7 @@ export default function RecordSheet() {
         'SELECT * FROM slot WHERE slot_start >= ? AND slot_start <= ?',
         [new Date(start - 2 * SLOT_MS).toISOString(), sheetSlot],
       );
-      const quiet = await getSetting<Quiet>(db, QUIET_KEY);
+      const quiet = await readQuiet(db);
       if (cancelled) return;
       setLoaded({
         slotStart: sheetSlot,

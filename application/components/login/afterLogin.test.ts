@@ -5,7 +5,7 @@ import { openNodeDb } from '@/test/nodeDb';
 import { migrate } from '@/db/migrate';
 import { MIGRATIONS } from '@/db/schema';
 import { ACCOUNT_KEY, setSetting } from '@/db/records';
-import { afterLogin, NOTIF_ONBOARDED_KEY } from './afterLogin';
+import { afterLogin, NOTIF_ONBOARDED_KEY, QUIET_ONBOARDED_KEY } from './afterLogin';
 
 // 로그인 직후 분기(eng review D7, D10): 계정 전환 정리와 알림 설명 화면 여부.
 
@@ -38,6 +38,14 @@ beforeEach(async () => {
 });
 
 describe('afterLogin 온보딩 분기', () => {
+  it('(D18) 방해금지를 아직 정하지 않았으면 알림 권한이 있어도 온보딩으로 보낸다', async () => {
+    permissions.mockResolvedValue({ granted: true, canAskAgain: true });
+    const { router, replace } = fakeRouter();
+    await afterLogin(router);
+    expect(replace).toHaveBeenCalledWith('/(onboarding)');
+  });
+
+  // 아래는 방해금지를 이미 정한 경우의 알림 설명 분기다.
   it.each([
     // granted, canAskAgain, onboarded, 이동
     [false, true, false, '/(onboarding)'],
@@ -46,6 +54,7 @@ describe('afterLogin 온보딩 분기', () => {
     [true, true, false, '/(tabs)'],
   ])('권한 %s · 다시 물을 수 있음 %s · 설명 봄 %s → %s', async (granted, canAskAgain, onboarded, route) => {
     permissions.mockResolvedValue({ granted, canAskAgain });
+    await setSetting(mockRuntime.db!, QUIET_ONBOARDED_KEY, true);
     if (onboarded) await setSetting(mockRuntime.db!, NOTIF_ONBOARDED_KEY, true);
     const { router, replace } = fakeRouter();
     await afterLogin(router);
@@ -54,7 +63,10 @@ describe('afterLogin 온보딩 분기', () => {
 });
 
 describe('afterLogin 계정 전환 (D10)', () => {
-  beforeEach(() => permissions.mockResolvedValue({ granted: true, canAskAgain: true }));
+  beforeEach(async () => {
+    permissions.mockResolvedValue({ granted: true, canAskAgain: true });
+    await setSetting(mockRuntime.db!, QUIET_ONBOARDED_KEY, true);
+  });
 
   it('다른 계정으로 로그인하면 예약 알림을 모두 취소한다', async () => {
     await setSetting(mockRuntime.db!, ACCOUNT_KEY, 'user-old');

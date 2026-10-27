@@ -54,7 +54,7 @@ export function emptySlotBefore(params: {
     const iso = new Date(s).toISOString();
     if (params.now.getTime() > s + SLOT_MS + ANSWER_WINDOW_MS) return null;
     if (params.filled.has(iso)) continue;
-    if (inQuiet(localParts(new Date(s), params.tz).minuteOfDay, params.quiet)) continue;
+    if (inQuiet(localParts(new Date(s), params.tz), params.quiet)) continue;
     return iso;
   }
   return null;

@@ -25,15 +25,20 @@ function formatter(tz: string): Intl.DateTimeFormat {
 export type LocalParts = {
   date: string; // YYYY-MM-DD
   minuteOfDay: number; // 0~1439
+  weekday: number; // 0=일 ~ 6=토 (현지 날짜 기준)
 };
 
 export function localParts(instant: Date, tz: string): LocalParts {
   const parts: Record<string, string> = {};
   for (const p of formatter(tz).formatToParts(instant)) parts[p.type] = p.value;
   const hour = Number(parts.hour) % 24;
+  const year = Number(parts.year);
+  const month = Number(parts.month);
+  const day = Number(parts.day);
   return {
     date: `${parts.year}-${parts.month}-${parts.day}`,
     minuteOfDay: hour * 60 + Number(parts.minute),
+    weekday: new Date(Date.UTC(year, month - 1, day)).getUTCDay(),
   };
 }
 

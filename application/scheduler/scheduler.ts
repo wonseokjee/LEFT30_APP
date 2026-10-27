@@ -4,6 +4,7 @@ import { singleFlight } from '@/lib/singleFlight';
 import {
   desiredSchedule,
   EXPIRY_CONTENT,
+  normalizeQuiet,
   pingContent,
   type Quiet,
   type RecentSlot,
@@ -27,6 +28,11 @@ import { SLOT_MS } from '@/lib/localTime';
  */
 
 export const QUIET_KEY = 'quiet';
+
+// 방해금지 목록을 읽는다. 예전 한 개짜리 형식도 목록으로 바꿔 돌려준다.
+export async function readQuiet(db: Db): Promise<Quiet> {
+  return normalizeQuiet(await getSetting<unknown>(db, QUIET_KEY));
+}
 export const EXPIRY_ID = 'expiry';
 const EXPIRY_KEY = 'expiry_at';
 
@@ -63,7 +69,7 @@ export function createScheduler(opts: {
     if (!(await notifier.hasPermission())) return { status: 'no_permission' };
 
     const at = now();
-    const quiet = await getSetting<Quiet>(db, QUIET_KEY);
+    const quiet = await readQuiet(db);
     const recent = await db.all<RecentSlot>(
       'SELECT slot_start, category, source FROM slot WHERE slot_start >= ?',
       [new Date(at.getTime() - 3 * SLOT_MS).toISOString()],
