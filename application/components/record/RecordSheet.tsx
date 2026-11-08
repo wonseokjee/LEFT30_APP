@@ -7,6 +7,7 @@ import { deviceTz, SLOT_MS } from '@/lib/localTime';
 import { readQuiet } from '@/scheduler/scheduler';
 import {
   continueCandidate,
+  dayPrefix,
   emptySlotBefore,
   hhmm,
   lastEndedSlot,
@@ -116,6 +117,7 @@ export default function RecordSheet() {
         <Pressable style={styles.sheet} onPress={() => undefined}>
           <View style={styles.handle} />
           <Text style={styles.header} maxFontSizeMultiplier={MAX_SCALE}>
+            {dayPrefix(loaded.slotStart, new Date(), loaded.tz)}
             {slotRangeLabel(loaded.slotStart, loaded.tz)}
             {isNow ? ' 지금 칸' : ''}
           </Text>

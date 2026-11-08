@@ -1,5 +1,6 @@
 import type { SlotRow, SlotSource } from '@/db/types';
-import { localParts, MINUTE_MS, SLOT_MS } from '@/lib/localTime';
+import { localDate, localParts, MINUTE_MS, SLOT_MS } from '@/lib/localTime';
+import { shiftDate } from '@/record/timetable';
 import { inQuiet, type Quiet } from '@/scheduler/plan';
 
 // 칸 종료 후 이 시간 안에 고르면 answered·continued, 지나면 late다.
@@ -70,6 +71,16 @@ export function withRo(word: string): string {
 export function hhmm(instant: Date, tz: string): string {
   const m = localParts(instant, tz).minuteOfDay;
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
+// 시간표에서 지난 날 칸을 열 때 시트 제목 앞에 붙인다. 오늘이면 빈 문자열, 어제면 "어제 ", 그 전이면 "11/6 ".
+export function dayPrefix(slotStart: string, now: Date, tz: string): string {
+  const slotDate = localDate(new Date(slotStart), tz);
+  const today = localDate(now, tz);
+  if (slotDate === today) return '';
+  if (slotDate === shiftDate(today, -1)) return '어제 ';
+  const [, m, d] = slotDate.split('-').map(Number);
+  return `${m}/${d} `;
 }
 
 export function slotRangeLabel(slotStart: string, tz: string): string {

@@ -6,6 +6,7 @@ import { saveSlot, undoSlot, wipeLocalData } from '@/db/records';
 import type { SlotRow } from '@/db/types';
 import {
   continueCandidate,
+  dayPrefix,
   emptySlotBefore,
   lastEndedSlot,
   slotRangeLabel,
@@ -92,6 +93,13 @@ describe('기록 규칙', () => {
 
   it('칸 시간 표시는 현지 시각이다', () => {
     expect(slotRangeLabel('2026-10-21T05:00:00.000Z', SEOUL)).toBe('14:00–14:30');
+  });
+
+  it('지난 날 칸은 시트 제목 앞에 날짜를 붙인다', () => {
+    const now = at('2026-11-01T01:00:00Z'); // 11/1 10:00 KST
+    expect(dayPrefix('2026-11-01T00:00:00.000Z', now, SEOUL)).toBe('');
+    expect(dayPrefix('2026-10-31T05:00:00.000Z', now, SEOUL)).toBe('어제 ');
+    expect(dayPrefix('2026-10-30T05:00:00.000Z', now, SEOUL)).toBe('10/30 ');
   });
 });
 
