@@ -25,7 +25,7 @@ function rowLabel(row: number): string {
   return row % 2 === 0 ? `${h}시 칸` : `${h}시 30분 칸`;
 }
 
-// 시간표(디자인 리뷰 D7, D21, D24): 어제·오늘 두 열. 채운 칸의 카테고리 색 블록, 1시간마다 얇은 가로줄,
+// 시간표(디자인 리뷰 D7, D21, D24): 어제·오늘 두 열과 그 사이 세로줄. 채운 칸의 카테고리 색 블록, 1시간마다 얇은 가로줄,
 // 두 열을 가로지르는 흰 '지금' 선과 그 옆 지금 시각.
 // 끝난 칸을 누르면 기록 시트가 열린다. 60분이 지난 칸은 late로 저장된다(sourceFor).
 export default function Timetable() {
@@ -132,15 +132,18 @@ export default function Timetable() {
         <View style={styles.hours}>
           {Array.from({ length: ROWS_PER_DAY / 2 }, (_, h) => (
             <Text key={h} style={styles.hour} maxFontSizeMultiplier={MAX_SCALE}>
-              {String(h).padStart(2, '0')}
+              {`${String(h).padStart(2, '0')}:00`}
             </Text>
           ))}
         </View>
         {Array.from({ length: ROWS_PER_DAY / 2 }, (_, h) => (
           <View key={h} pointerEvents='none' style={[styles.hourLine, { top: PAD_TOP + h * 2 * ROW }]} />
         ))}
-        {column(loaded.yesterday)}
-        {column(loaded.today)}
+        <View style={styles.columns}>
+          {column(loaded.yesterday)}
+          <View pointerEvents='none' style={styles.divider} />
+          {column(loaded.today)}
+        </View>
         <View pointerEvents='none' style={[styles.now, { top: PAD_TOP + nowTop - NOW_BOX / 2 }]}>
           <Text style={styles.nowText} maxFontSizeMultiplier={1} numberOfLines={1}>
             {hhmm(now, tz)}
@@ -190,6 +193,16 @@ const styles = StyleSheet.create({
     height: ROW * 2,
     color: GRAY_5,
     fontSize: 13,
+  },
+  columns: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  // 어제·오늘 사이 세로줄. 1시간 가로줄과 같은 색과 두께.
+  divider: {
+    width: StyleSheet.hairlineWidth,
+    marginHorizontal: GAP / 2,
+    backgroundColor: GRAY_8,
   },
   column: {
     flex: 1,
