@@ -10,6 +10,24 @@ import { localParts, MINUTE_MS, SLOT_MS } from '@/lib/localTime';
 export type QuietWindow = { startMin: number; endMin: number; days: number[] };
 export type Quiet = QuietWindow[];
 
+/*
+ * 알림 일시 중지(구현 D25). 계정 관리의 스위치로 끈다. until까지 울릴 칸은 예약하지 않는다.
+ * until이 null이면 다시 켤 때까지 멈춘다. until이 지났으면 멈춘 상태가 아니다.
+ */
+export type Pause = { until: string | null };
+
+export function normalizePause(raw: unknown): Pause | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const { until } = raw as Partial<Pause>;
+  if (until === null) return { until: null };
+  return typeof until === 'string' && !Number.isNaN(Date.parse(until)) ? { until } : null;
+}
+
+export function isPaused(pause: Pause | null, at: Date): boolean {
+  if (!pause) return false;
+  return pause.until === null || at.getTime() < Date.parse(pause.until);
+}
+
 export const ALL_DAYS = [0, 1, 2, 3, 4, 5, 6];
 export const WEEKDAYS = [1, 2, 3, 4, 5];
 export const MAX_QUIET_WINDOWS = 5;
@@ -82,8 +100,9 @@ export function desiredSchedule(params: {
   tz: string;
   quiet: Quiet;
   recent: RecentSlot[];
+  pause?: Pause | null;
 }): DesiredSchedule {
-  const { now, tz, quiet } = params;
+  const { now, tz, quiet, pause = null } = params;
   const days = horizonDays(quiet);
   const end = now.getTime() + days * 24 * 60 * MINUTE_MS;
   const pings: DesiredPing[] = [];
@@ -94,6 +113,7 @@ export function desiredSchedule(params: {
     if (localParts(fire, tz).minuteOfDay % 30 !== 0) continue;
     const slotStart = new Date(t - SLOT_MS);
     if (inQuiet(localParts(slotStart, tz), quiet)) continue;
+    if (isPaused(pause, fire)) continue;
     pings.push({
       slotStart: slotStart.toISOString(),
       fireAt: fire.toISOString(),

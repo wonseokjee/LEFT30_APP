@@ -4,7 +4,7 @@ import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { CATEGORY_LABEL, type Category, type SlotRow } from '@/db/types';
 import { saveSlot, tzAt } from '@/db/records';
 import { deviceTz, SLOT_MS } from '@/lib/localTime';
-import { readQuiet } from '@/scheduler/scheduler';
+import { readPause, readQuiet } from '@/scheduler/scheduler';
 import {
   continueCandidate,
   dayPrefix,
@@ -57,6 +57,7 @@ export default function RecordSheet() {
         [new Date(start - 2 * SLOT_MS).toISOString(), sheetSlot],
       );
       const quiet = await readQuiet(db);
+      const pause = await readPause(db);
       if (cancelled) return;
       setLoaded({
         slotStart: sheetSlot,
@@ -69,6 +70,7 @@ export default function RecordSheet() {
           filled: new Set(slots.map((s) => s.slot_start)),
           quiet,
           tz,
+          pause,
         }),
       });
     })().catch((e) => console.warn('record sheet load failed', e));

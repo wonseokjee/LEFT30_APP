@@ -49,7 +49,8 @@ export type EventType =
   | 'schedule_extended'
   | 'schedule_coverage'
   | 'sync_rejected'
-  | 'local_migration_failed';
+  | 'local_migration_failed'
+  | 'pause_set';
 
 export type SlotRow = {
   slot_start: string; // UTC ISO (toISOString)

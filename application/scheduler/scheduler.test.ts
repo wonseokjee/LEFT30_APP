@@ -7,13 +7,15 @@ import {
   desiredSchedule,
   horizonDays,
   inQuiet,
+  isPaused,
+  normalizePause,
   normalizeQuiet,
   WEEKDAYS,
   pingContent,
   pingsPerDay,
   MAX_PINGS,
 } from './plan';
-import { createScheduler, EXPIRY_ID, QUIET_KEY, type Notifier } from './scheduler';
+import { createScheduler, EXPIRY_ID, PAUSE_KEY, QUIET_KEY, type Notifier } from './scheduler';
 
 const SEOUL = 'Asia/Seoul';
 // 23:00~07:00 (현지, 매일)
@@ -58,6 +60,17 @@ describe('예약 계산', () => {
     expect(inQuiet(at(1 * 60, SAT), both)).toBe(true);
     expect(inQuiet(at(12 * 60, WED), both)).toBe(true);
     expect(inQuiet(at(12 * 60, SAT), both)).toBe(false);
+  });
+
+  it('(D25) 일시 중지는 until 전까지만이고, null이면 계속이다', () => {
+    const until = '2026-10-21T03:00:00.000Z';
+    expect(isPaused({ until }, new Date('2026-10-21T02:59:00Z'))).toBe(true);
+    expect(isPaused({ until }, new Date(until))).toBe(false);
+    expect(isPaused({ until: null }, new Date('2030-01-01T00:00:00Z'))).toBe(true);
+    expect(isPaused(null, NOW)).toBe(false);
+    expect(normalizePause({ until: 'x' })).toBeNull();
+    expect(normalizePause(null)).toBeNull();
+    expect(normalizePause({ until: null })).toEqual({ until: null });
   });
 
   it('예전 한 개짜리 형식과 빈 값도 목록으로 읽는다', () => {
@@ -211,6 +224,29 @@ describe('스케줄러', () => {
     expect(r.cancelled).toBeGreaterThan(0);
     expect(r.added).toBeGreaterThan(0);
     expect(r.added + r.cancelled).toBeLessThan(fake.scheduled.size);
+  });
+
+  it('(D25) 일시 중지하면 그 시각 전 칸만 빼고, 끝나면 다시 묻는다', async () => {
+    const { db, fake, scheduler } = await setup();
+    await scheduler.reschedule();
+    // 10:10에 12:00까지 멈춤 → 10:30·11:00·11:30 알림이 빠지고 12:00 알림부터 남는다
+    await setSetting(db, PAUSE_KEY, { until: '2026-10-21T03:00:00.000Z' });
+    const r = await scheduler.reschedule();
+    expect(r).toMatchObject({ status: 'ok', cancelled: 3, added: 0 });
+    expect(fake.scheduled.has('slot:2026-10-21T01:00:00.000Z')).toBe(false); // 10:30에 울릴 10:00 칸
+    expect(fake.scheduled.has('slot:2026-10-21T02:30:00.000Z')).toBe(true); // 12:00에 울릴 11:30 칸
+
+    // 다시 켜면 빠졌던 칸만 다시 건다
+    await setSetting(db, PAUSE_KEY, null);
+    expect(await scheduler.reschedule()).toMatchObject({ status: 'ok', cancelled: 0, added: 3 });
+  });
+
+  it('(D25) 다시 켤 때까지 멈추면 칸 알림과 만료 안내를 모두 지운다', async () => {
+    const { db, fake, scheduler } = await setup();
+    await scheduler.reschedule();
+    await setSetting(db, PAUSE_KEY, { until: null });
+    await scheduler.reschedule();
+    expect(fake.scheduled.size).toBe(0);
   });
 
   it('(R5) 동시에 여러 번 불러도 결과는 한 번 실행한 것과 같다', async () => {

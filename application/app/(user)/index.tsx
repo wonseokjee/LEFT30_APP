@@ -10,6 +10,7 @@ import { readQuiet } from '@/scheduler/scheduler';
 import type { Quiet } from '@/scheduler/plan';
 import { getRuntime } from '@/runtime/appRuntime';
 import DevTools from '@/components/dev/DevTools';
+import PauseSwitch from '@/components/quiet/PauseSwitch';
 
 export default function UserPage() {
   const router = useRouter();
@@ -62,6 +63,7 @@ export default function UserPage() {
               <Text style={styles.buttonText}>방해금지 시간 설정</Text>
             </TouchableOpacity>
           </View>
+          <PauseSwitch />
         </View>
         <View style={styles.contentContainer}>
           <Text style={styles.subtitle}>회원 탈퇴</Text>

@@ -79,6 +79,10 @@ describe('기록 규칙', () => {
     expect(
       emptySlotBefore({ ...base, filled: new Set(), quiet: [{ startMin: 13 * 60, endMin: 14 * 60, days: ALL_DAYS }] }),
     ).toBeNull();
+    // (D25) 14:30까지 일시 중지했으면 13:30 칸(14:00 종료)은 묻지 않은 칸이라 안내하지 않는다
+    expect(
+      emptySlotBefore({ ...base, filled: new Set(), now: at('2026-10-21T05:10:00Z'), pause: { until: '2026-10-21T05:30:00.000Z' } }),
+    ).toBeNull();
   });
 
   it('조사 로/으로를 받침에 맞춘다', () => {

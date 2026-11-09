@@ -1,7 +1,7 @@
 import type { SlotRow, SlotSource } from '@/db/types';
 import { localDate, localParts, MINUTE_MS, SLOT_MS } from '@/lib/localTime';
 import { shiftDate } from '@/record/timetable';
-import { inQuiet, type Quiet } from '@/scheduler/plan';
+import { inQuiet, isPaused, type Pause, type Quiet } from '@/scheduler/plan';
 
 // 칸 종료 후 이 시간 안에 고르면 answered·continued, 지나면 late다.
 export const ANSWER_WINDOW_MS = 60 * MINUTE_MS;
@@ -41,13 +41,14 @@ export function continueCandidate(slotStart: string, slots: SlotRow[]): SlotRow 
   );
 }
 
-// "13:30 칸이 비어 있어요" 대상: 바로 앞 두 칸 중 아직 60분 안이고, 비었고, 방해금지가 아닌 가장 최근 칸.
+// "13:30 칸이 비어 있어요" 대상: 바로 앞 두 칸 중 아직 60분 안이고, 비었고, 방해금지·일시 중지가 아닌 가장 최근 칸.
 export function emptySlotBefore(params: {
   slotStart: string;
   now: Date;
   filled: Set<string>;
   quiet: Quiet;
   tz: string;
+  pause?: Pause | null;
 }): string | null {
   const start = Date.parse(params.slotStart);
   for (const back of [1, 2]) {
@@ -56,6 +57,7 @@ export function emptySlotBefore(params: {
     if (params.now.getTime() > s + SLOT_MS + ANSWER_WINDOW_MS) return null;
     if (params.filled.has(iso)) continue;
     if (inQuiet(localParts(new Date(s), params.tz), params.quiet)) continue;
+    if (isPaused(params.pause ?? null, new Date(s + SLOT_MS))) continue;
     return iso;
   }
   return null;

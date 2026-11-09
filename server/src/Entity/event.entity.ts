@@ -13,6 +13,7 @@ export const EVENT_TYPES = [
   'schedule_coverage',
   'sync_rejected',
   'local_migration_failed',
+  'pause_set',
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 

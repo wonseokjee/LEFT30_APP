@@ -4,8 +4,10 @@ import { singleFlight } from '@/lib/singleFlight';
 import {
   desiredSchedule,
   EXPIRY_CONTENT,
+  normalizePause,
   normalizeQuiet,
   pingContent,
+  type Pause,
   type Quiet,
   type RecentSlot,
 } from './plan';
@@ -32,6 +34,12 @@ export const QUIET_KEY = 'quiet';
 // 방해금지 목록을 읽는다. 예전 한 개짜리 형식도 목록으로 바꿔 돌려준다.
 export async function readQuiet(db: Db): Promise<Quiet> {
   return normalizeQuiet(await getSetting<unknown>(db, QUIET_KEY));
+}
+export const PAUSE_KEY = 'pause';
+
+// 알림 일시 중지 값(구현 D25). 없거나 잘못된 값이면 null.
+export async function readPause(db: Db): Promise<Pause | null> {
+  return normalizePause(await getSetting<unknown>(db, PAUSE_KEY));
 }
 export const EXPIRY_ID = 'expiry';
 const EXPIRY_KEY = 'expiry_at';
@@ -70,11 +78,12 @@ export function createScheduler(opts: {
 
     const at = now();
     const quiet = await readQuiet(db);
+    const pause = await readPause(db);
     const recent = await db.all<RecentSlot>(
       'SELECT slot_start, category, source FROM slot WHERE slot_start >= ?',
       [new Date(at.getTime() - 3 * SLOT_MS).toISOString()],
     );
-    const desired = desiredSchedule({ now: at, tz: opts.getTz(), quiet, recent });
+    const desired = desiredSchedule({ now: at, tz: opts.getTz(), quiet, recent, pause });
 
     // 아직 울리지 않은 예약만 비교한다.
     const existing = await db.all<ScheduledRow>(
