@@ -1,17 +1,22 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { GRAY_5, GRAY_7 } from '@/assets/palette';
+import { GRAY_0, GRAY_5, GRAY_8 } from '@/assets/palette';
 import { CATEGORY_LABEL, type SlotRow } from '@/db/types';
 import { deviceTz, localParts, MINUTE_MS } from '@/lib/localTime';
 import { CATEGORY_COLOR, textOn } from '@/record/categoryStyle';
+import { hhmm } from '@/record/recordLogic';
 import { dayColumn, daySlots, isPastSlot, ROWS_PER_DAY, shiftDate, type Cell } from '@/record/timetable';
 import { getRuntime } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 
 const MAX_SCALE = 1.3;
 const ROW = 28;
-const LABEL_WIDTH = 32;
+const LABEL_WIDTH = 44;
+const PAD = 16;
+const PAD_TOP = 8;
+const GAP = 8;
+const NOW_BOX = 20;
 
 type Loaded = { yesterday: Cell[]; today: Cell[] };
 
@@ -20,7 +25,8 @@ function rowLabel(row: number): string {
   return row % 2 === 0 ? `${h}시 칸` : `${h}시 30분 칸`;
 }
 
-// 시간표(디자인 리뷰 D7, D21): 어제·오늘 두 열. 표시는 채운 칸의 카테고리 색 블록과 '지금' 선 하나뿐이다.
+// 시간표(디자인 리뷰 D7, D21, D24): 어제·오늘 두 열. 채운 칸의 카테고리 색 블록, 1시간마다 얇은 가로줄,
+// 두 열을 가로지르는 흰 '지금' 선과 그 옆 지금 시각.
 // 끝난 칸을 누르면 기록 시트가 열린다. 60분이 지난 칸은 late로 저장된다(sourceFor).
 export default function Timetable() {
   const sheetSlot = useAppStore((s) => s.sheetSlot);
@@ -74,7 +80,7 @@ export default function Timetable() {
 
   if (!loaded) return <View style={styles.container} />;
 
-  const column = (cells: Cell[], isToday: boolean) => (
+  const column = (cells: Cell[]) => (
     <View style={styles.column}>
       {cells.map((cell) => {
         const next = cells[cell.row + 1];
@@ -108,7 +114,6 @@ export default function Timetable() {
           </Pressable>
         );
       })}
-      {isToday && <View pointerEvents='none' style={[styles.nowLine, { top: nowTop }]} />}
     </View>
   );
 
@@ -131,8 +136,17 @@ export default function Timetable() {
             </Text>
           ))}
         </View>
-        {column(loaded.yesterday, false)}
-        {column(loaded.today, true)}
+        {Array.from({ length: ROWS_PER_DAY / 2 }, (_, h) => (
+          <View key={h} pointerEvents='none' style={[styles.hourLine, { top: PAD_TOP + h * 2 * ROW }]} />
+        ))}
+        {column(loaded.yesterday)}
+        {column(loaded.today)}
+        <View pointerEvents='none' style={[styles.now, { top: PAD_TOP + nowTop - NOW_BOX / 2 }]}>
+          <Text style={styles.nowText} maxFontSizeMultiplier={1} numberOfLines={1}>
+            {hhmm(now, tz)}
+          </Text>
+          <View style={styles.nowLine} />
+        </View>
       </ScrollView>
     </View>
   );
@@ -156,10 +170,17 @@ const styles = StyleSheet.create({
   },
   body: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: PAD,
+    paddingTop: PAD_TOP,
     paddingBottom: 24,
-    gap: 8,
+    gap: GAP,
+  },
+  hourLine: {
+    position: 'absolute',
+    left: PAD + LABEL_WIDTH + GAP,
+    right: PAD,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: GRAY_8,
   },
   hours: {
     width: LABEL_WIDTH,
@@ -194,11 +215,26 @@ const styles = StyleSheet.create({
   blockText: {
     fontSize: 13,
   },
-  nowLine: {
+  now: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: GRAY_7,
+    left: PAD,
+    right: PAD,
+    height: NOW_BOX,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // 검은 바탕으로 그 자리의 시각 숫자를 가린다.
+  nowText: {
+    width: LABEL_WIDTH + GAP,
+    height: NOW_BOX,
+    lineHeight: NOW_BOX,
+    backgroundColor: 'black',
+    color: GRAY_0,
+    fontSize: 13,
+  },
+  nowLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: GRAY_0,
   },
 });
