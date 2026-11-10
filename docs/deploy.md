@@ -66,13 +66,13 @@
 ## 6. 앱 빌드와 설치 🤖👤
 앱 ID를 나눴다(D28). 일상용 APK는 `com.left30m.app`("LEFT30"), 개발 빌드는 `com.left30m.app.dev`("LEFT30 개발")라 폰에 나란히 깔린다.
 - [x] `eas.json` preview·production에 `APP_VARIANT=release`, `EXPO_PUBLIC_API_URL=https://api.left30.app` 🤖
-- [ ] Expo 로그인 👤: `npx eas-cli login`
-- [ ] EAS 환경 변수(preview 환경) 👤: `EXPO_PUBLIC_KAKAO_APP_KEY`. `application/.env`는 업로드되지 않는다.
-- [ ] EAS `preview` 프로필로 APK 빌드 🤖: `npx eas-cli build -p android --profile preview`
+- [x] Expo 로그인 👤: `npx eas-cli login`
+- [x] EAS 환경 변수(preview 환경) 👤: `EXPO_PUBLIC_KAKAO_APP_KEY`. `application/.env`는 업로드되지 않는다.
+- [x] EAS `preview` 프로필로 APK 빌드 🤖: `npx eas-cli build -p android --profile preview`
   - `eas.json`에 `requireCommit: true`를 둔다(D29). Windows의 EAS CLI 16.28은 `.gitignore`를 무시하고 `.env`와 `android/build`까지 올렸다. 그 탓에 첫 두 빌드는 PC 경로가 박힌 autolinking 정보로 Gradle에서 실패했다. 이제 커밋된 파일만 올라가니 빌드 전에 커밋한다.
   - EAS 명령은 `application/.env`를 읽지 않는다. 로컬에서 `app.config.ts`를 평가할 때 `EXPO_PUBLIC_API_URL`과 `EXPO_PUBLIC_KAKAO_APP_KEY`(아무 값)를 환경 변수로 잠깐 넣고 실행한다. 실제 빌드는 EAS preview 환경 값을 쓴다.
-- [ ] 카카오 콘솔 👤: Android 플랫폼에 `com.left30m.app`과 EAS 서명 키 해시, `com.left30m.app.dev`와 디버그 키 해시를 등록한다. 빠뜨리면 로그인이 안 된다.
-- [ ] 폰에서 옛 개발 빌드(`com.left30m.app`, 이름 left30app)를 지우고 APK 설치 → 카카오 로그인 → 온보딩
+- [x] 카카오 콘솔 👤: Android 플랫폼에 `com.left30m.app`과 EAS 서명 키 해시, `com.left30m.app.dev`와 디버그 키 해시를 등록한다. 빠뜨리면 로그인이 안 된다.
+- [x] 폰에서 옛 개발 빌드(`com.left30m.app`, 이름 left30app)를 지우고 APK 설치 → 카카오 로그인 → 온보딩
 - [ ] 개발 빌드 다시 만들기: 앱 ID가 바뀌어 `npx expo prebuild --clean` 후 `npx expo run:android`
 
 ## 7. 일상 테스트 시작 확인
@@ -85,3 +85,4 @@
 - 2026-11-10: 다시 시도했지만 또 막혔다. Vercel + Neon으로 바꿨다. SSH 키(`C:\Users\wsji9\.ssh\left30_oracle`)는 이제 쓰지 않는다.
 - 2026-11-10: Vercel 프로젝트 `left-30-app`(Production 브랜치 deploy/server), Cloudflare CNAME `api`(DNS only). 첫 배포는 `'src/...'` import 때문에 함수가 시작하지 못해 상대 경로로 고쳤다. `https://api.left30.app/health` 200 확인.
 - 2026-11-10: 첫 EAS 빌드 두 번에 `server/.env.neon` 등 `.env` 파일이 함께 올라갔을 가능성이 높아 Neon 비밀번호를 바꾸기로 했다(D30).
+- 2026-11-10: EAS 빌드 97123b4c(커밋 파일만 업로드)로 APK 성공. 카카오 키 해시 `IkkjQ8LyO2hA2Ndrf/JJGgClix8=`를 네이티브 앱 키 Android 설정에 등록. S23에 adb로 설치, 카카오 로그인 성공, Neon에 user 1·slot 1 동기화 확인.
