@@ -1,10 +1,10 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { User } from 'src/Entity/user.entity';
-import { Slot } from 'src/Entity/slot.entity';
-import { Plan } from 'src/Entity/plan.entity';
-import { AppEvent } from 'src/Entity/event.entity';
+import { User } from '../Entity/user.entity';
+import { Slot } from '../Entity/slot.entity';
+import { Plan } from '../Entity/plan.entity';
+import { AppEvent } from '../Entity/event.entity';
 import { KakaoApiService } from './kakao/kakaoapi.service';
 import { AuthJWTService } from './JWT/auth.jwt.service';
 
