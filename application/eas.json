@@ -1,7 +1,8 @@
 {
   "cli": {
     "version": ">= 15.0.12",
-    "appVersionSource": "remote"
+    "appVersionSource": "remote",
+    "requireCommit": true
   },
   "build": {
     "development": {
@@ -10,8 +11,13 @@
     },
     "preview": {
       "distribution": "internal",
+      "environment": "preview",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "APP_VARIANT": "release",
+        "EXPO_PUBLIC_API_URL": "https://api.left30.app"
       }
     },
     "production": {
@@ -21,7 +27,9 @@
         "withoutCredentials": true
       },
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "APP_VARIANT": "release",
+        "EXPO_PUBLIC_API_URL": "https://api.left30.app"
       }
     }
   },
