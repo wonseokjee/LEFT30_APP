@@ -75,7 +75,7 @@
 
 # 보류 — 결정 대기
 
-- [ ] **자동 채우기(`inputPreviousAction`) 처리 방식** — 보류 (2026-10-13 office-hours)
+- [x] **자동 채우기(`inputPreviousAction`) 처리 방식** — 해소 (2026-11-11 /plan-ceo-review): 만들지 않고 집중 블록·놓친 칸 묶어 채우기로 대체. `docs/designs/left30-focus-block.md`
   - 문제: 응답 없는 칸을 직전 기록으로 복사 → 2주 검증 지표(매일 응답 여부)와 계획 대비 실제 데이터가 부풀려짐
   - 결정 조건: 푸시 알림에서 "그대로 계속"을 얼마나 간단히 저장할 수 있는지
   - 확인할 것: `expo-notifications` 알림 액션 버튼(카테고리)으로 앱을 열지 않고 "계속" 1탭 저장이 가능한지 (Android, 앱 종료 상태 포함)
@@ -134,3 +134,6 @@
 - [ ] `application/android_backup/` 삭제 (네이티브 폴더는 EAS prebuild로 생성)
 - [ ] 루트 `package-lock.json` 잔여 파일 삭제
 - [ ] 루트 README: 모노레포 구조, 로컬 실행 방법
+
+- [ ] **시간표 오늘 열에 Todo 계획 블록을 옅은 색으로 표시(CP-2)** — 연기 (2026-11-11 /plan-ceo-review)
+  - 계획 화면 디자인(총량 + Todo, EXP-1b)과 함께 /plan-design-review에서 정한다. `docs/designs/left30-focus-block.md`
