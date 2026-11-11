@@ -137,3 +137,6 @@
 
 - [ ] **시간표 오늘 열에 Todo 계획 블록을 옅은 색으로 표시(CP-2)** — 연기 (2026-11-11 /plan-ceo-review)
   - 계획 화면 디자인(총량 + Todo, EXP-1b)과 함께 /plan-design-review에서 정한다. `docs/designs/left30-focus-block.md`
+
+- [ ] **기록 직후 토스트에 [집중] 버튼을 더할지** — 실사용 뒤 다시 묻기 (2026-11-11 /plan-eng-review D6)
+  - 지금은 홈 [집중] 하나만 둔다. 알림에 답한 직후 블록을 켜고 싶은 일이 잦으면 토스트에 더한다. `docs/designs/left30-focus-block.md` E5

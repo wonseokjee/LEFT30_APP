@@ -67,10 +67,12 @@
 
 Approval readiness: PASS — MODE(D1), UX-1(사용자 지시), UX-2(D3 메모 뒤 "a안으로 하자"), EXP-1·EXP-1a(D6), EXP-1b(D7 메모), UX-3(사용자 지시), S1(D9·D10), SPEC-1(D15), S1-COUNT(D16), CP-1(D11), CP-2 연기(D12), CP-3(D13), CP-4 뺌(D14), DOC(D17). CORE-1·DEF-1은 Eng 리뷰 소유 보류, 계획 블록과 총량 합치는 규칙은 디자인 리뷰 소유 보류. 승인 없이 본문에 들어간 변경 없음.
 
+| EXP-2 (알림 버튼 [그대로 계속 · 카테고리]) | 사용자 질문 2026-11-11 "팝업알림창에서 바로 선택 할 수는 없나? 앱 들어가서 또 누르는게 번거로운데" | 구현 순서 3 취소(위 결정) | 다음 30분 알림에 [그대로 계속 · 직전 카테고리] 버튼. 앱을 열지 않고 저장(`expo-task-manager`). 기록할 때마다 다음 알림을 다시 거는 기존 경로(`RecordSheet.tsx`의 rescheduleNow, `plan.ts` 맥락 문구)로 버튼 카테고리를 정한다. 먼저 개발 앱에서 앱 완전 종료 상태로 실험하고, 통과하면 범위에 넣는다. 실패하면 앱이 열리며 저장하는 무의존 방식으로 물러남 | approved(실험 조건부) | D18 답 "A. 앱 안 열고 저장 + 먼저 실험 (recommended)". 구현 순서 3 취소를 되돌림(목적이 자동 채우기 결정에서 1탭 답으로 바뀜) |
+
 ### 두 블록 정의 (확정)
 | | 집중 블록 | 계획 블록 |
 |---|---|---|
-| 만드는 곳 | 홈 [집중], 기록 직후 토스트 [계속] | Todo 탭 |
+| 만드는 곳 | 홈 [집중] (토스트 입구는 E5로 보류) | Todo 탭 |
 | 뜻 | 실제로 지금 하는 일 | 하려고 한 일(계획) |
 | 블록 시간 알림 | 없음 | 없음 |
 | 끝 | A 시트 | A 시트. 여기서 답해야 실제 기록 |
@@ -103,7 +105,7 @@ Approval readiness: PASS — MODE(D1), UX-1(사용자 지시), UX-2(D3 메모 �
 ### 사용자 흐름
 ```
             ┌────────────── 집중 블록 (지금부터) ──────────────┐
- 30분 알림 → 기록 시트 → 토스트 [계속] ┐                       │
+ (토스트 입구는 E5로 보류)             ┐                       │
  홈 [집중] → 카테고리 → 길이 ──────────┴→ 블록 진행 중          │
                                           (알림 없음, 홈에       │
                                            "업무 · 15:30까지     │
@@ -129,7 +131,7 @@ Approval readiness: PASS — MODE(D1), UX-1(사용자 지시), UX-2(D3 메모 �
 
 ### 구현 단위 (Eng 리뷰에서 세부 결정)
 1. 블록 저장과 스케줄러: 블록 구간의 30분 알림을 빼고 끝 알림 하나를 건다. D25 일시 중지의 "건너뛸 구간" 경로를 블록 목록까지 받도록 넓힌다.
-2. 집중 블록: 토스트 [계속], 홈 [집중], 홈 진행 표시와 [끝내기], 끝 시트 A, 연장.
+2. 집중 블록: 홈 [집중](토스트 입구는 E5로 보류), 홈 진행 표시와 [끝내기], 끝 시트 A, 연장.
 3. 계획 블록: Todo 탭 새로 만들기(옛 서버용 Todo 코드는 쓰지 않음), 어제 블록 가져오기(CP-3), 총량 계획과 함께 저장.
 4. 놓친 칸 채우기: 연속 빈칸 묶음 시트, 계획대로 기본값(CP-1), "따로 채울게요" 뒤 같은 칸은 다시 묻지 않음.
 5. S1 집계: S1-COUNT(답한 행동이 있던 서로 다른 30분 시간대 수) 계산용 이벤트 정의.
@@ -237,7 +239,7 @@ Approval readiness: PASS — MODE(D1), UX-1(사용자 지시), UX-2(D3 메모 �
 ## NOT in scope
 - CP-2 시간표 계획 표시: 디자인 리뷰 뒤로 연기(D12).
 - CP-4 5분 전 예고: 뺌(D14).
-- 알림 액션 버튼 실험(구현 순서 3)과 `expo-task-manager`: 이 계획으로 대체되어 하지 않음.
+- (EXP-2로 되돌림) 알림 액션 버튼은 실험 뒤 넣는다.
 - 자동 채우기(`inferred`): 만들지 않음.
 
 ## What already exists
@@ -328,21 +330,171 @@ Approval readiness: PASS — MODE(D1), UX-1(사용자 지시), UX-2(D3 메모 �
   +====================================================================+
 ```
 
+## Eng Review (/plan-eng-review, 2026-11-11)
+
+대상: 이 문서(`docs/designs/left30-focus-block.md`)의 확정 범위. 보고서 파일도 이 문서다.
+
+### Scope Challenge
+- 이미 있는 것: 건너뛸 구간 판정(`application/scheduler/plan.ts:17-28` `Pause`·`isPaused`, `:116` `if (isPaused(pause, fire)) continue;`), 빈 칸 찾기(`application/record/recordLogic.ts:44` `emptySlotBefore`), 직전 카테고리(`recordLogic.ts:30` `continueCandidate`), 동기화 큐(`application/db/schema.ts:49` `kind TEXT NOT NULL CHECK (kind IN ('slot', 'plan', 'event'))`), 계획 총량(`application/db/schema.ts:24-29` `plan(local_date, category, target_minutes)`, 서버 `server/src/Entity/plan.entity.ts:8-17`).
+- 복잡도(추정): 앱 약 10~12개 파일(스케줄러 2, 기록 로직 1, 기록 시트 1, 홈 1, 새 끝 시트 1, Todo 탭·컴포넌트 2~3, DB 스키마·마이그레이션 1, 동기화 1, 알림 핸들러 1), 서버 3개(엔티티, 마이그레이션, 동기화 서비스). 새 모듈 1~2개(블록 저장, 백그라운드 작업 EXP-2). 8개 이상이라 복잡도 질문 대상.
+- 검색: 웹 검색 생략, 기존 지식으로 진행(Expo SDK 53 `expo-task-manager` + `Notifications.registerTaskAsync`는 Android에서 앱 종료 상태 알림 액션에 작업을 실행한다는 라이브러리 주석을 이미 확인: `node_modules/expo-notifications/build/registerTaskAsync.d.ts:3`).
+
+Scope record: feature answers: 자르는 기능 없음(제안 없음); structure: B Smaller arrangement (D1 답 "Smaller arrangement (recommended)"); accepted scope: CEO 확정 범위 전체, 파일 배치는 RecordSheet 하나에 3모드(칸 기록 / 블록 끝 / 놓친 칸 묶음), 블록 로직은 `application/record/blockLogic.ts` 하나, 스케줄러는 기존 `plan.ts`·`scheduler.ts` 수정; pending remedies: E1. Scope Challenge 결과: scope accepted as-is.
+
+### Decision ledger
+
+### E1: 블록 저장 구조 (CORE-1)
+Finding: 1, P1, confidence 9/10, application/db/schema.ts:24-29·49, reviewer: Claude
+Plan baseline: CORE-1 deferred(Eng 소유). T5 "블록 저장·동기화", Section 1 권장 "kind(focus|plan)와 상태를 두는 저장 구조"
+Runtime evidence: 블록을 담을 테이블 없음. plan은 (local_date, category) 기본키라 시각을 담을 수 없음. 동기화 큐 kind는 CHECK로 slot·plan·event만 허용
+Comparison grid:
+| 항목 | 현재 | A | B | C |
+|---|---|---|---|---|
+| 저장 위치 | 없음 | 새 `block` 테이블(앱 SQLite + 서버 Postgres) | 앱 SQLite `block` 테이블만(서버 동기화 안 함) | 기존 `event`에 블록을 이벤트로만 기록 |
+| 기기 변경·재설치 | — | 계획 블록 복원됨 | 계획 블록 사라짐(칸 기록은 남음) | 복원 어려움(이벤트 재생 필요) |
+| 마이그레이션 | — | 앱 user_version 1개 + 서버 1개, 큐 kind에 `block` 추가 | 앱 user_version 1개 | 없음 |
+| 노력 | — | M (human ~1.5d / CC ~1.5h) | S (human ~0.5d / CC ~40min) | S |
+Question D2:
+D2 — 블록(집중·계획)을 어디에 저장할까요?
+Header: 블록 저장
+Options:
+A) 앱 + 서버에 새 block 테이블 (recommended)
+B) 앱에만 block 테이블
+C) 이벤트로만 기록
+
+State: approved
+Actual answer: A) 앱 + 서버에 새 block 테이블 (recommended), D2 답
+Accepted scope: 앱 SQLite와 서버 Postgres에 `block`(id, kind focus|plan, category, title, start, end, state, client_updated_at, updated_at) 테이블. 앱 user_version 마이그레이션 1개(동기화 큐 kind CHECK에 `block` 추가 포함), 서버 마이그레이션 1개, 동기화 API에 block 항목(항목별 검증, R3). 서버 먼저 배포
+History: none
+
+### E2: 블록·묶음 칸의 source 값
+Finding: 2, P1, confidence 9/10, application/record/recordLogic.ts:26 `if (now.getTime() > end + ANSWER_WINDOW_MS) return 'late';`, server/src/migrations/1792540800000-Init.ts:27 `('answered','continued','late','inferred')`, reviewer: Claude
+Plan baseline: CORE-1(묶음 칸 source)은 Eng 소유. CEO D2에서 사용자가 데이터 질문 대신 UX를 원함
+Runtime evidence: 지금 규칙이면 2시간 블록 끝에 답할 때 앞 칸들은 60분이 지나 `late`가 된다. S1은 이제 이벤트 시간대로 세므로 source는 지표가 아니라 기록의 출처 표시 용도
+Comparison grid:
+| 항목 | 현재 | A | B |
+|---|---|---|---|
+| 집중 블록 칸, 계획 블록 끝 확인 칸 | 규칙 없음(시간에 따라 late) | `declared` | `continued`(60분 넘으면 `late`) |
+| 놓친 칸 묶음 | 규칙 없음 | `batch` | `answered`/`late` |
+| 마이그레이션 | — | E1 서버 마이그레이션에 CHECK 값 2개 추가 | 없음 |
+Question D3:
+D3 — 블록과 묶음으로 채운 칸에 '어떻게 채웠는지' 표시를 따로 둘까요?
+Header: 칸 출처 표시
+Options:
+A) 새 값 declared·batch (recommended)
+B) 기존 값 재사용
+
+State: approved
+Actual answer: A) 새 값 declared·batch (recommended), D3 답
+Accepted scope: `SlotSource`에 `declared`(집중 블록 칸, 계획 블록 끝에서 [여기서 끝]으로 확인한 칸)와 `batch`(놓친 칸 묶음) 추가. 서버 CHECK 값은 E1 마이그레이션에 함께. 설계서 source 표 갱신. 칸을 고칠 때 source 유지 규칙은 그대로
+History: none
+
+### E3~E6: DEF-1 기본값 (한 번에 묻되 질문은 각각)
+Finding: 3, P2, confidence 8/10, application/scheduler/plan.ts:51 `export function inQuiet(...)`, application/record/recordLogic.ts:44 `emptySlotBefore`, reviewer: Claude
+Plan baseline: DEF-1 pending(Eng 소유), 문서 Section 4의 권장 기본값
+Runtime evidence: 방해금지 판정은 칸 단위(inQuiet). 빈 칸 찾기는 앞 두 칸만 본다
+Comparison grid:
+| 항목 | 현재 | 권장 | 대안 |
+|---|---|---|---|
+| E3 블록이 방해금지를 넘을 때 | 미정 | 방해금지 시작에서 블록을 자르고 그 시각에 끝 알림 | 자르고 끝 알림 없음(다음 열기 때 끝 시트) / 블록이 방해금지보다 우선 |
+| E4 놓친 칸 묶음 범위 | 앞 두 칸 | 방해금지·일시 중지·집중 블록·기록된 칸에서 끊기는 연속 빈칸, 최대 10시간(20칸) | 오늘 칸만 / 제한 없음 |
+| E5 토스트 시작 버튼 이름 | 미정 | "집중" | "계속하기" / "시간 정하기" |
+| E6 나머지 기본값 | 문서 DEF-1 | 그대로 승인(블록 길이 1·2·3시간, 고치기→시간표, 집중 시작 시 겹친 계획 블록 cancelled, awaiting_answer는 다음 평소 알림 시각이나 앱 열기 중 먼저, 따로 채울게요는 기기 로컬 setting, 끝 알림 잃은 집중 블록은 앱 열 때 늦은 끝 시트) | 하나씩 다시 보기 |
+Question D4~D7: 아래 Header별로 각각
+Header: 방해금지 겹침 / 묶음 범위 / 토스트 이름 / 나머지 기본값
+State: approved
+Actual answer: E3 D4 "A) 자르고 그 시각에 끝 알림 (recommended)" / E4 D5 기타 "최대 5시간" / E5 D6(재질문, UX-1 다시 엶) 기타 "일단 홈에만 하고 나중에 실제 테스트때 또 언급해보자" / E6 D7 "A) 그대로 승인 (recommended)"
+Accepted scope: E3 집중 블록이 방해금지 시작을 넘으면 그 시각에서 끝나고 그때 끝 알림 1개(블록 길이 선택지에서 미리 잘라 보여 줌). E4 놓친 칸 묶음은 방해금지·일시 중지·집중 블록·기록된 칸에서 끊기는 연속 빈칸, 최대 5시간(10칸). 그보다 오래된 칸은 시간표에서 채움. E5 집중 블록 시작은 홈 [집중] 하나만. 기록 직후 토스트는 지금 그대로(기록 · 메모 추가 · 되돌리기), 실기기 사용 때 다시 묻기(TODO). UX-1의 토스트 입구는 이 답으로 빠짐. E6 블록 길이 1·2·3시간, 고치기→시간표 그 구간, 집중 시작 시 겹친 계획 블록 cancelled, awaiting_answer는 다음 평소 알림 시각이나 앱 열기 중 먼저 오는 때 no_answer, 따로 채울게요는 기기 로컬 setting, 끝 알림 잃은 집중 블록은 앱 열 때 늦은 끝 시트
+History: none
+
+### Section 1: 아키텍처
+```
+ 홈 [집중] ─┐                      ┌─ block (앱 SQLite, E1) ── sync_queue kind 'block' ─▶ 서버 block (E1)
+ Todo 탭 ───┼─▶ blockLogic.ts ─────┤
+ 끝 시트 ───┘   (상태 기계, 칸 채움) └─ slot source declared/batch (E2)
+                    │
+                    ▼
+ desiredSchedule(now, tz, quiet, recent, pause, blocks)  ── 건너뛸 구간 = pause + active/planned 블록
+   └─ 30분 알림 + block_end 알림(kind 'block_end')  ── 예약 상한 MAX_PINGS 안에서 block_end 몫을 먼저 뺌
+                    │
+ pushNotificationHandler: kind 'ping' → 칸 시트 / 'block_end' → 끝 시트 모드 / 'expiry' → 그대로
+ 앱 열기(appRuntime) → 지난 블록 정리(늦은 끝 시트) → 놓친 칸 묶음(최대 10칸, E4)
+ EXP-2(실험 통과 뒤): 커스텀 entry → registerTaskAsync → 백그라운드에서 [그대로 계속] 저장
+```
+- [P1] (confidence: 9/10) application/scheduler/plan.ts:98-116 — `desiredSchedule`은 `pause?: Pause | null` 하나만 받고 `if (isPaused(pause, fire)) continue;`로 거른다. 블록 구간을 넣으려면 "건너뛸 구간 목록"으로 넓혀야 한다. 승인된 T1 범위 안의 필수 구현(새 질문 없음).
+- [P1] (confidence: 9/10) application/scheduler/plan.ts:110 `pings.length < MAX_PINGS` — 끝 알림이 같은 상한(398)을 쓴다. 끝 알림을 먼저 세고 남은 몫으로 30분 알림을 채워야 기간이 조용히 줄어든 것을 알 수 있다(만료 안내 알림이 그 기간 끝으로 따라옴). T1 범위.
+- [P1] (confidence: 9/10) application/components/pushNotification/pushNotificationHandler.tsx:18 `if (data?.kind === 'ping' ...)` — `block_end` 분기가 없다. D23 규칙(앱 안이면 시트 바로)을 그대로 따른다. T2 범위.
+- [P2] (confidence: 8/10) application/package.json:3 `"main": "expo-router/entry"` — EXP-2의 `TaskManager.defineTask`는 번들 최상단에서 정의돼야 앱이 꺼진 상태 실행에 잡힌다. 커스텀 entry(작업 정의 import 뒤 `expo-router/entry`)가 필요하다. 백그라운드 실행에서는 `getRuntime()`이 초기화되지 않았을 수 있어 DB를 직접 열어야 한다. 실험 항목으로 확인(EXP-2 승인 범위).
+- 보안: 새 서버 입력은 block 하나. 항목별 검증(R3)에 시작<끝, 길이 24시간 이하, 제목 길이 상한, 사용자 식별은 JWT `sub`만. 기존 계약 안이라 새 질문 없음.
+- 실패 시나리오: 서버 미배포 상태에서 새 앱이 block을 보내면 항목별 rejected → dead-letter(R3). 서버 먼저 배포(E1 범위).
+Dispositions: 4건 모두 승인된 범위의 필수 구현(T1·T2·EXP-2·E1), 새 결정 없음.
+
+### Section 2: 코드 품질
+- [P2] (confidence: 9/10) application/record/recordLogic.ts:44 `export function emptySlotBefore(` — 앞 두 칸만 보는 함수. 놓친 칸 묶음(E4, 최대 10칸)과 같은 일을 하므로 하나의 "연속 빈칸 찾기"로 넓히고 기존 기록 시트 줄도 그것을 쓴다(호출부: RecordSheet.tsx:67). 승인된 D1 배치(blockLogic.ts·recordLogic.ts) 안.
+- [P2] (confidence: 9/10) application/scheduler/plan.ts:26 `export function isPaused(` — 블록 판정과 같은 모양. 건너뛸 구간 판정 하나로 합친다(호출부: plan.ts:116, recordLogic.ts:60).
+- [P3] (confidence: 9/10) application/components/todo/*, application/api/todoApi.tsx — 옛 서버 API용 Todo 코드. 새 Todo 탭으로 교체하며 지운다(CEO Section 5).
+Dispositions: 모두 승인된 구조(D1) 안의 구현 방식, 새 결정 없음.
+
+### Section 3: 테스트
+테스트 도구: jest + node:sqlite(`application/test/nodeDb.ts`), 서버 e2e(실제 Postgres).
+```
+CODE PATHS                                              USER FLOWS
+[+] scheduler/plan.ts desiredSchedule                   [+] 집중 블록
+  ├── [GAP] 블록 구간 30분 알림 제외                       ├── [GAP] 홈 [집중] → 길이 → 홈 표시 → 끝 알림 → 끝 시트
+  ├── [GAP] block_end 1개, 연장 시 이동                    ├── [GAP] [끝내기]: 끝난 칸만 declared
+  ├── [GAP] 방해금지 시작에서 자름(E3)                     └── [GAP] 앱 꺼진 동안 끝남 → 늦은 끝 시트
+  ├── [GAP] 상한: block_end를 먼저 셈                    [+] 계획 블록(Todo)
+  └── [★★★ TESTED] pause 구간 제외 — scheduler.test.ts      ├── [GAP] 저장·겹침 거절·어제 가져오기(CP-3)
+[+] record/blockLogic.ts                                   └── [GAP] 끝 답 없음 → no_answer → 놓친 칸(CP-1)
+  ├── [GAP] 상태 전이 planned→active→awaiting→ended      [+] 놓친 칸 묶음
+  └── [GAP] 금지 전이(ended→active)                        ├── [GAP] 경계(방해금지·일시 중지·집중 블록·기록 칸)에서 끊김, 최대 10칸
+[+] record/recordLogic.ts                                  ├── [GAP] 한 번에 채움 = batch, 한 트랜잭션
+  ├── [GAP] sourceFor: declared·batch                      └── [GAP] 따로 채울게요 뒤 다시 안 물음
+  └── [★★ TESTED] emptySlotBefore — recordLogic.test.ts  [+] EXP-2 [→실기기] 앱 완전 종료 상태 버튼 저장
+[+] sync: block 항목                                      [+] S1-COUNT 이벤트 → 서로 다른 30분 시간대 수
+  └── [GAP] [→E2E] 서버 block 검증·upsert·rejected
+COVERAGE: 2/22 paths tested  |  GAPS: 20 (1 E2E, 1 실기기)
+```
+- 모든 GAP은 승인된 동작의 필수 증명이라 새 질문 없이 계획에 넣는다(Test Plan Artifact 참조).
+- 회귀 위험: `emptySlotBefore`를 넓히면 기존 "13:30 칸이 비어 있어요" 줄이 바뀐다. 기존 recordLogic.test.ts의 앞 두 칸 사례를 그대로 통과해야 한다(CRITICAL, 기존 동작 보존).
+- 회귀 위험: `desiredSchedule` 인자 변경. 기존 scheduler.test.ts 전부 그대로 통과(CRITICAL).
+Dispositions: 테스트 요구는 승인 범위의 필수 증명, 새 결정 없음.
+
+### Section 4: 성능
+- 예약 계산은 최대 398개 × 건너뛸 구간 수(하루 몇 개). 무시 가능.
+- 놓친 칸 묶음은 최근 10칸 조회 1번. 블록 목록은 오늘·어제 범위 조회, `block(start)` 인덱스 하나면 충분(서버는 기존 ENG-3처럼 `(user_id, updated_at)`).
+No issues found.
+
+### Outside Voice
+- codex: unavailable. gstack codex 확인 스크립트가 Bun 1.3.11 충돌로 실행되지 않음. 네이티브 대체는 이 세션에 TaskOutput 도구가 없어 실행하지 않음. no completed external review.
+
+### Approval readiness
+Approval readiness: PASS — D1(구조 Smaller arrangement), E1(D2 A), E2(D3 A), E3(D4 A), E4(D5 "최대 5시간"), E5(D6 "일단 홈에만…"), E6(D7 A). 섹션 1~4 발견은 모두 승인 범위의 필수 구현·증명. 미결: EXP-2는 실험 결과 조건부, 계획 블록과 총량 합치는 규칙은 디자인 리뷰 소유.
+
+### Eng 구현 순서
+1. 서버: block 엔티티·마이그레이션(source CHECK에 declared·batch 포함), 동기화 항목 검증, e2e.
+2. 앱 DB: user_version 마이그레이션(block 테이블, sync_queue kind 'block').
+3. 스케줄러: 건너뛸 구간 일반화, block_end, 상한, 방해금지 자르기.
+4. blockLogic + RecordSheet 3모드(칸 / 블록 끝 / 묶음) + 홈 [집중]·진행 표시.
+5. Todo 탭 교체 + CP-3, 옛 Todo 코드 삭제.
+6. 놓친 칸 묶음 + CP-1, S1-COUNT 이벤트.
+7. EXP-2 실험(개발 앱, 앱 완전 종료) → 통과 시 알림 버튼.
+8. 설계서 T6 나머지(S3 분모, source 표, 계획 절).
+
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
-| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 (이 기능) | ISSUES OPEN | 4 proposals, 2 accepted, 1 deferred |
-| Outside Review | codex (`/plan-ceo-review` outside voice) | Independent 2nd opinion | 1 | unavailable | Bun 1.3.11 충돌로 codex 확인 실패, 대체 도구 없음, no completed external review |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 0 (이 기능) | — | — |
-| Design Review | `/plan-design-review` | UI/UX gaps | 0 (이 기능) | — | — |
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | ISSUES OPEN | 4 proposals, 2 accepted, 1 deferred (로그 미저장: Bun 충돌) |
+| Outside Review | codex (CEO·Eng outside voice) | Independent 2nd opinion | 2 | unavailable | Bun 1.3.11 충돌로 codex 확인 실패, 대체 도구 없음, no completed external review |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | CLEAR | 9 issues, 0 critical gaps (로그 미저장: Bun 충돌) |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
-- **OUTSIDE COVERAGE:** codex, plan-review, unavailable(probe가 Bun 충돌로 실패). 네이티브 대체(Plan 하위 에이전트)는 TaskOutput 도구가 없어 실행하지 않음. 별도로 스펙 리뷰 하위 에이전트 3회(최종 9/10 PASS)는 완료했으나 외부 리뷰로 치지 않음.
-- **VERDICT:** CEO 범위 결정 완료(남은 결정은 Eng·디자인 소유). eng review required.
+- **OUTSIDE COVERAGE:** codex, CEO·Eng plan-review 모두 unavailable(probe Bun 충돌). CEO 단계 스펙 리뷰 하위 에이전트 3회(최종 9/10 PASS)는 외부 리뷰로 치지 않음.
+- **VERDICT:** ENG CLEARED — 구현 가능(Eng 구현 순서 1~8). 계획 화면은 디자인 리뷰 필요.
 
 **UNRESOLVED DECISIONS:**
-- CORE-1: 블록·묶음 칸 저장 구조와 source 값 (소유: /plan-eng-review)
-- DEF-1: 블록 길이, 방해금지 겹침, 토스트 버튼 이름, 날짜를 넘는 묶음 상한 등 기본값 (소유: /plan-eng-review)
 - 계획 블록 시간과 총량 목표를 합치는 규칙, 계획 화면 디자인(EXP-1b), CP-2 (소유: /plan-design-review)
+- EXP-2 알림 버튼은 개발 앱 실험 결과로 범위 확정
 
