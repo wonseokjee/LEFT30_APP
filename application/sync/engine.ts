@@ -25,8 +25,9 @@ export const ENDPOINT: Record<QueueKind, string> = {
   slot: '/sync/slots',
   plan: '/sync/plans',
   event: '/events',
+  block: '/sync/blocks',
 };
-const KINDS: QueueKind[] = ['slot', 'plan', 'event'];
+const KINDS: QueueKind[] = ['slot', 'plan', 'block', 'event'];
 
 export type BatchResult = {
   accepted: number[];

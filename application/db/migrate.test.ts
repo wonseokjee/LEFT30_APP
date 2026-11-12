@@ -1,7 +1,7 @@
 import { openNodeDb } from '@/test/nodeDb';
 import { initDb, LocalMigrationError, migrate } from './migrate';
 import { MIGRATIONS, type Migration } from './schema';
-import { saveSlot } from './records';
+import { blocksBetween, saveBlock, saveSlot } from './records';
 
 const version = async (db: ReturnType<typeof openNodeDb>) =>
   (await db.first<{ user_version: number }>('PRAGMA user_version'))!.user_version;
@@ -42,6 +42,37 @@ describe('로컬 SQLite 마이그레이션(R1)', () => {
     expect(await db.all('SELECT slot_start, category, mood FROM slot')).toEqual([
       { slot_start: slot.slot_start, category: 'work', mood: 'none' },
     ]);
+  });
+
+  it('실제 v1 → v2: 보내지 못한 큐와 순번을 그대로 이어 받고, block 큐를 받을 수 있다', async () => {
+    const db = openNodeDb();
+    await migrate(db, MIGRATIONS.filter((m) => m.version === 1));
+    await saveSlot(db, slot);
+    await saveSlot(db, { ...slot, slot_start: '2026-10-21T00:30:00.000Z' });
+    // 첫 항목은 이미 보냈다고 치고 지운다. 순번(2)은 남아야 한다.
+    await db.run('DELETE FROM sync_queue WHERE id = 1');
+
+    expect(await migrate(db, MIGRATIONS)).toEqual({ from: 1, to: MIGRATIONS.length });
+    expect(await db.all('SELECT id, kind FROM sync_queue')).toEqual([{ id: 2, kind: 'slot' }]);
+
+    await saveBlock(db, {
+      id: 'b1',
+      kind: 'focus',
+      category: 'work',
+      title: null,
+      start_at: '2026-10-21T01:00:00.000Z',
+      end_at: '2026-10-21T03:00:00.000Z',
+      tz: 'Asia/Seoul',
+      state: 'active',
+      ended_how: null,
+      deleted: false,
+      client_updated_at: '2026-10-21T01:00:00.000Z',
+    });
+    expect(await db.all('SELECT id, kind FROM sync_queue ORDER BY id')).toEqual([
+      { id: 2, kind: 'slot' },
+      { id: 3, kind: 'block' },
+    ]);
+    expect(await blocksBetween(db, '2026-10-21T00:00:00.000Z', '2026-10-22T00:00:00.000Z')).toHaveLength(1);
   });
 
   it('실패한 버전은 통째로 롤백되고 데이터와 버전은 그대로다', async () => {

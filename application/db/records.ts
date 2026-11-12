@@ -1,7 +1,7 @@
-import type { Category, Db, EventRow, PlanRow, SlotRow } from './types';
+import type { BlockRow, Category, Db, EventRow, PlanRow, SlotRow } from './types';
 import { CATEGORIES } from './types';
 
-export type QueueKind = 'slot' | 'plan' | 'event';
+export type QueueKind = 'slot' | 'plan' | 'event' | 'block';
 
 // 로컬에 먼저 쓰고 같은 트랜잭션에서 동기화 큐에 넣는다.
 // 큐 payload는 저장 시점의 스냅숏이다. 같은 칸을 다시 고치면 새 큐 항목이 생긴다(R4).
@@ -63,6 +63,56 @@ export async function savePlan(
   });
 }
 
+// 블록 저장. 지우기도 deleted=true로 저장해 서버에 알린다(복원에 삭제가 없어서).
+export async function saveBlock(db: Db, block: BlockRow): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.run(
+      `INSERT INTO block (id, kind, category, title, start_at, end_at, tz, state, ended_how,
+                          deleted, client_updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (id) DO UPDATE SET
+         kind = excluded.kind, category = excluded.category, title = excluded.title,
+         start_at = excluded.start_at, end_at = excluded.end_at, tz = excluded.tz,
+         state = excluded.state, ended_how = excluded.ended_how, deleted = excluded.deleted,
+         client_updated_at = excluded.client_updated_at`,
+      [
+        block.id,
+        block.kind,
+        block.category,
+        block.title,
+        block.start_at,
+        block.end_at,
+        block.tz,
+        block.state,
+        block.ended_how,
+        block.deleted ? 1 : 0,
+        block.client_updated_at,
+      ],
+    );
+    await enqueue(tx, 'block', block);
+  });
+}
+
+type BlockDbRow = Omit<BlockRow, 'deleted'> & { deleted: number };
+
+function toBlock(row: BlockDbRow): BlockRow {
+  return { ...row, deleted: row.deleted === 1 };
+}
+
+// [from, to)와 겹치는 지우지 않은 블록, 시작 순.
+export async function blocksBetween(db: Db, from: string, to: string): Promise<BlockRow[]> {
+  const rows = await db.all<BlockDbRow>(
+    `SELECT * FROM block WHERE deleted = 0 AND start_at < ? AND end_at > ? ORDER BY start_at`,
+    [to, from],
+  );
+  return rows.map(toBlock);
+}
+
+export async function getBlock(db: Db, id: string): Promise<BlockRow | null> {
+  const row = await db.first<BlockDbRow>('SELECT * FROM block WHERE id = ?', [id]);
+  return row ? toBlock(row) : null;
+}
+
 // 같은 id는 한 번만 기록하고 한 번만 큐에 넣는다.
 export async function logEvent(db: Db, event: EventRow): Promise<void> {
   await db.transaction(async (tx) => {
@@ -97,6 +147,7 @@ export async function wipeLocalData(db: Db): Promise<void> {
       'slot',
       'plan',
       'event',
+      'block',
       'scheduled_slot',
       'tz_change',
       'sync_queue',

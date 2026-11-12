@@ -1,7 +1,7 @@
 import { openNodeDb } from '@/test/nodeDb';
 import { migrate } from '@/db/migrate';
 import { MIGRATIONS } from '@/db/schema';
-import { logEvent, saveSlot } from '@/db/records';
+import { logEvent, saveBlock, saveSlot } from '@/db/records';
 import type { SlotRow } from '@/db/types';
 import { backoffMs, createSyncEngine, type Auth, type Transport } from './engine';
 
@@ -194,6 +194,27 @@ describe('동기화 큐', () => {
     server.use(async () => ({ status: 503 }));
     expect((await engine.requestSync()).status).toBe('retry');
     expect(await queueIds()).toEqual([1]);
+  });
+
+  it('블록은 /sync/blocks로, 칸·계획 다음·이벤트 앞 순서로 보낸다', async () => {
+    const { db, server, engine, queueIds } = await setup();
+    await saveBlock(db, {
+      id: 'b1',
+      kind: 'focus',
+      category: 'work',
+      title: null,
+      start_at: '2026-10-21T01:00:00.000Z',
+      end_at: '2026-10-21T03:00:00.000Z',
+      tz: 'Asia/Seoul',
+      state: 'active',
+      ended_how: null,
+      deleted: false,
+      client_updated_at: '2026-10-21T01:00:00.000Z',
+    });
+    await saveSlot(db, slot(0));
+    expect(await engine.requestSync()).toEqual({ status: 'done', sent: 2 });
+    expect(server.calls.map((c) => c.path)).toEqual(['/sync/slots', '/sync/blocks']);
+    expect(await queueIds()).toEqual([]);
   });
 
   it('같은 이벤트 id는 한 번만 큐에 들어간다', async () => {

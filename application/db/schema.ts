@@ -64,4 +64,40 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    // 집중 블록·계획 블록(docs/designs/left30-focus-block.md E1). 서버 block과 같은 구조(user_id 제외).
+    // sync_queue의 kind CHECK에 'block'을 더하려면 SQLite는 표를 다시 만들어야 한다.
+    // AUTOINCREMENT 순번을 이어 받아 qid와 dead-letter queue_id가 겹치지 않게 한다.
+    version: 2,
+    up: async (tx) => {
+      await tx.exec(`
+        CREATE TABLE block (
+          id TEXT PRIMARY KEY,
+          kind TEXT NOT NULL,
+          category TEXT NOT NULL,
+          title TEXT,
+          start_at TEXT NOT NULL,
+          end_at TEXT NOT NULL,
+          tz TEXT NOT NULL,
+          state TEXT NOT NULL,
+          ended_how TEXT,
+          deleted INTEGER NOT NULL DEFAULT 0,
+          client_updated_at TEXT NOT NULL
+        );
+        CREATE INDEX idx_block_start ON block (start_at);
+        CREATE TABLE sync_queue_v2 (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          kind TEXT NOT NULL CHECK (kind IN ('slot', 'plan', 'event', 'block')),
+          payload TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+        INSERT INTO sync_queue_v2 (id, kind, payload, created_at)
+          SELECT id, kind, payload, created_at FROM sync_queue;
+        INSERT OR REPLACE INTO sqlite_sequence (name, seq)
+          SELECT 'sync_queue_v2', seq FROM sqlite_sequence WHERE name = 'sync_queue';
+        DROP TABLE sync_queue;
+        ALTER TABLE sync_queue_v2 RENAME TO sync_queue;
+      `);
+    },
+  },
 ];

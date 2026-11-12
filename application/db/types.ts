@@ -34,7 +34,8 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   work: '업무',
 };
 
-export type SlotSource = 'answered' | 'continued' | 'late' | 'inferred';
+// declared: 집중 블록 칸, 계획 블록 끝에서 확인한 칸. batch: 놓친 칸 묶어서 채우기.
+export type SlotSource = 'answered' | 'continued' | 'late' | 'inferred' | 'declared' | 'batch';
 
 // 서버 event.entity의 EVENT_TYPES와 같다.
 export type EventType =
@@ -50,7 +51,11 @@ export type EventType =
   | 'schedule_coverage'
   | 'sync_rejected'
   | 'local_migration_failed'
-  | 'pause_set';
+  | 'pause_set'
+  | 'block_started'
+  | 'block_ended'
+  | 'batch_filled'
+  | 'plan_block_set';
 
 export type SlotRow = {
   slot_start: string; // UTC ISO (toISOString)
@@ -66,6 +71,25 @@ export type PlanRow = {
   local_date: string;
   category: Category;
   target_minutes: number;
+  client_updated_at: string;
+};
+
+// 서버 block.entity와 같다. 상태 기계는 server/src/Entity/block.entity.ts 참고.
+export type BlockKind = 'focus' | 'plan';
+export type BlockState = 'planned' | 'active' | 'awaiting' | 'ended' | 'cancelled';
+export type BlockEndHow = 'answer' | 'extend' | 'end_now' | 'no_answer' | 'checked';
+
+export type BlockRow = {
+  id: string;
+  kind: BlockKind;
+  category: Category;
+  title: string | null;
+  start_at: string; // UTC ISO
+  end_at: string; // UTC ISO
+  tz: string;
+  state: BlockState;
+  ended_how: BlockEndHow | null;
+  deleted: boolean;
   client_updated_at: string;
 };
 
