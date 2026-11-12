@@ -250,28 +250,28 @@ Approval readiness: PASS — MODE(D1), UX-1(사용자 지시), UX-2(D3 메모 �
 - 12개월 이상까지 남은 것: 사용자 패턴으로 묻는 시점을 앱이 먼저 제안하기, 계획 대비 실제를 시간 단위로 보여 주기(CP-2 이후).
 
 ## Implementation Tasks
-- [ ] **T1 (P1, human: ~1d / CC: ~1h)** — app/scheduler — 블록 구간 알림 제외와 끝 알림
+- [x] **T1 (P1, human: ~1d / CC: ~1h)** — app/scheduler — 블록 구간 알림 제외와 끝 알림
   - Surfaced by: Section 1·6
   - Files: application/scheduler/plan.ts, application/scheduler/scheduler.ts, 블록 저장 모듈(미정)
   - 주의: 끝 알림도 예약 상한(`MAX_PINGS = 398`, 400에서 고정 알림을 뺀 값)에 들어간다. 블록 끝 알림 수만큼 30분 알림 예약 기간을 줄이는 계산 필요(스펙 리뷰 완결성 4)
   - Verify: `cd application && npx jest scheduler`
-- [ ] **T2 (P1, human: ~1d / CC: ~1h)** — app/UI — 집중 블록(토스트 계속, 홈 집중·끝내기, 끝 시트 A, 연장)
+- [x] **T2 (P1, human: ~1d / CC: ~1h)** — app/UI — 집중 블록(토스트 계속, 홈 집중·끝내기, 끝 시트 A, 연장)
   - Surfaced by: UX-1, UX-2
   - Files: application/components/record/RecordSheet.tsx, 홈 화면, 새 끝 시트
   - Verify: 실기기 수동(앱 켬/끔 두 경우)
-- [ ] **T3 (P1, human: ~2d / CC: ~2h)** — app/UI — Todo 탭을 계획 블록 목록으로 새로 만들기 + 어제 가져오기(CP-3)
+- [x] **T3 (P1, human: ~2d / CC: ~2h)** — app/UI — Todo 탭을 계획 블록 목록으로 새로 만들기 + 어제 가져오기(CP-3)
   - Surfaced by: EXP-1, CP-3
   - Files: application/app/(tabs)/todo.tsx, application/components/todo/*(교체)
   - Verify: 단위 + 실기기
-- [ ] **T4 (P1, human: ~1d / CC: ~1h)** — app — 놓친 칸 채우기 + 계획대로 기본값(CP-1)
+- [x] **T4 (P1, human: ~1d / CC: ~1h)** — app — 놓친 칸 채우기 + 계획대로 기본값(CP-1)
   - Surfaced by: UX-3, CP-1
   - Files: application/record/recordLogic.ts, application/components/record/RecordSheet.tsx
   - Verify: `npx jest record`
-- [ ] **T5 (P1, human: ~0.5d / CC: ~30min)** — server — 블록 저장·동기화와 이벤트 타입 마이그레이션 (저장 구조는 CORE-1, Eng 리뷰 결정 뒤 착수)
+- [x] **T5 (P1, human: ~0.5d / CC: ~30min)** — server — 블록 저장·동기화와 이벤트 타입 마이그레이션 (저장 구조는 CORE-1, Eng 리뷰 결정 뒤 착수)
   - Surfaced by: Section 1·8·9
   - Files: server/src/migrations/(새 파일), server/src/Entity/(새 엔티티), server/src/Entity/event.entity.ts
   - Verify: `cd server && npm run test:e2e`
-- [ ] **T6 (P2, human: ~1h / CC: ~10min)** — docs — 설계서·TODO 갱신: Todo 탭 제거 철회(설계서:176 "탭은 두 개", 234), 계획 "시간대 지정 안 함"(설계서:155)에 Todo 계획 블록 추가, Open Q1(자동 채우기)·Q3(계획에 할 일) 해소, 자동 채우기 보류 닫기, 구현 순서 3 알림 액션 실험 취소, S1을 S1-COUNT로 교체, S3 분모에서 블록 칸 제외(일시 중지와 같은 방식), EXP-1b 선택 기준(2주 뒤 `plan_set`과 `plan_block_set` 사용량으로 하나를 고름)
+- [x] **T6 (P2, human: ~1h / CC: ~10min)** — docs — 설계서·TODO 갱신: Todo 탭 제거 철회(설계서:176 "탭은 두 개", 234), 계획 "시간대 지정 안 함"(설계서:155)에 Todo 계획 블록 추가, Open Q1(자동 채우기)·Q3(계획에 할 일) 해소, 자동 채우기 보류 닫기, 구현 순서 3 알림 액션 실험 취소, S1을 S1-COUNT로 교체, S3 분모에서 블록 칸 제외(일시 중지와 같은 방식), EXP-1b 선택 기준(2주 뒤 `plan_set`과 `plan_block_set` 사용량으로 하나를 고름)
   - Surfaced by: 결정 장부 전체
   - Files: docs/designs/left30-relaunch.md, TODO.md
   - Verify: 문서 리뷰
@@ -479,7 +479,7 @@ Approval readiness: PASS — D1(구조 Smaller arrangement), E1(D2 A), E2(D3 A),
 5. Todo 탭 교체 + CP-3, 옛 Todo 코드 삭제.
 6. 놓친 칸 묶음 + CP-1, S1-COUNT 이벤트.
 7. EXP-2 실험(개발 앱, 앱 완전 종료) → 통과 시 알림 버튼.
-8. 설계서 T6 나머지(S3 분모, source 표, 계획 절).
+8. 설계서 T6 나머지(S3 분모, source 표, 계획 절). (2026-11-12 완료. 1~6·8 구현 완료, 7 EXP-2 실험과 서버 배포는 남음)
 
 ## Design Review (/plan-design-review, 2026-11-12)
 
@@ -609,12 +609,12 @@ Pass 3: 6/10 → 9/10.
 | 토스트 [집중] 입구 | 홈 하나로 진행, 실사용 뒤 재검토(TODO, Eng E5) |
 
 ### Design Review 구현 작업
-- [ ] **D1 (P1, human ~3h / CC ~20min)** Home: 카운트다운 아래 "집중", 블록 중 "1시간 49분"·끝내기·30분 더 (DR-1·1a) — `application/app/(tabs)/index.tsx`, `components/timer/timer.tsx`
+- [x] **D1 (P1, human ~3h / CC ~20min)** Home: 카운트다운 아래 "집중", 블록 중 "1시간 49분"·끝내기·30분 더 (DR-1·1a) — `application/app/(tabs)/index.tsx`, `components/timer/timer.tsx`
 - [x] **D2 (P1, human ~30min / CC ~5min)** 탭 이름 `Todo | Home | Timetable` (DR-2) — `application/app/(tabs)/_layout.tsx`
 - [x] **D3 (P1, human ~1d / CC ~1h)** Todo 탭: 총량 한 줄, 하루 막대, 체크 목록, 빈 상태, 겹침 시트, 밀어서 지우기 (DR-3·4·9·10) — `application/app/(tabs)/todo.tsx`, `components/todo/*`(교체)
 - [x] **D4 (P1, human ~3h / CC ~20min)** 추가·수정 시트: 시작–끝 스테퍼 + 시계 피커 30분 (DR-7) — 새 시트(RecordSheet 모드 또는 Todo 전용)
-- [ ] **D5 (P1, human ~2h / CC ~15min)** 집중 시작 시트: 그대로 계속 + 6칸 → 1·2·3시간 (DR-8)
-- [ ] **D6 (P2, human ~4h / CC ~30min)** Timetable 오늘 열 계획 레이어 (DR-6), 합산 규칙(DR-5)을 Home 계획 대비 실제에 반영
+- [x] **D5 (P1, human ~2h / CC ~15min)** 집중 시작 시트: 그대로 계속 + 6칸 → 1·2·3시간 (DR-8)
+- [ ] **D6 (P2, human ~4h / CC ~30min)** Timetable 오늘 열 계획 레이어 (DR-6), 합산 규칙(DR-5)을 Home 계획 대비 실제에 반영 (2026-11-12: 계획 레이어 완료. Home 계획 대비 실제 영역이 아직 없어 DR-5는 Todo 목표 한 줄에만 반영)
 - Verify: 실기기에서 각 화면 확인(시제품 비교와 같은 흐름), 화면 읽기(TalkBack)로 체크 동그라미 라벨 확인.
 
 ### Design Review 완료 요약

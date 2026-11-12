@@ -80,21 +80,29 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
   | `answered` | 해당 칸의 알림(또는 앱 안의 현재 칸)에서 카테고리를 직접 고름. `answered_at`이 칸 종료 후 60분 이내 | O |
   | `continued` | 기록 모달의 "그대로 계속" 버튼을 직접 누름(직전 60분 안의 가장 최근 `answered`·`continued` 칸 값을 복사). 알림 액션 실험이 성공하면 알림 버튼도 포함. `answered_at`이 칸 종료 후 60분 이내 | O |
   | `late` | 칸 종료 후 60분이 지나서 시간표 화면에서 과거 칸을 채우거나 고침 | X |
-  | `inferred` | 시스템 자동 채우기. 보류 결정에서 유지하기로 할 때만 존재 | X |
+  | `inferred` | 시스템 자동 채우기. **만들지 않는다**(2026-11-11 CEO 리뷰로 해소). 타입과 서버 CHECK에만 남아 있다 | X |
+  | `declared` | 집중 블록의 끝난 칸(앱을 열 때·끝 시트에서), 계획 블록 끝 시트 [여기서 끝]이나 Todo 체크로 확인한 칸 | 행동 이벤트로 셈 |
+  | `batch` | 놓친 칸 묶어 채우기(최근 5시간 연속 빈칸을 한 카테고리로) | 행동 이벤트로 셈 |
+
+  - 2026-11-11부터 S1은 칸 source가 아니라 답한 행동이 있던 30분 시간대 수로 센다(S1-COUNT, `docs/designs/left30-focus-block.md`). 그래서 위 표의 "성공 지표 집계" 열은 S1에 쓰지 않는다. `declared`·`batch`는 E2 마이그레이션(1794441600000-Block)에서 서버 CHECK에 추가했다.
 
   - 이미 있는 칸을 고칠 때 source는 바뀌지 않는다. 예외로 `inferred` 칸을 사용자가 60분 이내에 확인하거나 고치면 `answered`로 바뀐다. 사용자가 그 칸의 카테고리를 직접 골랐다는 의미이기 때문이다.
   - "그대로 계속" 버튼은 직전 60분 안에 `answered`·`continued` 칸이 있을 때만 보인다. 방해금지 직후의 첫 칸처럼 그런 칸이 없으면 숨긴다.
 - `plan(user_id, local_date, category, target_minutes)`: `UNIQUE(user_id, local_date, category)`. 아침에 카테고리별 목표 시간을 나눠 담는다.
 - `event(id uuid PK, user_id, type, ts, props)`
   - `id`는 클라이언트가 생성하며, 서버는 `ON CONFLICT (id) DO NOTHING`으로 넣는다. 큐 재전송으로 중복이 생기지 않는다.
-  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `schedule_extended`, `schedule_coverage`다.
+  - 타입은 `ping_scheduled`, `ping_displayed`, `ping_answered`, `perm_state`, `plan_set`, `plan_vs_actual_viewed`, `evening_summary_tapped`, `feedback`, `schedule_extended`, `schedule_coverage`다. 블록 기능으로 `block_started`, `block_ended`, `batch_filled`, `plan_block_set`이 더해졌다(2026-11-11, `docs/designs/left30-focus-block.md`).
   - `schedule_coverage`: 하루 1회 `{local_date, due_slots, covered_slots}`. 앱이 `scheduled_slot`으로 계산해서 서버에 보낸다. 그래서 테스터 기기의 커버리지를 서버에서 집계할 수 있다.
   - props 스키마:
     - `plan_set`: `{local_date, mode: same_as_yesterday|custom, source: yesterday_plan|yesterday_actual|manual}`
     - `evening_summary_tapped`: `{local_date}`
     - `plan_vs_actual_viewed`: `{local_date}`. 그날 `quiet_start`(없으면 23:30) 이후 오늘(홈) 화면이 처음 보일 때 하루 1회 기록한다(디자인 리뷰 D5).
     - `feedback`: `{screen, memo?}`. `memo`는 최대 500자다.
-  - `ping_scheduled`는 칸이 실제로 도래한 시점(앱이 다음에 실행될 때 소급)에 한 번만 기록한다. 그래서 방해금지 시간 변경 등으로 취소된 미래 칸은 S3 분모에 들어가지 않는다.
+    - `ping_answered`: `{source}`. 칸을 처음 기록할 때 남긴다(고치기는 남기지 않음). S1-COUNT가 답한 시간대를 센다.
+    - `block_started`: `{kind, source, hours}`. `block_ended`: `{kind, how: answer|extend|end_now|no_answer|checked}`.
+    - `batch_filled`: `{count, deferred, top?}`. `deferred=true`는 "따로 채울게요"이며 S1에 세지 않는다.
+    - `plan_block_set`: `{action: add|edit|delete|import_yesterday, minutes?, count?}`.
+  - `ping_scheduled`는 칸이 실제로 도래한 시점(앱이 다음에 실행될 때 소급)에 한 번만 기록한다. 그래서 방해금지 시간 변경 등으로 취소된 미래 칸은 S3 분모에 들어가지 않는다. 집중·계획 블록 동안의 칸도 알림을 예약하지 않으므로(블록 끝 알림 하나만) 일시 중지 칸과 같이 S3 분모에서 빠진다.
   - 핑 이벤트(`ping_scheduled`·`ping_displayed`·`ping_answered`)의 `id`는 결정적으로 만든다. 즉 `uuidv5(user_id + type + slot_start)`로 한 칸·한 타입당 하나만 생긴다. 예약을 다시 걸거나 같은 알림을 여러 경로로 다시 관측해도 첫 기록만 남는다. `ping_displayed`는 가장 이른 관측 시각을 쓴다.
 - `user`: `kakao_id`, `quiet_start_min`, `quiet_end_min`(분 단위, 그때그때의 기기 로컬 시간 기준), `refresh_token_hash`, `last_tz`.
   - 방해금지 시간은 앱 로컬에만 저장한다(구현 D1). 알림을 예약하는 곳이 앱이기 때문이다. 서버 `quiet_*_min` 칸은 마이그레이션에 남아 있지만 채우는 API가 없다. 기기를 바꾸면 다시 설정한다.
@@ -154,7 +162,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
   - 삭제가 없으므로 계획에서 뺀 카테고리는 `target_minutes=0`으로 저장한다.
   - "동일"은 어제 `plan`을 복사한다. 어제 plan이 없으면 어제 실제 기록 중 `answered`·`continued`·`late` 칸으로 카테고리별 시간을 만든다. `inferred` 칸은 넣지 않는다.
   - 어제 plan도 없고 어제 실제 기록이 8칸 미만이면 제안 없이 바로 "새로 짜기"를 띄운다. 첫날도 여기에 해당한다.
-  - 새로 짜기 입력(디자인 리뷰 D11): 카테고리 6줄, 줄마다 `업무  − 6h +` 스테퍼(30분 단위, 0~24h). 맨 아래는 "합계 9h" 숫자 한 줄과 [저장]뿐이다. 진행 막대나 경고 색은 쓰지 않는다. 합계가 24h를 넘으면 + 버튼만 비활성화한다. 시작 값은 어제 값(없으면 0)이다. 시간대 지정은 하지 않는다(E2 비교가 총량 기준).
+  - 새로 짜기 입력(디자인 리뷰 D11): 카테고리 6줄, 줄마다 `업무  − 6h +` 스테퍼(30분 단위, 0~24h). 맨 아래는 "합계 9h" 숫자 한 줄과 [저장]뿐이다. 진행 막대나 경고 색은 쓰지 않는다. 합계가 24h를 넘으면 + 버튼만 비활성화한다. 시작 값은 어제 값(없으면 0)이다. 시간대 지정은 하지 않는다(E2 비교가 총량 기준). 시각을 정한 계획은 Todo 계획 블록으로 따로 둔다. 블록은 총량 목표 안에 들고, 블록 합이 목표보다 크면 목표를 블록 합으로 올려 보여 준다(디자인 리뷰 DR-5, `docs/designs/left30-focus-block.md`). 2주 뒤 `plan_set`과 `plan_block_set` 사용량으로 하나를 고른다(EXP-1b).
     ```
     업무      −  6h  +
     휴식      −  1h  +
@@ -323,7 +331,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
 ## Dependencies
 - TODO.md 1~2(도메인, Oracle VM), 5(배포 자동화).
 - Google Play 개발자 계정.
-- 보류 항목(자동 채우기) 결정: 구현 순서 3의 실험 뒤에 정한다. 결정하지 않으면 자동 채우기 없이 배포한다.
+- ~~보류 항목(자동 채우기) 결정~~: 2026-11-11 CEO 리뷰로 해소. 자동 채우기 없이 배포한다.
 - 기존 TODO.md 3~4번 중 IDOR·ValidationPipe·덮어쓰기 버그 항목은 이 설계의 새 스키마와 인증 분리로 대체된다.
 
 ## The Assignment
@@ -579,7 +587,7 @@ Approval readiness: PASS — 확인한 항목과 근거 답변: E1(D2), E2(D3·D
 - 확장 제안 7개: 승인 4개(E1·E2·E3·E5), 연기 3개(E4·E6·E7)
 - 스펙 리뷰 지적에 따른 결정: C1·C2(C2는 D17로 수정), D15 의존성 정리
 - 섹션 리뷰 결정 8개(R1~R8): 승인 7개, 연기 1개(R2)
-- 이번 리뷰에서 미결로 남은 선택: 0. 보류 항목(자동 채우기)은 구현 순서 3의 실험 뒤에 정하기로 이미 결정돼 있음
+- 이번 리뷰에서 미결로 남은 선택: 0. 보류 항목(자동 채우기)은 구현 순서 3의 실험 뒤에 정하기로 이미 결정돼 있음 (2026-11-11 해소: 만들지 않음)
 - 치명적 공백: 0
 - 외부 검토(outside voice): 실행 불가(Codex 모델 미지원, 대체 리뷰 도구 미선언)
 - Status: clean
