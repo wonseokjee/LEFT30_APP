@@ -23,6 +23,26 @@ function slot(
   };
 }
 
+const BLOCK_ID = '6f1c1c3e-2a4b-4c7d-9e2f-0a1b2c3d4e5f';
+
+function block(qid: number, extra: Record<string, unknown> = {}) {
+  return {
+    qid,
+    id: BLOCK_ID,
+    kind: 'plan',
+    category: 'work',
+    title: '보고서 쓰기',
+    start_at: '2026-10-21T05:00:00.000Z',
+    end_at: '2026-10-21T07:00:00.000Z',
+    tz: TZ,
+    state: 'planned',
+    ended_how: null,
+    deleted: false,
+    client_updated_at: '2026-10-21T00:00:00.000Z',
+    ...extra,
+  };
+}
+
 type SyncResult = {
   accepted: number[];
   rejected: { qid: number | null }[];
@@ -30,6 +50,7 @@ type SyncResult = {
 type RestorePage = {
   slots: { slot_start: string }[];
   plans: unknown[];
+  blocks: Record<string, unknown>[];
   cursor: string;
   has_more: boolean;
 };
@@ -195,6 +216,89 @@ describe('sync (e2e)', () => {
     });
   });
 
+  describe('POST /sync/blocks', () => {
+    it('upsert하고, 더 최신 값과 지우기(deleted)만 남기며 복원에도 나온다', async () => {
+      const first = await post('/sync/blocks', { items: [block(1)] }).expect(
+        200,
+      );
+      expect(result(first).accepted).toEqual([1]);
+
+      // 오래된 수정은 무시하고, 최신 수정과 지우기는 반영한다.
+      await post('/sync/blocks', {
+        items: [
+          block(2, {
+            state: 'ended',
+            ended_how: 'checked',
+            client_updated_at: '2026-10-21T08:00:00.000Z',
+          }),
+          block(3, {
+            title: '오래된 값',
+            client_updated_at: '2026-10-20T00:00:00.000Z',
+          }),
+        ],
+      }).expect(200);
+      await post('/sync/blocks', {
+        items: [
+          block(4, {
+            state: 'ended',
+            ended_how: 'checked',
+            deleted: true,
+            client_updated_at: '2026-10-21T09:00:00.000Z',
+          }),
+        ],
+      }).expect(200);
+      const rows = await dataSource.query<Record<string, unknown>[]>(
+        'SELECT title, state, ended_how, deleted FROM block WHERE user_id = $1',
+        [userId],
+      );
+      expect(rows).toEqual([
+        {
+          title: '보고서 쓰기',
+          state: 'ended',
+          ended_how: 'checked',
+          deleted: true,
+        },
+      ]);
+
+      const page = await restore();
+      expect(restored(page).blocks).toEqual([
+        expect.objectContaining({
+          id: BLOCK_ID,
+          kind: 'plan',
+          deleted: true,
+          state: 'ended',
+        }),
+      ]);
+    });
+
+    it('잘못된 블록만 rejected로 돌려준다', async () => {
+      const id = (n: number) => `6f1c1c3e-2a4b-4c7d-9e2f-0a1b2c3d4e${n}0`;
+      const res = await post('/sync/blocks', {
+        items: [
+          block(1, { id: id(1) }),
+          block(2, { id: id(2), end_at: '2026-10-21T05:00:00.000Z' }),
+          block(3, { id: id(3), end_at: '2026-10-22T06:00:00.000Z' }),
+          block(4, { id: id(4), state: 'ended' }),
+          block(5, { id: id(5), kind: 'todo' }),
+          block(6, { id: id(6), title: '가'.repeat(101) }),
+          block(7, { id: id(7), kind: 'focus', title: null, state: 'active' }),
+        ],
+      }).expect(200);
+      expect(result(res).accepted).toEqual([1, 7]);
+      expect(result(res).rejected.map(r => r.qid)).toEqual([2, 3, 4, 5, 6]);
+    });
+
+    it('칸 출처 declared·batch를 받는다', async () => {
+      const res = await post('/sync/slots', {
+        items: [
+          slot(1, nthSlot(0), { source: 'declared' }),
+          slot(2, nthSlot(1), { source: 'batch' }),
+        ],
+      }).expect(200);
+      expect(result(res).accepted).toEqual([1, 2]);
+    });
+  });
+
   describe('POST /sync/plans', () => {
     it('upsert하고 target_minutes=0도 저장한다', async () => {
       const base = {
@@ -354,7 +458,7 @@ describe('sync (e2e)', () => {
   });
 
   describe('DELETE /me', () => {
-    it('사용자와 slot·plan·event를 모두 지우고, 이후 토큰은 쓸 수 없다', async () => {
+    it('사용자와 slot·plan·block·event를 모두 지우고, 이후 토큰은 쓸 수 없다', async () => {
       const other = await login(app, 2003);
       await post('/sync/slots', { items: [slot(1, nthSlot(0))] }).expect(200);
       await post(
@@ -374,12 +478,14 @@ describe('sync (e2e)', () => {
         ],
       }).expect(200);
 
+      await post('/sync/blocks', { items: [block(1)] }).expect(200);
+
       await request(app.getHttpServer())
         .delete('/me')
         .set('Authorization', `Bearer ${access}`)
         .expect(200);
 
-      for (const table of ['slot', 'plan', 'event']) {
+      for (const table of ['slot', 'plan', 'block', 'event']) {
         const [{ count }] = await dataSource.query<{ count: number }[]>(
           `SELECT count(*)::int AS count FROM "${table}" WHERE user_id = $1`,
           [userId],

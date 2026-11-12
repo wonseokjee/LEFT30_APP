@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsISO8601,
@@ -15,6 +16,17 @@ import {
 import { CATEGORIES, SLOT_SOURCES } from 'src/Entity/slot.entity';
 import type { Category, SlotSource } from 'src/Entity/slot.entity';
 import { EVENT_TYPES } from 'src/Entity/event.entity';
+import {
+  BLOCK_END_HOWS,
+  BLOCK_KINDS,
+  BLOCK_STATES,
+  BLOCK_TITLE_MAX,
+} from 'src/Entity/block.entity';
+import type {
+  BlockEndHow,
+  BlockKind,
+  BlockState,
+} from 'src/Entity/block.entity';
 import type { EventType } from 'src/Entity/event.entity';
 
 /*
@@ -78,6 +90,47 @@ export class PlanItem {
   @Min(0)
   @Max(1440)
   target_minutes: number;
+
+  @IsISO8601({ strict: true })
+  client_updated_at: string;
+}
+
+export class BlockItem {
+  @IsInt()
+  qid: number;
+
+  @IsUUID()
+  id: string;
+
+  @IsIn(BLOCK_KINDS)
+  kind: BlockKind;
+
+  @IsIn(CATEGORIES)
+  category: Category;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(BLOCK_TITLE_MAX)
+  title?: string | null;
+
+  @IsISO8601({ strict: true })
+  start_at: string;
+
+  @IsISO8601({ strict: true })
+  end_at: string;
+
+  @IsString()
+  tz: string;
+
+  @IsIn(BLOCK_STATES)
+  state: BlockState;
+
+  @IsOptional()
+  @IsIn(BLOCK_END_HOWS)
+  ended_how?: BlockEndHow | null;
+
+  @IsBoolean()
+  deleted: boolean;
 
   @IsISO8601({ strict: true })
   client_updated_at: string;

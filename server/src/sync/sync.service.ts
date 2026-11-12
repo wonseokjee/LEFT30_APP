@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
-import { BatchResult, EventItem, PlanItem, SlotItem } from './sync.dto';
+import {
+  BatchResult,
+  BlockItem,
+  EventItem,
+  PlanItem,
+  SlotItem,
+} from './sync.dto';
 import {
   checkItem,
   emptyResult,
@@ -14,6 +20,7 @@ export const RESTORE_PAGE = 500;
 type RestorePage = {
   slots: Record<string, unknown>[];
   plans: Record<string, unknown>[];
+  blocks: Record<string, unknown>[];
   cursor: string | null;
   has_more: boolean;
 };
@@ -109,6 +116,55 @@ export class SyncService {
     return result;
   }
 
+  // 블록은 앱이 만든 id로 upsert한다. 지우기도 deleted=true 갱신으로 온다. 최신 client_updated_at만 남긴다.
+  async upsertBlocks(
+    userId: string,
+    rawItems: unknown[],
+    tz?: string,
+  ): Promise<BatchResult> {
+    const result = emptyResult();
+    await this.dataSource.transaction(async manager => {
+      for (const raw of rawItems) {
+        const checked = await checkItem(BlockItem, raw, blockRangeError);
+        if (!checked.ok) {
+          result.rejected.push({ qid: checked.qid, reason: checked.reason });
+          continue;
+        }
+        const b = checked.item;
+        await manager.query(
+          `INSERT INTO block (user_id, id, kind, category, title, start_at, end_at, tz,
+                              state, ended_how, deleted, client_updated_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, clock_timestamp())
+           ON CONFLICT (user_id, id) DO UPDATE SET
+             kind = EXCLUDED.kind, category = EXCLUDED.category, title = EXCLUDED.title,
+             start_at = EXCLUDED.start_at, end_at = EXCLUDED.end_at, tz = EXCLUDED.tz,
+             state = EXCLUDED.state, ended_how = EXCLUDED.ended_how,
+             deleted = EXCLUDED.deleted,
+             client_updated_at = EXCLUDED.client_updated_at,
+             updated_at = clock_timestamp()
+           WHERE block.client_updated_at < EXCLUDED.client_updated_at`,
+          [
+            userId,
+            b.id,
+            b.kind,
+            b.category,
+            b.title ?? null,
+            b.start_at,
+            b.end_at,
+            b.tz,
+            b.state,
+            b.ended_how ?? null,
+            b.deleted,
+            b.client_updated_at,
+          ],
+        );
+        result.accepted.push(b.qid);
+      }
+      await this.touchLastTz(manager, userId, tz);
+    });
+    return result;
+  }
+
   // 클라이언트 id 기준 멱등. 같은 배치를 다시 보내도 행 수는 그대로다.
   async insertEvents(
     userId: string,
@@ -163,20 +219,29 @@ export class SyncService {
         ORDER BY updated_at`,
       [userId, from, until],
     );
+    const blocks: Record<string, unknown>[] = await this.dataSource.query(
+      `SELECT id, kind, category, title, start_at, end_at, tz, state, ended_how, deleted,
+              client_updated_at, ${cursorSql('updated_at')} AS updated_at
+         FROM block
+        WHERE user_id = $1 AND updated_at > $2::timestamptz AND updated_at <= $3::timestamptz
+        ORDER BY updated_at`,
+      [userId, from, until],
+    );
 
-    const last = [...slots, ...plans]
+    const last = [...slots, ...plans, ...blocks]
       .map(r => r.updated_at as string)
       .sort()
       .pop();
     return {
       slots,
       plans,
+      blocks,
       cursor: limit ?? last ?? since ?? null,
       has_more: limit !== null,
     };
   }
 
-  // 어느 표든 since 이후 행이 RESTORE_PAGE를 넘으면, 두 표 중 더 이른 경계 시각을 돌려준다.
+  // 어느 표든 since 이후 행이 RESTORE_PAGE를 넘으면, 세 표 중 가장 이른 경계 시각을 돌려준다.
   private async pageLimit(
     userId: string,
     from: string,
@@ -187,6 +252,8 @@ export class SyncService {
            (SELECT updated_at FROM slot WHERE user_id = $1 AND updated_at > $2::timestamptz
              ORDER BY updated_at OFFSET $3::int - 1 LIMIT 1),
            (SELECT updated_at FROM plan WHERE user_id = $1 AND updated_at > $2::timestamptz
+             ORDER BY updated_at OFFSET $3::int - 1 LIMIT 1),
+           (SELECT updated_at FROM block WHERE user_id = $1 AND updated_at > $2::timestamptz
              ORDER BY updated_at OFFSET $3::int - 1 LIMIT 1)
          ) AS b) t`,
         [userId, from, RESTORE_PAGE],
@@ -210,6 +277,17 @@ export class SyncService {
 // JS Date는 밀리초까지만 담아서, 커서는 Postgres에서 마이크로초 UTC 문자열로 만든다.
 function cursorSql(column: string): string {
   return `to_char(${column} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
+}
+
+const MAX_BLOCK_MS = 24 * 60 * 60 * 1000;
+
+function blockRangeError(b: BlockItem): string | null {
+  const start = Date.parse(b.start_at);
+  const end = Date.parse(b.end_at);
+  if (!(end > start)) return 'end_at must be after start_at';
+  if (end - start > MAX_BLOCK_MS) return 'block is longer than 24 hours';
+  if (b.state === 'ended' && !b.ended_how) return 'ended block needs ended_how';
+  return null;
 }
 
 function eventPropsError(e: EventItem): string | null {

@@ -4,6 +4,7 @@ import { DataSource, Repository } from 'typeorm';
 import { User } from 'src/Entity/user.entity';
 import { Slot } from 'src/Entity/slot.entity';
 import { Plan } from 'src/Entity/plan.entity';
+import { Block } from 'src/Entity/block.entity';
 import { AppEvent } from 'src/Entity/event.entity';
 import { KakaoApiService } from './kakao/kakaoapi.service';
 import { AuthJWTService } from './JWT/auth.jwt.service';
@@ -55,11 +56,12 @@ export class AuthService {
     return this.authJWTService.generateAccessToken(userId);
   }
 
-  // 계정 삭제: 사용자와 slot·plan·event(피드백 메모 포함)·refresh 토큰을 한 트랜잭션으로 지운다.
+  // 계정 삭제: 사용자와 slot·plan·block·event(피드백 메모 포함)·refresh 토큰을 한 트랜잭션으로 지운다.
   async deleteAccount(userId: string): Promise<void> {
     await this.dataSource.transaction(async manager => {
       await manager.delete(AppEvent, { userId });
       await manager.delete(Plan, { userId });
+      await manager.delete(Block, { userId });
       await manager.delete(Slot, { userId });
       await manager.delete(User, { id: userId });
     });

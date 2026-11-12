@@ -39,6 +39,13 @@ export class SyncController {
     return this.syncService.upsertPlans(req.user.id, body.items, body.tz);
   }
 
+  @Post('blocks')
+  @HttpCode(200)
+  upsertBlocks(@Req() req: AuthedRequest, @Body() body: BatchBody) {
+    assertBatchSize(body.items);
+    return this.syncService.upsertBlocks(req.user.id, body.items, body.tz);
+  }
+
   // 기기 복원용. 단일 기기 사용을 전제로 하고 삭제는 없다.
   @Get()
   restore(@Req() req: AuthedRequest, @Query() query: RestoreQuery) {

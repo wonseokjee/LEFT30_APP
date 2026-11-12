@@ -43,7 +43,7 @@ export async function createTestApp(): Promise<{
 
 export async function resetDb(dataSource: DataSource): Promise<void> {
   await dataSource.query(
-    'TRUNCATE "event", "plan", "slot", "user" RESTART IDENTITY CASCADE',
+    'TRUNCATE "event", "block", "plan", "slot", "user" RESTART IDENTITY CASCADE',
   );
 }
 

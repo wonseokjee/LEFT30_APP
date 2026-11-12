@@ -15,6 +15,8 @@ export const SLOT_SOURCES = [
   'continued',
   'late',
   'inferred',
+  'declared', // 집중 블록 칸, 계획 블록 끝에서 확인한 칸
+  'batch', // 놓친 칸 묶어서 채우기
 ] as const;
 export type SlotSource = (typeof SLOT_SOURCES)[number];
 
