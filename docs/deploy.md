@@ -86,3 +86,4 @@
 - 2026-11-10: Vercel 프로젝트 `left-30-app`(Production 브랜치 deploy/server), Cloudflare CNAME `api`(DNS only). 첫 배포는 `'src/...'` import 때문에 함수가 시작하지 못해 상대 경로로 고쳤다. `https://api.left30.app/health` 200 확인.
 - 2026-11-10: 첫 EAS 빌드 두 번에 `server/.env.neon` 등 `.env` 파일이 함께 올라갔을 가능성이 높아 Neon 비밀번호를 바꾸기로 했다(D30).
 - 2026-11-10: EAS 빌드 97123b4c(커밋 파일만 업로드)로 APK 성공. 카카오 키 해시 `IkkjQ8LyO2hA2Ndrf/JJGgClix8=`를 네이티브 앱 키 Android 설정에 등록. S23에 adb로 설치, 카카오 로그인 성공, Neon에 user 1·slot 1 동기화 확인.
+- 2026-11-12: 집중·계획 블록 배포. Neon에 마이그레이션 `Block1794441600000`을 먼저 실행(block 테이블, slot source에 declared·batch 추가)한 뒤 `deploy/server`를 `d711cd0`(refactor/architecture와 합침)으로 push. `/health` 200, `POST /sync/blocks` 401(인증 필요) 확인. 앱 쪽 알림 버튼(EXP-2)은 `expo-task-manager` 네이티브 모듈이라 일상 APK는 새 EAS 빌드가 필요하다.
