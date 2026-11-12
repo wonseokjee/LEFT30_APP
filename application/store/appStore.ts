@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { SlotRow } from '@/db/types';
 import type { MissedRun } from '@/record/batchLogic';
+import type { MorningOffer } from '@/record/morningPlan';
 
 export type LastSaved = { slot: SlotRow; previous: SlotRow | null };
 
@@ -17,6 +18,10 @@ interface AppState {
   sheetBatch: MissedRun | null;
   openBatchSheet: (run: MissedRun) => void;
   closeBatchSheet: () => void;
+  // 아침 계획 제안(E1). 다른 시트가 모두 닫힌 뒤 보인다.
+  sheetMorning: MorningOffer | null;
+  openMorningSheet: (offer: MorningOffer) => void;
+  closeMorningSheet: () => void;
   // 블록이 바뀔 때마다 올린다. Home·Todo가 다시 읽는다.
   blockVersion: number;
   bumpBlocks: () => void;
@@ -38,6 +43,9 @@ export const useAppStore = create<AppState>((set) => ({
   sheetBatch: null,
   openBatchSheet: (run) => set({ sheetBatch: run }),
   closeBatchSheet: () => set({ sheetBatch: null }),
+  sheetMorning: null,
+  openMorningSheet: (offer) => set({ sheetMorning: offer }),
+  closeMorningSheet: () => set({ sheetMorning: null }),
   blockVersion: 0,
   bumpBlocks: () => set((s) => ({ blockVersion: s.blockVersion + 1 })),
   lastSaved: null,

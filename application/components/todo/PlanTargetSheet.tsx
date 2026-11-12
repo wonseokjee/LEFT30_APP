@@ -24,11 +24,13 @@ export default function PlanTargetSheet({
   date,
   onClose,
   onSaved,
+  from = 'todo',
 }: {
   visible: boolean;
   date: string;
   onClose: () => void;
   onSaved: () => void;
+  from?: 'todo' | 'home' | 'morning';
 }) {
   const [targets, setTargets] = useState<Partial<Record<Category, number>>>({});
   const [failed, setFailed] = useState(false);
@@ -58,7 +60,12 @@ export default function PlanTargetSheet({
       const db = getRuntime().db;
       const now = new Date().toISOString();
       await savePlan(db, date, targets, now);
-      await logEvent(db, { id: uuidv4(), type: 'plan_set', ts: now, props: { source: 'todo', total_minutes: total } });
+      await logEvent(db, {
+        id: uuidv4(),
+        type: 'plan_set',
+        ts: now,
+        props: { local_date: date, mode: 'custom', source: 'manual', from, total_minutes: total },
+      });
       void syncNow();
       onSaved();
     } catch (e) {

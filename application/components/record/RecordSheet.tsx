@@ -6,6 +6,10 @@ import { CATEGORY_LABEL, type BlockRow, type Category, type SlotRow } from '@/db
 import { getBlock, saveSlot, tzAt } from '@/db/records';
 import { logPingAnswered } from '@/scheduler/pingEvents';
 import { deferRun, fillRun, type MissedRun } from '@/record/batchLogic';
+import { acceptSame, type MorningOffer } from '@/record/morningPlan';
+import { ROW_ORDER as PLAN_ORDER } from '@/record/planVsActual';
+import { hours } from '@/record/todoLogic';
+import PlanTargetSheet from '@/components/todo/PlanTargetSheet';
 import { answerBlock, extendBlock } from '@/record/blockLogic';
 import { deviceTz, SLOT_MS } from '@/lib/localTime';
 import { readPause, readQuiet } from '@/scheduler/scheduler';
@@ -40,9 +44,82 @@ export default function RecordSheet() {
   const sheetSlot = useAppStore((s) => s.sheetSlot);
   const sheetBlock = useAppStore((s) => s.sheetBlock);
   const sheetBatch = useAppStore((s) => s.sheetBatch);
+  const sheetMorning = useAppStore((s) => s.sheetMorning);
   if (!sheetSlot && sheetBlock) return <BlockEndSheet blockId={sheetBlock} />;
   if (!sheetSlot && sheetBatch) return <BatchSheet run={sheetBatch} />;
+  if (!sheetSlot && sheetMorning) return <MorningSheet offer={sheetMorning} />;
   return <SlotSheet />;
+}
+
+/*
+ * 아침 계획 제안(재출시 설계 E1):
+ *   오늘 계획
+ *   업무 6h · 운동 1h            ← 어제 값(어제 계획, 없으면 어제 기록)
+ *   [어제와 동일]
+ *   [새로 짜기]                  ← 총량 스테퍼 시트(D11)
+ * 어제 값이 없으면 바로 새로 짜기 시트. 바깥을 누르면 닫히고 그날은 다시 묻지 않는다.
+ */
+function MorningSheet({ offer }: { offer: MorningOffer }) {
+  const close = useAppStore((s) => s.closeMorningSheet);
+  const [custom, setCustom] = useState(offer.kind === 'new');
+  const [failed, setFailed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const done = () => {
+    close();
+    useAppStore.getState().bumpBlocks();
+    void syncNow();
+  };
+
+  if (custom || offer.kind === 'new') {
+    return <PlanTargetSheet visible date={offer.date} from='morning' onClose={close} onSaved={done} />;
+  }
+  const summary = PLAN_ORDER.filter((c) => (offer.targets[c] ?? 0) > 0)
+    .map((c) => `${CATEGORY_LABEL[c]} ${hours(offer.targets[c] ?? 0)}`)
+    .join(' · ');
+  const same = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await acceptSame(getRuntime().db, offer, new Date());
+      done();
+    } catch (e) {
+      console.warn('morning plan failed', e);
+      setFailed(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible transparent animationType='slide' onRequestClose={close}>
+      <Pressable style={styles.overlay} onPress={close}>
+        <Pressable style={styles.sheet} onPress={() => undefined}>
+          <View style={styles.handle} />
+          <Text style={styles.header} maxFontSizeMultiplier={MAX_SCALE}>
+            오늘 계획
+          </Text>
+          <Text style={styles.summary} maxFontSizeMultiplier={MAX_SCALE}>
+            {summary}
+          </Text>
+          {failed && (
+            <Text style={styles.error} maxFontSizeMultiplier={MAX_SCALE}>
+              {SAVE_FAILED_TEXT}
+            </Text>
+          )}
+          <TouchableOpacity style={[styles.endButton, { marginBottom: 8 }]} onPress={same} accessibilityLabel='어제와 동일'>
+            <Text style={styles.cellText} maxFontSizeMultiplier={MAX_SCALE}>
+              어제와 동일
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.endButton} onPress={() => setCustom(true)} accessibilityLabel='새로 짜기'>
+            <Text style={styles.cellText} maxFontSizeMultiplier={MAX_SCALE}>
+              새로 짜기
+            </Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
 }
 
 /*
@@ -429,6 +506,11 @@ const styles = StyleSheet.create({
     color: GRAY_0,
     fontSize: 16,
     marginBottom: 12,
+  },
+  summary: {
+    color: GRAY_5,
+    fontSize: 15,
+    marginBottom: 16,
   },
   error: {
     color: GRAY_5,

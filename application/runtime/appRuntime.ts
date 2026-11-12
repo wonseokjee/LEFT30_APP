@@ -11,6 +11,7 @@ import { ensurePingChannel, expoNotifier } from '@/scheduler/expoNotifier';
 import { deviceTz } from '@/lib/localTime';
 import { settleBlocks } from '@/record/blockLogic';
 import { loadMissedRun } from '@/record/batchLogic';
+import { takeMorningOffer } from '@/record/morningPlan';
 import { logPingDisplayed, logPingScheduled } from '@/scheduler/pingEvents';
 import { useAppStore } from '@/store/appStore';
 
@@ -111,6 +112,17 @@ export async function settleBlocksNow(): Promise<void> {
   }
 }
 
+// 그날 첫 진입이 15시 이전이면 아침 계획 제안(E1).
+async function offerMorningPlan(): Promise<void> {
+  if (!runtime) return;
+  try {
+    const offer = await takeMorningOffer(runtime.db, new Date(), deviceTz());
+    if (offer) useAppStore.getState().openMorningSheet(offer);
+  } catch (e) {
+    console.warn('morning offer failed', e);
+  }
+}
+
 // S3 핑 이벤트: 도래한 예약 칸(소급)과 알림창에 남아 있는 30분 알림(표시 관측).
 async function notePings(): Promise<void> {
   if (!runtime) return;
@@ -147,6 +159,7 @@ export async function onForeground(): Promise<void> {
   await noteTz(runtime.db, deviceTz(), new Date());
   await settleBlocksNow();
   await offerMissedRun();
+  await offerMorningPlan();
   await notePings();
   await rescheduleNow();
   await syncNow();
