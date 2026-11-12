@@ -28,7 +28,7 @@ import { afterBlockChange, getRuntime, rescheduleNow, syncNow } from '@/runtime/
 import { useAppStore } from '@/store/appStore';
 
 const MAX_SCALE = 1.3;
-export const SAVE_FAILED_TEXT = '저장하지 못했어요. 다시 눌러 주세요';
+import { SAVE_FAILED_TEXT } from './texts';
 
 type Loaded = {
   slotStart: string;

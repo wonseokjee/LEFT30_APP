@@ -6,7 +6,7 @@ import { saveSlot, undoSlot } from '@/db/records';
 import { withRo } from '@/record/recordLogic';
 import { getRuntime, rescheduleNow, syncNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
-import { SAVE_FAILED_TEXT } from './RecordSheet';
+import { SAVE_FAILED_TEXT } from './texts';
 
 const MAX_SCALE = 1.3;
 const VISIBLE_MS = 3000;

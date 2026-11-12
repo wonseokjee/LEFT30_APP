@@ -479,6 +479,9 @@ Approval readiness: PASS — D1(구조 Smaller arrangement), E1(D2 A), E2(D3 A),
 5. Todo 탭 교체 + CP-3, 옛 Todo 코드 삭제.
 6. 놓친 칸 묶음 + CP-1, S1-COUNT 이벤트.
 7. EXP-2 실험(개발 앱, 앱 완전 종료) → 통과 시 알림 버튼.
+   - 2026-11-12 결과: **통과.** 개발 앱 프로세스를 죽인 상태(`am kill`, pidof 비어 있음)에서 버튼을 누르자 앱이 열리지 않고 백그라운드 작업이 SQLite에 저장, 알림을 닫았다(로그 `TaskService: Finished task 'left30-continue-action'`). 알림 data는 작업에서 `content.dataString`(JSON 문자열)으로 온다.
+   - 구현: 맥락 문구가 붙는 다음 칸 알림 하나에 [그대로 계속 · 카테고리] 버튼(카테고리 6개 미리 등록). 누르면 그 칸이 비어 있을 때만 기록(60분 안 continued, 지나면 late), `ping_answered`, 알림 다시 계산(다음 칸에도 버튼). 동기화는 다음 앱 실행 때. `notifications/continueTask.ts`, `record/continueAction.ts`.
+   - 의존성: `expo-task-manager`(D18 승인). 네이티브 모듈이라 배포 때 새 빌드가 필요하다.
 8. 설계서 T6 나머지(S3 분모, source 표, 계획 절). (2026-11-12 완료. 1~6·8 구현 완료, 7 EXP-2 실험과 서버 배포는 남음)
 
 ## Design Review (/plan-design-review, 2026-11-12)

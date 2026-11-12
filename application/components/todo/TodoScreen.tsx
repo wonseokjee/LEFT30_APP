@@ -27,7 +27,7 @@ import {
 } from '@/record/todoLogic';
 import { afterBlockChange, getRuntime } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
-import { SAVE_FAILED_TEXT } from '@/components/record/RecordSheet';
+import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 import BlockEditSheet from './BlockEditSheet';
 import PlanTargetSheet from './PlanTargetSheet';
 

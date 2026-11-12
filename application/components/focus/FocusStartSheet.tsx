@@ -11,7 +11,7 @@ import { readQuiet } from '@/scheduler/scheduler';
 import type { Quiet } from '@/scheduler/plan';
 
 const MAX_SCALE = 1.3;
-const SAVE_FAILED_TEXT = '저장하지 못했어요. 다시 눌러 주세요';
+import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 
 /*
  * Home [집중] 시작(디자인 리뷰 DR-8): 두 번 탭.

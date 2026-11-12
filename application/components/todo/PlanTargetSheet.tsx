@@ -7,7 +7,7 @@ import { uuidv4 } from '@/lib/uuid';
 import { CATEGORY_COLOR } from '@/record/categoryStyle';
 import { DAY_MIN, hours, planRowsOn, shiftDate } from '@/record/todoLogic';
 import { getRuntime, syncNow } from '@/runtime/appRuntime';
-import { SAVE_FAILED_TEXT } from '@/components/record/RecordSheet';
+import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 
 const MAX_SCALE = 1.3;
 // 디자인 리뷰 D11 순서: 업무·휴식·관계·운동·자기개발·수면
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   stepBtn: { width: 44, height: 44, borderRadius: 8, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center' },
   off: { opacity: 0.4 },
   stepText: { color: GRAY_0, fontSize: 22 },
-  value: { color: GRAY_0, fontSize: 16, minWidth: 48, textAlign: 'center' },
+  value: { color: GRAY_0, fontSize: 16, minWidth: 48, textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false },
   total: { color: GRAY_5, fontSize: 15, marginTop: 8 },
   error: { color: GRAY_5, fontSize: 13, marginTop: 8 },
   save: { minHeight: 52, borderRadius: 8, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center', marginTop: 12 },

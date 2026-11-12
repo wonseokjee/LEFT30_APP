@@ -7,7 +7,7 @@ import { CATEGORY_COLOR, GRID_ORDER, textOn } from '@/record/categoryStyle';
 import { hhmm } from '@/record/recordLogic';
 import { BLOCK_TITLE_MAX, DAY_MIN, hm, minuteOf, savePlanBlock, setEnd, setStart } from '@/record/todoLogic';
 import { getRuntime } from '@/runtime/appRuntime';
-import { SAVE_FAILED_TEXT } from '@/components/record/RecordSheet';
+import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 
 const MAX_SCALE = 1.3;
 

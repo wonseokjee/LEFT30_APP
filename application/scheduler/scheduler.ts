@@ -7,6 +7,8 @@ import {
   normalizePause,
   normalizeQuiet,
   pingContent,
+  continueCategory,
+  continueCategoryId,
   type Pause,
   type Quiet,
   type RecentSlot,
@@ -67,7 +69,7 @@ export interface Notifier {
   schedule(
     id: string,
     fireAt: Date,
-    content: { title: string; body: string; data: Record<string, string> },
+    content: { title: string; body: string; data: Record<string, string>; categoryIdentifier?: string },
   ): Promise<void>;
   cancel(id: string): Promise<void>;
 }
@@ -126,9 +128,11 @@ export function createScheduler(opts: {
       const row = have.get(p.slotStart);
       if (!rearm && row && row.text_kind === p.textKind) continue;
       const id = pingId(p.slotStart);
+      const cont = continueCategory(p.textKind);
       await notifier.schedule(id, new Date(p.fireAt), {
         ...pingContent(p.textKind),
-        data: { kind: 'ping', slotStart: p.slotStart },
+        data: cont ? { kind: 'ping', slotStart: p.slotStart, continue: cont } : { kind: 'ping', slotStart: p.slotStart },
+        ...(cont ? { categoryIdentifier: continueCategoryId(cont) } : {}),
       });
       await db.run(
         `INSERT OR REPLACE INTO scheduled_slot (slot_start, notification_id, scheduled_at, text_kind)

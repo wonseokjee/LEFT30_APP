@@ -223,6 +223,18 @@ export function pingContent(textKind: string): { title: string; body: string } {
   return { title: 'LEFT30', body: '지난 30분, 무엇을 하셨나요?' };
 }
 
+// 알림 버튼 [그대로 계속 · 카테고리](EXP-2). 맥락 문구가 붙는 다음 칸 하나에만 단다.
+// 맥락 = 직전 60분 안의 answered·continued 칸이라 기록 시트의 "그대로 계속" 후보와 같다.
+export const CONTINUE_ACTION = 'continue';
+export function continueCategory(textKind: string): Category | null {
+  if (!textKind.startsWith('context:')) return null;
+  const c = textKind.slice('context:'.length) as Category;
+  return c in CONTEXT_BODY ? c : null;
+}
+export function continueCategoryId(category: Category): string {
+  return `continue_${category}`;
+}
+
 export const EXPIRY_CONTENT = {
   title: 'LEFT30',
   body: '알림이 곧 멈춰요, 앱을 한 번 열어 주세요',

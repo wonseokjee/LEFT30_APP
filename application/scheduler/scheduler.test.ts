@@ -182,7 +182,7 @@ describe('예약 계산', () => {
 // yields: 호출마다 마이크로태스크를 몇 번 양보해서 동시 실행이 서로 끼어들 틈을 만든다.
 // (jest-expo 환경에서는 setTimeout(0)이 한 번에 10ms 넘게 걸려 타이머를 쓰지 않는다.)
 function fakeNotifier(yields = 0) {
-  const scheduled = new Map<string, { fireAt: string; body: string }>();
+  const scheduled = new Map<string, { fireAt: string; body: string; category?: string }>();
   let calls = 0;
   let granted = true;
   const wait = async () => {
@@ -193,7 +193,7 @@ function fakeNotifier(yields = 0) {
     schedule: async (id, fireAt, content) => {
       calls++;
       await wait();
-      scheduled.set(id, { fireAt: fireAt.toISOString(), body: content.body });
+      scheduled.set(id, { fireAt: fireAt.toISOString(), body: content.body, category: content.categoryIdentifier });
     },
     cancel: async (id) => {
       calls++;
@@ -248,6 +248,10 @@ describe('스케줄러', () => {
     });
     expect(await scheduler.reschedule()).toEqual({ status: 'ok', days: 12, added: 1, cancelled: 1 });
     expect(fake.scheduled.get('slot:2026-10-21T01:00:00.000Z')!.body).toBe('방금도 일하셨나요?');
+    // EXP-2: 다음 칸 하나에만 [그대로 계속 · 업무] 버튼
+    expect(fake.scheduled.get('slot:2026-10-21T01:00:00.000Z')!.category).toBe('continue_work');
+    const withButton = [...fake.scheduled.values()].filter((v) => v.category);
+    expect(withButton).toHaveLength(1);
   });
 
   it('방해금지를 바꾸면 해당 칸만 취소·추가한다', async () => {
