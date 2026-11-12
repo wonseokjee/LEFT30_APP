@@ -9,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { IsISO8601, IsOptional } from 'class-validator';
-import { AuthedRequest, JwtAuthGuard } from 'src/auth/JWT/jwt.authGuard';
+import { AuthedRequest, JwtAuthGuard } from '../auth/JWT/jwt.authGuard';
 import { SyncService } from './sync.service';
 import { BatchBody } from './sync.dto';
 import { assertBatchSize } from './batch';

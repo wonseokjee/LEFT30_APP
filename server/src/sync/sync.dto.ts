@@ -13,21 +13,17 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { CATEGORIES, SLOT_SOURCES } from 'src/Entity/slot.entity';
-import type { Category, SlotSource } from 'src/Entity/slot.entity';
-import { EVENT_TYPES } from 'src/Entity/event.entity';
+import { CATEGORIES, SLOT_SOURCES } from '../Entity/slot.entity';
+import type { Category, SlotSource } from '../Entity/slot.entity';
+import { EVENT_TYPES } from '../Entity/event.entity';
 import {
   BLOCK_END_HOWS,
   BLOCK_KINDS,
   BLOCK_STATES,
   BLOCK_TITLE_MAX,
-} from 'src/Entity/block.entity';
-import type {
-  BlockEndHow,
-  BlockKind,
-  BlockState,
-} from 'src/Entity/block.entity';
-import type { EventType } from 'src/Entity/event.entity';
+} from '../Entity/block.entity';
+import type { BlockEndHow, BlockKind, BlockState } from '../Entity/block.entity';
+import type { EventType } from '../Entity/event.entity';
 
 /*
  * 동기화 API 계약(앱 sync 큐와 공유한다. 바꾸면 양쪽을 함께 고친다).

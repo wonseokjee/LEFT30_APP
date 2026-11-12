@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/Entity/user.entity';
+import { User } from '../../Entity/user.entity';
 import { Repository } from 'typeorm';
 import { createHash, randomUUID, timingSafeEqual } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
