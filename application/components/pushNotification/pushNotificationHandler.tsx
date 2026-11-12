@@ -1,6 +1,7 @@
 import type { Notification, NotificationBehavior } from 'expo-notifications';
 import { useAppStore } from '@/store/appStore';
-import { settleBlocksNow } from '@/runtime/appRuntime';
+import { getRuntime, settleBlocksNow } from '@/runtime/appRuntime';
+import { logPingDisplayed } from '@/scheduler/pingEvents';
 
 const HIDE: NotificationBehavior = {
   shouldPlaySound: false,
@@ -17,6 +18,9 @@ export const handleNotification = async (
 ): Promise<NotificationBehavior> => {
   const data = notification.request.content.data;
   if (data?.kind === 'ping' && typeof data.slotStart === 'string') {
+    logPingDisplayed(getRuntime().db, data.slotStart, new Date(notification.date || Date.now())).catch((e) =>
+      console.warn('ping displayed failed', e),
+    );
     useAppStore.getState().openSheet(data.slotStart);
     return HIDE;
   }

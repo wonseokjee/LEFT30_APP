@@ -11,6 +11,7 @@ import { ensurePingChannel, expoNotifier } from '@/scheduler/expoNotifier';
 import { deviceTz } from '@/lib/localTime';
 import { settleBlocks } from '@/record/blockLogic';
 import { loadMissedRun } from '@/record/batchLogic';
+import { logPingDisplayed, logPingScheduled } from '@/scheduler/pingEvents';
 import { useAppStore } from '@/store/appStore';
 
 // 앱 전체에서 하나만 쓰는 DB·동기화·스케줄러. 앱 시작 시 bootRuntime()으로 만든다.
@@ -110,6 +111,22 @@ export async function settleBlocksNow(): Promise<void> {
   }
 }
 
+// S3 핑 이벤트: 도래한 예약 칸(소급)과 알림창에 남아 있는 30분 알림(표시 관측).
+async function notePings(): Promise<void> {
+  if (!runtime) return;
+  try {
+    await logPingScheduled(runtime.db, new Date());
+    for (const n of await Notifications.getPresentedNotificationsAsync()) {
+      const data = n.request.content.data;
+      if (data?.kind === 'ping' && typeof data.slotStart === 'string') {
+        await logPingDisplayed(runtime.db, data.slotStart, new Date(n.date || Date.now()));
+      }
+    }
+  } catch (e) {
+    console.warn('ping events failed', e);
+  }
+}
+
 // 블록 정리 뒤: 최근 5시간 안에 연속 빈칸이 있으면 놓친 칸 묶음 시트를 띄운다(UX-3).
 export async function offerMissedRun(): Promise<void> {
   if (!runtime) return;
@@ -130,6 +147,7 @@ export async function onForeground(): Promise<void> {
   await noteTz(runtime.db, deviceTz(), new Date());
   await settleBlocksNow();
   await offerMissedRun();
+  await notePings();
   await rescheduleNow();
   await syncNow();
 }

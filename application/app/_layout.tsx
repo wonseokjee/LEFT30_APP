@@ -13,7 +13,8 @@ import { afterLogin } from '@/components/login/afterLogin';
 import RecordSheet from '@/components/record/RecordSheet';
 import RecordToast from '@/components/record/RecordToast';
 import BootError from '@/components/app/BootError';
-import { bootRuntime, onForeground, settleBlocksNow } from '@/runtime/appRuntime';
+import { bootRuntime, getRuntime, onForeground, settleBlocksNow } from '@/runtime/appRuntime';
+import { logPingDisplayed } from '@/scheduler/pingEvents';
 import { useAppStore } from '@/store/appStore';
 
 const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
@@ -70,6 +71,8 @@ export default function RootLayout() {
     if (boot !== 'ready' || !lastResponse) return;
     const data = lastResponse.notification.request.content.data;
     if (data?.kind === 'ping' && typeof data.slotStart === 'string') {
+      const seen = new Date(lastResponse.notification.date || Date.now());
+      logPingDisplayed(getRuntime().db, data.slotStart, seen).catch((e) => console.warn('ping displayed failed', e));
       useAppStore.getState().openSheet(data.slotStart);
     }
     if (data?.kind === 'block_end' && typeof data.blockId === 'string') {

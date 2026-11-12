@@ -3,8 +3,8 @@ import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'reac
 import { useRouter } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { CATEGORY_LABEL, type BlockRow, type Category, type SlotRow } from '@/db/types';
-import { getBlock, logEvent, saveSlot, tzAt } from '@/db/records';
-import { uuidv4 } from '@/lib/uuid';
+import { getBlock, saveSlot, tzAt } from '@/db/records';
+import { logPingAnswered } from '@/scheduler/pingEvents';
 import { deferRun, fillRun, type MissedRun } from '@/record/batchLogic';
 import { answerBlock, extendBlock } from '@/record/blockLogic';
 import { deviceTz, SLOT_MS } from '@/lib/localTime';
@@ -315,12 +315,7 @@ function SlotSheet() {
       await saveSlot(getRuntime().db, row);
       // S1-COUNT: 답한 시간대를 센다. 처음 기록할 때만(고치기는 세지 않음).
       if (!existing) {
-        await logEvent(getRuntime().db, {
-          id: uuidv4(),
-          type: 'ping_answered',
-          ts: now.toISOString(),
-          props: { source: row.source },
-        });
+        await logPingAnswered(getRuntime().db, row.slot_start, row.source, now);
       }
       setSaveFailed(false);
       setLastSaved({ slot: row, previous: existing });
