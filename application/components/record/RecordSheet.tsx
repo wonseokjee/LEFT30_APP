@@ -3,7 +3,9 @@ import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'reac
 import { useRouter } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { CATEGORY_LABEL, type BlockRow, type Category, type SlotRow } from '@/db/types';
-import { getBlock, saveSlot, tzAt } from '@/db/records';
+import { getBlock, logEvent, saveSlot, tzAt } from '@/db/records';
+import { uuidv4 } from '@/lib/uuid';
+import { deferRun, fillRun, type MissedRun } from '@/record/batchLogic';
 import { answerBlock, extendBlock } from '@/record/blockLogic';
 import { deviceTz, SLOT_MS } from '@/lib/localTime';
 import { readPause, readQuiet } from '@/scheduler/scheduler';
@@ -18,7 +20,7 @@ import {
   withRo,
 } from '@/record/recordLogic';
 import { CATEGORY_COLOR, GRID_ORDER, textOn } from '@/record/categoryStyle';
-import { afterBlockChange, getRuntime, rescheduleNow } from '@/runtime/appRuntime';
+import { afterBlockChange, getRuntime, rescheduleNow, syncNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 
 const MAX_SCALE = 1.3;
@@ -32,13 +34,112 @@ type Loaded = {
   emptyBefore: string | null;
 };
 
-// 기록 시트는 모드가 둘이다(eng D1): 칸 기록(sheetSlot), 블록 끝(sheetBlock, UX-2 A).
-// 칸 기록이 열려 있으면 그쪽이 먼저다.
+// 기록 시트는 모드가 셋이다(eng D1): 칸 기록(sheetSlot), 블록 끝(sheetBlock, UX-2 A), 놓친 칸 묶음(sheetBatch, UX-3).
+// 칸 기록 → 블록 끝 → 묶음 순서로 먼저 연다.
 export default function RecordSheet() {
   const sheetSlot = useAppStore((s) => s.sheetSlot);
   const sheetBlock = useAppStore((s) => s.sheetBlock);
+  const sheetBatch = useAppStore((s) => s.sheetBatch);
   if (!sheetSlot && sheetBlock) return <BlockEndSheet blockId={sheetBlock} />;
+  if (!sheetSlot && sheetBatch) return <BatchSheet run={sheetBatch} />;
   return <SlotSheet />;
+}
+
+/*
+ * 놓친 칸 묶음(UX-3, CP-1):
+ *   13:00–18:00 비어 있어요 (10칸)
+ *   [계획대로 · 업무]  또는  [그대로 계속 · 업무]   ← 묶음 전체를 같은 값으로
+ *   [6칸 카테고리]
+ *   ─────────────
+ *   중간에 바뀌었어요  따로 채울게요                ← 닫고 같은 칸은 다시 묻지 않음(시간표에서 채움)
+ * 바깥을 누르면 그냥 닫힌다(다음에 앱을 열 때 다시 묻는다).
+ */
+function BatchSheet({ run }: { run: MissedRun }) {
+  const close = useAppStore((s) => s.closeBatchSheet);
+  const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  const act = async (fn: () => Promise<void>) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await fn();
+      setFailed(false);
+      close();
+      useAppStore.getState().bumpBlocks();
+      void rescheduleNow();
+      void syncNow();
+    } catch (e) {
+      console.warn('batch fill failed', e);
+      setFailed(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const fill = (category: Category) => act(() => fillRun(getRuntime().db, run, category, new Date()));
+  const first = new Date(run.slots[0]);
+  const end = new Date(Date.parse(run.slots[run.slots.length - 1]) + SLOT_MS);
+  const top = run.plan ?? run.previous;
+  const topLabel = run.plan ? '계획대로' : '그대로 계속';
+  const count = run.slots.length;
+
+  return (
+    <Modal visible transparent animationType='slide' onRequestClose={close}>
+      <Pressable style={styles.overlay} onPress={close}>
+        <Pressable style={styles.sheet} onPress={() => undefined}>
+          <View style={styles.handle} />
+          <Text style={styles.header} maxFontSizeMultiplier={MAX_SCALE}>
+            {dayPrefix(run.slots[0], new Date(), run.tz)}
+            {hhmm(first, run.tz)}–{hhmm(end, run.tz)} 비어 있어요 ({count}칸)
+          </Text>
+          {failed && (
+            <Text style={styles.error} maxFontSizeMultiplier={MAX_SCALE}>
+              {SAVE_FAILED_TEXT}
+            </Text>
+          )}
+          {top && (
+            <TouchableOpacity
+              style={[styles.continueButton, { backgroundColor: CATEGORY_COLOR[top] }]}
+              onPress={() => fill(top)}
+              accessibilityLabel={`${topLabel}, ${count}칸 모두 ${withRo(CATEGORY_LABEL[top])} 기록`}
+            >
+              <Text style={[styles.continueText, { color: textOn(CATEGORY_COLOR[top]) }]} maxFontSizeMultiplier={MAX_SCALE}>
+                {topLabel} · {CATEGORY_LABEL[top]}
+              </Text>
+            </TouchableOpacity>
+          )}
+          <View style={styles.grid}>
+            {GRID_ORDER.map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={styles.cell}
+                onPress={() => fill(category)}
+                accessibilityLabel={`${count}칸 모두 ${withRo(CATEGORY_LABEL[category])} 기록`}
+              >
+                <View style={[styles.dot, { backgroundColor: CATEGORY_COLOR[category] }]} />
+                <Text style={styles.cellText} maxFontSizeMultiplier={MAX_SCALE}>
+                  {CATEGORY_LABEL[category]}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.emptyRow}
+            onPress={() => act(() => deferRun(getRuntime().db, run, new Date()))}
+            accessibilityLabel='중간에 바뀌었어요, 따로 채울게요'
+          >
+            <Text style={styles.emptyText} maxFontSizeMultiplier={MAX_SCALE}>
+              중간에 바뀌었어요
+            </Text>
+            <Text style={styles.emptyAction} maxFontSizeMultiplier={MAX_SCALE}>
+              따로 채울게요
+            </Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
 }
 
 /*
@@ -212,6 +313,15 @@ function SlotSheet() {
         client_updated_at: now.toISOString(),
       };
       await saveSlot(getRuntime().db, row);
+      // S1-COUNT: 답한 시간대를 센다. 처음 기록할 때만(고치기는 세지 않음).
+      if (!existing) {
+        await logEvent(getRuntime().db, {
+          id: uuidv4(),
+          type: 'ping_answered',
+          ts: now.toISOString(),
+          props: { source: row.source },
+        });
+      }
       setSaveFailed(false);
       setLastSaved({ slot: row, previous: existing });
       closeSheet();

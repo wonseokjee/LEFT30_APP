@@ -13,26 +13,35 @@ export async function enqueue(tx: Db, kind: QueueKind, payload: object): Promise
 }
 
 export async function saveSlot(db: Db, slot: SlotRow): Promise<void> {
+  await saveSlots(db, [slot]);
+}
+
+// 여러 칸을 한 트랜잭션으로 저장한다(놓친 칸 묶음: 일부만 써지지 않게).
+export async function saveSlots(db: Db, slots: SlotRow[]): Promise<void> {
   await db.transaction(async (tx) => {
-    await tx.run(
-      `INSERT INTO slot (slot_start, tz, category, note, source, answered_at, client_updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (slot_start) DO UPDATE SET
-         tz = excluded.tz, category = excluded.category, note = excluded.note,
-         source = excluded.source, answered_at = excluded.answered_at,
-         client_updated_at = excluded.client_updated_at`,
-      [
-        slot.slot_start,
-        slot.tz,
-        slot.category,
-        slot.note,
-        slot.source,
-        slot.answered_at,
-        slot.client_updated_at,
-      ],
-    );
-    await enqueue(tx, 'slot', slot);
+    for (const slot of slots) await insertSlot(tx, slot);
   });
+}
+
+async function insertSlot(tx: Db, slot: SlotRow): Promise<void> {
+  await tx.run(
+    `INSERT INTO slot (slot_start, tz, category, note, source, answered_at, client_updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (slot_start) DO UPDATE SET
+       tz = excluded.tz, category = excluded.category, note = excluded.note,
+       source = excluded.source, answered_at = excluded.answered_at,
+       client_updated_at = excluded.client_updated_at`,
+    [
+      slot.slot_start,
+      slot.tz,
+      slot.category,
+      slot.note,
+      slot.source,
+      slot.answered_at,
+      slot.client_updated_at,
+    ],
+  );
+  await enqueue(tx, 'slot', slot);
 }
 
 // 하루 계획 전체를 저장한다. 계획에서 뺀 카테고리는 0으로 저장한다(삭제 없음).

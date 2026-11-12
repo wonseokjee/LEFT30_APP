@@ -6,7 +6,9 @@ import { CATEGORY_LABEL, type SlotRow } from '@/db/types';
 import { deviceTz, localParts, MINUTE_MS } from '@/lib/localTime';
 import { CATEGORY_COLOR, textOn } from '@/record/categoryStyle';
 import { hhmm } from '@/record/recordLogic';
-import { dayColumn, daySlots, isPastSlot, ROWS_PER_DAY, shiftDate, type Cell } from '@/record/timetable';
+import { dayColumn, daySlots, isPastSlot, ROWS_PER_DAY, shiftDate, type Cell, type PlanCells } from '@/record/timetable';
+import { blockSlots } from '@/record/blockLogic';
+import { planBlocksOn } from '@/record/todoLogic';
 import { getRuntime } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 
@@ -17,6 +19,8 @@ const PAD = 16;
 const PAD_TOP = 8;
 const GAP = 8;
 const NOW_BOX = 20;
+// 계획 레이어 투명도(약 30%). 색 결정은 디자인 개편에서(DR-6, Pass 5).
+const PLAN_ALPHA = '4d';
 
 type Loaded = { yesterday: Cell[]; today: Cell[] };
 
@@ -32,6 +36,7 @@ export default function Timetable() {
   const sheetSlot = useAppStore((s) => s.sheetSlot);
   const lastSaved = useAppStore((s) => s.lastSaved);
   const openSheet = useAppStore((s) => s.openSheet);
+  const blockVersion = useAppStore((s) => s.blockVersion);
   const [now, setNow] = useState(() => new Date());
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const scrolled = useRef(false);
@@ -50,9 +55,16 @@ export default function Timetable() {
       'SELECT * FROM slot WHERE slot_start >= ? AND slot_start <= ?',
       [from, to],
     );
+    // DR-6: 오늘 열에만 계획 블록을 옅게 깐다. 실제 기록이 있으면 기록이 이긴다.
+    const plans: PlanCells = new Map();
+    for (const b of await planBlocksOn(getRuntime().db, today, tz)) {
+      blockSlots(b, b.tz).forEach((s, i) =>
+        plans.set(s, { category: b.category, label: i === 0 ? CATEGORY_LABEL[b.category] + (b.title ? ` · ${b.title}` : '') : null }),
+      );
+    }
     setLoaded({
       yesterday: dayColumn(yesterday, tz, slots),
-      today: dayColumn(today, tz, slots),
+      today: dayColumn(today, tz, slots, plans),
     });
   }, [today, yesterday, tz]);
 
@@ -67,7 +79,7 @@ export default function Timetable() {
   useEffect(() => {
     if (sheetSlot) return;
     load().catch((e) => console.warn('timetable load failed', e));
-  }, [load, sheetSlot, lastSaved]);
+  }, [load, sheetSlot, lastSaved, blockVersion]);
 
   const nowTop = (localParts(now, tz).minuteOfDay / 30) * ROW;
 
@@ -87,14 +99,32 @@ export default function Timetable() {
         const runEnd = cell.category !== null && next?.category !== cell.category;
         const tappable = cell.slotStart !== null && isPastSlot(cell.slotStart, now);
         const color = cell.category ? CATEGORY_COLOR[cell.category] : undefined;
+        const planOnly = !color && cell.plan;
+        const planNext = next && !next.category && next.plan?.category === cell.plan?.category && !next.plan?.label;
         return (
           <Pressable
             key={cell.row}
             style={styles.cell}
             disabled={!tappable}
             onPress={() => cell.slotStart && openSheet(cell.slotStart)}
-            accessibilityLabel={`${rowLabel(cell.row)}, ${cell.category ? CATEGORY_LABEL[cell.category] : '비어 있음'}`}
+            accessibilityLabel={`${rowLabel(cell.row)}, ${cell.category ? CATEGORY_LABEL[cell.category] : '비어 있음'}${cell.plan ? `, 계획 ${CATEGORY_LABEL[cell.plan.category]}` : ''}`}
           >
+            {planOnly && cell.plan && (
+              <View
+                style={[
+                  styles.block,
+                  { backgroundColor: CATEGORY_COLOR[cell.plan.category] + PLAN_ALPHA },
+                  cell.plan.label !== null && styles.blockTop,
+                  !planNext && styles.blockBottom,
+                ]}
+              >
+                {cell.plan.label && (
+                  <Text style={styles.planText} maxFontSizeMultiplier={MAX_SCALE} numberOfLines={1}>
+                    {cell.plan.label}
+                  </Text>
+                )}
+              </View>
+            )}
             {color && (
               <View
                 style={[
@@ -226,6 +256,10 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   blockText: {
+    fontSize: 13,
+  },
+  planText: {
+    color: GRAY_0,
     fontSize: 13,
   },
   now: {

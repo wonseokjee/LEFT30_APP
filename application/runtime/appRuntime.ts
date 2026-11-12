@@ -6,10 +6,11 @@ import { MIGRATIONS } from '@/db/schema';
 import { noteTz, wipeLocalData } from '@/db/records';
 import { backoffMs, createSyncEngine } from '@/sync/engine';
 import { httpTransport, secureStoreAuth } from '@/sync/http';
-import { createScheduler } from '@/scheduler/scheduler';
+import { createScheduler, readPause, readQuiet } from '@/scheduler/scheduler';
 import { ensurePingChannel, expoNotifier } from '@/scheduler/expoNotifier';
 import { deviceTz } from '@/lib/localTime';
 import { settleBlocks } from '@/record/blockLogic';
+import { loadMissedRun } from '@/record/batchLogic';
 import { useAppStore } from '@/store/appStore';
 
 // 앱 전체에서 하나만 쓰는 DB·동기화·스케줄러. 앱 시작 시 bootRuntime()으로 만든다.
@@ -109,11 +110,26 @@ export async function settleBlocksNow(): Promise<void> {
   }
 }
 
+// 블록 정리 뒤: 최근 5시간 안에 연속 빈칸이 있으면 놓친 칸 묶음 시트를 띄운다(UX-3).
+export async function offerMissedRun(): Promise<void> {
+  if (!runtime) return;
+  try {
+    const db = runtime.db;
+    const run = await loadMissedRun(db, new Date(), deviceTz(), await readQuiet(db), await readPause(db));
+    const store = useAppStore.getState();
+    if (run) store.openBatchSheet(run);
+    else if (store.sheetBatch) store.closeBatchSheet();
+  } catch (e) {
+    console.warn('missed run failed', e);
+  }
+}
+
 // 앱 시작, 포그라운드 복귀 때. 시간대 변경 기록 → 블록 정리 → 예약 연장 → 동기화.
 export async function onForeground(): Promise<void> {
   if (!runtime) return;
   await noteTz(runtime.db, deviceTz(), new Date());
   await settleBlocksNow();
+  await offerMissedRun();
   await rescheduleNow();
   await syncNow();
 }

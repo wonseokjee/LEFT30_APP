@@ -8,7 +8,11 @@ export type Cell = {
   slotStart: string | null; // 서머타임으로 사라진 시각이면 null
   category: Category | null;
   runStart: boolean; // 같은 카테고리가 이어지는 첫 칸(이름을 여기에만 쓴다)
+  plan: { category: Category; label: string | null } | null; // DR-6 계획 블록(오늘 열만). label은 블록 첫 칸에만
 };
+
+// 계획 블록 칸: slot_start → 카테고리와 이름(블록 첫 칸만).
+export type PlanCells = Map<string, { category: Category; label: string | null }>;
 
 // YYYY-MM-DD에서 며칠 앞뒤 날짜. 달력 계산만 하므로 시간대와 무관하다(매월 1일 '0(어제)' 버그 방지).
 export function shiftDate(date: string, days: number): string {
@@ -32,13 +36,14 @@ export function daySlots(date: string, tz: string): string[] {
 }
 
 // 시간표 한 열(하루). 칸은 현지 시각 행에 놓는다. 서머타임으로 같은 시각이 두 번이면 기록된 쪽을 보여준다.
-export function dayColumn(date: string, tz: string, slots: SlotRow[]): Cell[] {
+export function dayColumn(date: string, tz: string, slots: SlotRow[], plans: PlanCells = new Map()): Cell[] {
   const byStart = new Map(slots.map((s) => [s.slot_start, s.category]));
   const cells: Cell[] = Array.from({ length: ROWS_PER_DAY }, (_, row) => ({
     row,
     slotStart: null,
     category: null,
     runStart: false,
+    plan: null,
   }));
   for (const slotStart of daySlots(date, tz)) {
     const row = localParts(new Date(slotStart), tz).minuteOfDay / 30;
@@ -46,6 +51,7 @@ export function dayColumn(date: string, tz: string, slots: SlotRow[]): Cell[] {
     if (cell.slotStart && cell.category) continue;
     cell.slotStart = slotStart;
     cell.category = byStart.get(slotStart) ?? null;
+    cell.plan = plans.get(slotStart) ?? null;
   }
   for (const cell of cells) {
     const prev = cells[cell.row - 1];

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { SlotRow } from '@/db/types';
+import type { MissedRun } from '@/record/batchLogic';
 
 export type LastSaved = { slot: SlotRow; previous: SlotRow | null };
 
@@ -12,6 +13,10 @@ interface AppState {
   sheetBlock: string | null;
   openBlockSheet: (blockId: string) => void;
   closeBlockSheet: () => void;
+  // 놓친 칸 묶음 시트(UX-3). 칸·블록 끝 시트가 먼저다.
+  sheetBatch: MissedRun | null;
+  openBatchSheet: (run: MissedRun) => void;
+  closeBatchSheet: () => void;
   // 블록이 바뀔 때마다 올린다. Home·Todo가 다시 읽는다.
   blockVersion: number;
   bumpBlocks: () => void;
@@ -30,6 +35,9 @@ export const useAppStore = create<AppState>((set) => ({
   sheetBlock: null,
   openBlockSheet: (blockId) => set({ sheetBlock: blockId }),
   closeBlockSheet: () => set({ sheetBlock: null }),
+  sheetBatch: null,
+  openBatchSheet: (run) => set({ sheetBatch: run }),
+  closeBatchSheet: () => set({ sheetBatch: null }),
   blockVersion: 0,
   bumpBlocks: () => set((s) => ({ blockVersion: s.blockVersion + 1 })),
   lastSaved: null,

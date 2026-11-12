@@ -56,6 +56,17 @@ describe('시간표 칸', () => {
     expect(cells.filter((c) => c.category)).toHaveLength(3);
   });
 
+  it('(DR-6) 계획 블록 칸은 기록과 따로 계획을 들고, 기록이 있어도 계획은 남는다', () => {
+    const plans = new Map([
+      ['2026-11-08T05:00:00.000Z', { category: 'work' as const, label: '업무 · 보고서' }], // 14:00
+      ['2026-11-08T05:30:00.000Z', { category: 'work' as const, label: null }], // 14:30
+    ]);
+    const cells = dayColumn('2026-11-08', SEOUL, [row('2026-11-08T05:30:00.000Z', 'rest')], plans);
+    expect(cells[28]).toMatchObject({ category: null, plan: { category: 'work', label: '업무 · 보고서' } });
+    expect(cells[29]).toMatchObject({ category: 'rest', plan: { category: 'work', label: null } });
+    expect(cells[30].plan).toBeNull();
+  });
+
   it('서머타임으로 사라진 시각은 칸이 없고, 두 번 오는 시각은 기록된 쪽을 보여준다', () => {
     // 2026-03-08 뉴욕 02:00~03:00이 없다
     const spring = dayColumn('2026-03-08', NY, []);
