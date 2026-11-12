@@ -526,6 +526,7 @@ Step 0 첫 인상: 5/10.
 ```
     같은 카테고리 기록은 겹침으로 보지 않는다. 고른 쪽만 저장하고, 기존 칸의 source는 덮어쓸 때만 declared로 바뀐다.
 - **DR-4 Todo의 총량 한 줄** (Pass 1, 4번 답 "4A) Todo 맨 위 한 줄도 추가 (recommended)"): 날짜 아래 회색 한 줄 "목표 업무 6h · 운동 1h ›"(0h 카테고리 생략). 누르면 아침 계획 스테퍼(D11) 시트. 총량이 없으면 "목표 정하기 ›". 아침 시트와 Home 계획 대비 실제는 그대로.
+  - 구현 메모(2026-11-12): 아침 계획 제안(E1)이 아직 없어서 D11 스테퍼 시트를 Todo용으로 먼저 만들었다(`components/todo/PlanTargetSheet.tsx`). 시작 값은 오늘 값, 없으면 어제 값. 아침 제안을 만들 때 이 시트를 같이 쓴다. DR-5의 "목표를 블록 합으로 올리기"는 표시에서만 하고 저장한 목표는 바꾸지 않는다.
 - **DR-5 합산 규칙** (Pass 1, 4-1 답 "A) ① 계획 안에 실제 채우기 + 규칙 A (recommended)"): Todo 블록은 총량 목표 **안에** 든다. Todo 한 줄은 "업무 6h (3h 정함)". 블록 합이 목표보다 크거나 목표가 없으면 목표를 블록 합으로 자동으로 올린다. 저녁 계획 대비 실제는 이 하나의 목표로 계산한다. EXP-1b의 "합치는 규칙"은 이것으로 닫힌다.
 - **DR-7 Todo 블록 추가 시트** (Pass 2, 6번: A 한 시트·B 단계별 시제품 비교 뒤 "한시트에 하는데 시작 시간과 끝시간을 한번에 저장할 수 있도록 하고, 그 시간단위는 30분")
 ```
@@ -609,9 +610,9 @@ Pass 3: 6/10 → 9/10.
 
 ### Design Review 구현 작업
 - [ ] **D1 (P1, human ~3h / CC ~20min)** Home: 카운트다운 아래 "집중", 블록 중 "1시간 49분"·끝내기·30분 더 (DR-1·1a) — `application/app/(tabs)/index.tsx`, `components/timer/timer.tsx`
-- [ ] **D2 (P1, human ~30min / CC ~5min)** 탭 이름 `Todo | Home | Timetable` (DR-2) — `application/app/(tabs)/_layout.tsx`
-- [ ] **D3 (P1, human ~1d / CC ~1h)** Todo 탭: 총량 한 줄, 하루 막대, 체크 목록, 빈 상태, 겹침 시트, 밀어서 지우기 (DR-3·4·9·10) — `application/app/(tabs)/todo.tsx`, `components/todo/*`(교체)
-- [ ] **D4 (P1, human ~3h / CC ~20min)** 추가·수정 시트: 시작–끝 스테퍼 + 시계 피커 30분 (DR-7) — 새 시트(RecordSheet 모드 또는 Todo 전용)
+- [x] **D2 (P1, human ~30min / CC ~5min)** 탭 이름 `Todo | Home | Timetable` (DR-2) — `application/app/(tabs)/_layout.tsx`
+- [x] **D3 (P1, human ~1d / CC ~1h)** Todo 탭: 총량 한 줄, 하루 막대, 체크 목록, 빈 상태, 겹침 시트, 밀어서 지우기 (DR-3·4·9·10) — `application/app/(tabs)/todo.tsx`, `components/todo/*`(교체)
+- [x] **D4 (P1, human ~3h / CC ~20min)** 추가·수정 시트: 시작–끝 스테퍼 + 시계 피커 30분 (DR-7) — 새 시트(RecordSheet 모드 또는 Todo 전용)
 - [ ] **D5 (P1, human ~2h / CC ~15min)** 집중 시작 시트: 그대로 계속 + 6칸 → 1·2·3시간 (DR-8)
 - [ ] **D6 (P2, human ~4h / CC ~30min)** Timetable 오늘 열 계획 레이어 (DR-6), 합산 규칙(DR-5)을 Home 계획 대비 실제에 반영
 - Verify: 실기기에서 각 화면 확인(시제품 비교와 같은 흐름), 화면 읽기(TalkBack)로 체크 동그라미 라벨 확인.

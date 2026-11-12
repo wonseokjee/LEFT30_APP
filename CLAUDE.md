@@ -48,7 +48,7 @@ e2e는 실제 Postgres에 붙는다. Kakao만 목킹한다(`kakao-<숫자>` 토�
 - 테스트: `cd application && npx jest` (`npm test`는 watch 모드). 로직(`db`, `sync`, `scheduler`, `record`)은 Node 내장 `node:sqlite`로 실제 SQLite에 붙여 테스트한다(`test/nodeDb.ts`).
 - 타입 검사: `npx tsc --noEmit`
 - 에뮬레이터 확인: `npx expo run:android --device Pixel_5`(AVD 이름). 개발 빌드에서만 로그인 화면의 "로그인 없이 시작"과 계정 관리의 개발용 도구(테스트 알림, 예약 개수)가 보인다. `/android`는 prebuild 산출물이라 커밋하지 않는다.
-- `api/`의 todo·user API는 옛 서버용이다. 서버에서는 이미 지웠다. (timetable API는 앱에서도 지웠다.)
+- `api/`의 user API는 옛 서버용이다. 서버에서는 이미 지웠다. (todo·timetable API는 앱에서도 지웠다.)
 
 ## 작업 규칙
 

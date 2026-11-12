@@ -1,15 +1,6 @@
-import TodoContainer from '@/components/todo/todoContainer';
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import TodoScreen from '@/components/todo/TodoScreen';
 
 export default function Todo() {
-  return (
-    <View style={styles.container}>
-      <TodoContainer />
-    </View>
-  );
+  return <TodoScreen />;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'black' },
-});
