@@ -136,7 +136,7 @@ export default function BlockEditSheet({
           </Text>
           <View style={styles.range}>
             {stepper('시작', range.start, (m) => setRange((r) => setStart(r, m)))}
-            <Text style={[styles.stepText, { marginTop: 20 }]}>–</Text>
+            <Text style={styles.dash}>–</Text>
             {stepper('끝', range.end, (m) => setRange((r) => setEnd(r, m)))}
           </View>
           <View style={styles.grid}>
@@ -206,13 +206,14 @@ const styles = StyleSheet.create({
   label: { color: GRAY_5, fontSize: 13, marginBottom: 6 },
   range: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   stepCol: { alignItems: 'center' },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  stepBtn: { width: 44, height: 44, borderRadius: 8, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center' },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  stepBtn: { width: 40, height: 44, borderRadius: 8, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center' },
   stepText: { color: GRAY_0, fontSize: 22 },
+  dash: { color: GRAY_5, fontSize: 18, marginTop: 20 },
   stepValue: {
     color: GRAY_0,
-    fontSize: 20,
-    minWidth: 64,
+    fontSize: 18,
+    minWidth: 58,
     textAlign: 'center',
     textDecorationLine: 'underline',
     paddingVertical: 10,
