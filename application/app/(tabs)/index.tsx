@@ -1,4 +1,5 @@
 import FocusStatus from '@/components/focus/FocusStatus';
+import PlanVsActual from '@/components/home/PlanVsActual';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -44,6 +45,7 @@ export default function Index() {
         </Text>
       </TouchableOpacity>
       <FocusStatus />
+      {!isLandscape && <PlanVsActual />}
     </View>
   );
 }
