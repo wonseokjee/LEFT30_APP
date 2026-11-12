@@ -1,7 +1,8 @@
 import { openNodeDb } from '@/test/nodeDb';
 import { migrate } from '@/db/migrate';
 import { MIGRATIONS } from '@/db/schema';
-import { saveSlot, setSetting } from '@/db/records';
+import { saveBlock, saveSlot, setSetting } from '@/db/records';
+import type { BlockRow } from '@/db/types';
 import {
   ALL_DAYS,
   desiredSchedule,
@@ -14,8 +15,9 @@ import {
   pingContent,
   pingsPerDay,
   MAX_PINGS,
+  capToQuiet,
 } from './plan';
-import { createScheduler, EXPIRY_ID, PAUSE_KEY, QUIET_KEY, type Notifier } from './scheduler';
+import { blockEndId, createScheduler, EXPIRY_ID, PAUSE_KEY, QUIET_KEY, type Notifier } from './scheduler';
 
 const SEOUL = 'Asia/Seoul';
 // 23:00~07:00 (현지, 매일)
@@ -131,6 +133,42 @@ describe('예약 계산', () => {
 
     const late = [{ slot_start: '2026-10-21T00:30:00.000Z', category: 'work' as const, source: 'late' as const }];
     expect(desiredSchedule({ now: NOW, tz: SEOUL, quiet: [], recent: late }).pings[0].textKind).toBe('default');
+  });
+
+  it('(E1) 블록 동안 칸 알림을 빼고 끝 시각에 끝 알림 하나를 건다', () => {
+    // 13:30–15:30(KST) 업무 블록 = 04:30–06:30Z
+    const block = { id: 'b1', category: 'work' as const, startAt: '2026-10-21T04:30:00.000Z', endAt: '2026-10-21T06:30:00.000Z' };
+    const d = desiredSchedule({ now: NOW, tz: SEOUL, quiet: NIGHT, recent: [], blocks: [block] });
+    const fires = new Set(d.pings.map((p) => p.fireAt));
+    expect(fires.has('2026-10-21T04:30:00.000Z')).toBe(true); // 13:30 알림(13:00 칸)은 울린다
+    for (const f of ['05:00', '05:30', '06:00', '06:30']) expect(fires.has(`2026-10-21T${f}:00.000Z`)).toBe(false);
+    expect(fires.has('2026-10-21T07:00:00.000Z')).toBe(true);
+    expect(d.blockEnds).toEqual([{ blockId: 'b1', fireAt: block.endAt, body: '업무 13:30–15:30 끝' }]);
+    // 끝 알림 몫만큼 칸 알림 몫이 줄어 합계가 398을 넘지 않는다.
+    expect(d.pings.length + d.blockEnds.length).toBeLessThanOrEqual(MAX_PINGS);
+  });
+
+  it('(E1) 이미 끝난 블록과 일시 중지 시각의 끝 알림은 걸지 않는다', () => {
+    const past = { id: 'p', category: 'work' as const, startAt: '2026-10-20T00:00:00.000Z', endAt: '2026-10-20T01:00:00.000Z' };
+    const paused = { id: 'q', category: 'rest' as const, startAt: '2026-10-21T02:00:00.000Z', endAt: '2026-10-21T02:30:00.000Z' };
+    const d = desiredSchedule({
+      now: NOW,
+      tz: SEOUL,
+      quiet: NIGHT,
+      recent: [],
+      blocks: [past, paused],
+      pause: { until: '2026-10-21T03:00:00.000Z' },
+    });
+    expect(d.blockEnds).toEqual([]);
+  });
+
+  it('(E3) 블록이 방해금지에 걸치면 방해금지 시작에서 끝낸다', () => {
+    // 22:00 KST(13:00Z)부터 3시간, 방해금지 23:00 → 23:00(14:00Z)에서 끝
+    expect(capToQuiet('2026-10-21T13:00:00.000Z', '2026-10-21T16:00:00.000Z', SEOUL, NIGHT)).toBe('2026-10-21T14:00:00.000Z');
+    // 걸치지 않으면 그대로
+    expect(capToQuiet('2026-10-21T04:00:00.000Z', '2026-10-21T06:00:00.000Z', SEOUL, NIGHT)).toBe('2026-10-21T06:00:00.000Z');
+    // 22:41(13:41Z)에 시작해도 23:00에서 끝
+    expect(capToQuiet('2026-10-21T13:41:00.000Z', '2026-10-21T15:00:00.000Z', SEOUL, NIGHT)).toBe('2026-10-21T14:00:00.000Z');
   });
 
   it('문구는 높임말이고 카테고리마다 자연스러운 문장을 쓴다', () => {
@@ -306,6 +344,65 @@ describe('스케줄러', () => {
 
     expect(await scheduler.reschedule()).toMatchObject({ status: 'ok', cancelled: 0 });
     expect(new Map([...fake.scheduled].sort())).toEqual(new Map([...before].sort()));
+  });
+
+  it('(E1) 블록을 저장하면 그 시간 칸 알림을 빼고 끝 알림을 걸며, 지우면 되돌린다', async () => {
+    const { db, fake, scheduler } = await setup();
+    await scheduler.reschedule();
+    const block: BlockRow = {
+      id: 'b1',
+      kind: 'plan',
+      category: 'work',
+      title: '보고서',
+      start_at: '2026-10-21T04:30:00.000Z',
+      end_at: '2026-10-21T06:30:00.000Z',
+      tz: SEOUL,
+      state: 'planned',
+      ended_how: null,
+      deleted: false,
+      client_updated_at: NOW.toISOString(),
+    };
+    await saveBlock(db, block);
+    const r = await scheduler.reschedule();
+    // 14:00·14:30·15:00·15:30 칸 알림 4개 취소, 끝 알림 1개 추가
+    expect(r).toMatchObject({ status: 'ok', cancelled: 4, added: 1 });
+    expect(fake.scheduled.get(blockEndId('b1'))).toEqual({ fireAt: block.end_at, body: '업무 13:30–15:30 끝' });
+    expect(fake.scheduled.has('slot:2026-10-21T05:00:00.000Z')).toBe(false);
+
+    // 바뀐 게 없으면 다시 실행해도 그대로
+    expect(await scheduler.reschedule()).toMatchObject({ status: 'ok', added: 0, cancelled: 0 });
+
+    // 연장하면 끝 알림만 옮긴다(16:00 칸 알림도 빠짐)
+    await saveBlock(db, { ...block, end_at: '2026-10-21T07:00:00.000Z', client_updated_at: '2026-10-21T02:00:00.000Z' });
+    expect(await scheduler.reschedule()).toMatchObject({ status: 'ok', cancelled: 2, added: 1 });
+    expect(fake.scheduled.get(blockEndId('b1'))!.fireAt).toBe('2026-10-21T07:00:00.000Z');
+
+    // 지우면 끝 알림을 취소하고 칸 알림을 되돌린다
+    await saveBlock(db, { ...block, deleted: true, client_updated_at: '2026-10-21T02:30:00.000Z' });
+    const back = await scheduler.reschedule();
+    expect(back).toMatchObject({ status: 'ok', cancelled: 1, added: 5 });
+    expect(fake.scheduled.has(blockEndId('b1'))).toBe(false);
+    expect(fake.scheduled.has('slot:2026-10-21T05:00:00.000Z')).toBe(true);
+  });
+
+  it('(E1) 끝난 블록(ended)은 끝 알림을 걸지 않는다', async () => {
+    const { db, fake, scheduler } = await setup();
+    await saveBlock(db, {
+      id: 'b2',
+      kind: 'focus',
+      category: 'work',
+      title: null,
+      start_at: '2026-10-21T01:00:00.000Z',
+      end_at: '2026-10-21T03:00:00.000Z',
+      tz: SEOUL,
+      state: 'ended',
+      ended_how: 'end_now',
+      deleted: false,
+      client_updated_at: NOW.toISOString(),
+    });
+    await scheduler.reschedule();
+    expect(fake.scheduled.has(blockEndId('b2'))).toBe(false);
+    expect(fake.scheduled.has('slot:2026-10-21T01:30:00.000Z')).toBe(true);
   });
 
   it('권한이 없으면 아무것도 걸지 않는다', async () => {

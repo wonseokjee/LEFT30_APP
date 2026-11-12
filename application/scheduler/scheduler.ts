@@ -1,4 +1,4 @@
-import type { Db } from '@/db/types';
+import type { Category, Db } from '@/db/types';
 import { getSetting, setSetting } from '@/db/records';
 import { singleFlight } from '@/lib/singleFlight';
 import {
@@ -10,6 +10,7 @@ import {
   type Pause,
   type Quiet,
   type RecentSlot,
+  type ScheduleBlock,
 } from './plan';
 import { SLOT_MS } from '@/lib/localTime';
 
@@ -43,6 +44,23 @@ export async function readPause(db: Db): Promise<Pause | null> {
 }
 export const EXPIRY_ID = 'expiry';
 const EXPIRY_KEY = 'expiry_at';
+// 우리가 건 블록 끝 알림: { [blockId]: "fireAt|body" }. 칸 알림의 scheduled_slot과 같은 역할이다.
+const BLOCK_ENDS_KEY = 'scheduled_block_ends';
+
+export function blockEndId(blockId: string): string {
+  return `block:${blockId}`;
+}
+
+// 끝 알림을 걸 블록: 지우지 않았고 아직 진행 중이거나 예정된 블록.
+export async function readScheduleBlocks(db: Db, at: Date): Promise<ScheduleBlock[]> {
+  const rows = await db.all<{ id: string; category: Category; start_at: string; end_at: string }>(
+    `SELECT id, category, start_at, end_at FROM block
+      WHERE deleted = 0 AND state IN ('planned', 'active') AND end_at > ?
+      ORDER BY start_at`,
+    [at.toISOString()],
+  );
+  return rows.map((r) => ({ id: r.id, category: r.category, startAt: r.start_at, endAt: r.end_at }));
+}
 
 export interface Notifier {
   hasPermission(): Promise<boolean>;
@@ -83,7 +101,8 @@ export function createScheduler(opts: {
       'SELECT slot_start, category, source FROM slot WHERE slot_start >= ?',
       [new Date(at.getTime() - 3 * SLOT_MS).toISOString()],
     );
-    const desired = desiredSchedule({ now: at, tz: opts.getTz(), quiet, recent, pause });
+    const blocks = await readScheduleBlocks(db, at);
+    const desired = desiredSchedule({ now: at, tz: opts.getTz(), quiet, recent, pause, blocks });
 
     // 아직 울리지 않은 예약만 비교한다.
     const existing = await db.all<ScheduledRow>(
@@ -118,6 +137,26 @@ export function createScheduler(opts: {
       );
       added++;
     }
+
+    // 블록 끝 알림. 바뀐 것만 취소·추가하고 rearm이면 전부 다시 건다.
+    const prevEnds = (await getSetting<Record<string, string>>(db, BLOCK_ENDS_KEY)) ?? {};
+    const nextEnds: Record<string, string> = {};
+    for (const e of desired.blockEnds) nextEnds[e.blockId] = `${e.fireAt}|${e.body}`;
+    for (const id of Object.keys(prevEnds)) {
+      if (nextEnds[id] === prevEnds[id]) continue;
+      await notifier.cancel(blockEndId(id));
+      cancelled++;
+    }
+    for (const e of desired.blockEnds) {
+      if (!rearm && prevEnds[e.blockId] === nextEnds[e.blockId]) continue;
+      await notifier.schedule(blockEndId(e.blockId), new Date(e.fireAt), {
+        title: 'LEFT30',
+        body: e.body,
+        data: { kind: 'block_end', blockId: e.blockId },
+      });
+      added++;
+    }
+    await setSetting(db, BLOCK_ENDS_KEY, nextEnds);
 
     // 만료 안내는 예약이 연장될 때마다 뒤로 민다.
     const prevExpiry = await getSetting<string>(db, EXPIRY_KEY);

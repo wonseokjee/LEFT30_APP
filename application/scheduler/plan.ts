@@ -1,4 +1,5 @@
 import type { Category, SlotSource } from '@/db/types';
+import { CATEGORY_LABEL } from '@/db/types';
 import { localParts, MINUTE_MS, SLOT_MS } from '@/lib/localTime';
 
 /*
@@ -71,10 +72,55 @@ export function pingsPerDay(quiet: Quiet): number {
   return max;
 }
 
-// 예약 기간 = floor(398 / 하루 비방해금지 칸 수)일. 하루 32칸이면 12일, 48칸이면 8일.
-export function horizonDays(quiet: Quiet): number {
+// 예약 기간 = floor(예약 몫 / 하루 비방해금지 칸 수)일. 하루 32칸이면 12일, 48칸이면 8일.
+// 블록 끝 알림이 있으면 그 수만큼 칸 알림 몫이 줄어든다(eng review E1·T1).
+export function horizonDays(quiet: Quiet, budget = MAX_PINGS): number {
   const perDay = pingsPerDay(quiet);
-  return perDay === 0 ? 0 : Math.floor(MAX_PINGS / perDay);
+  return perDay === 0 ? 0 : Math.floor(budget / perDay);
+}
+
+/*
+ * 블록(집중·계획) 동안에는 칸 알림을 걸지 않고, 블록 끝 시각에 끝 알림 하나를 건다.
+ * 칸 알림은 칸이 끝나는 시각(fire)에 울리므로 start < fire ≤ end인 알림을 뺀다.
+ * 예: 13:30–15:30 블록이면 14:00·14:30·15:00·15:30 알림이 빠지고 15:30에 끝 알림 하나가 울린다.
+ * 13:30 알림(13:00–13:30 칸)은 그대로 울린다.
+ */
+export type ScheduleBlock = {
+  id: string;
+  category: Category;
+  startAt: string; // UTC ISO
+  endAt: string; // UTC ISO
+};
+
+export type DesiredBlockEnd = { blockId: string; fireAt: string; body: string };
+
+function inBlock(fire: number, blocks: ScheduleBlock[]): boolean {
+  return blocks.some((b) => Date.parse(b.startAt) < fire && fire <= Date.parse(b.endAt));
+}
+
+function hhmmAt(instant: number, tz: string): string {
+  const m = localParts(new Date(instant), tz).minuteOfDay;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
+
+export function blockEndBody(b: ScheduleBlock, tz: string): string {
+  return `${CATEGORY_LABEL[b.category]} ${hhmmAt(Date.parse(b.startAt), tz)}–${hhmmAt(Date.parse(b.endAt), tz)} 끝`;
+}
+
+/*
+ * 블록이 방해금지에 걸치면 방해금지가 시작되는 칸에서 블록을 끝낸다(eng review E3).
+ * 블록을 만들 때 끝 시각을 정하는 데 쓴다. 시작 칸부터 방해금지면 시작 시각을 돌려준다(만들지 않는다).
+ */
+export function capToQuiet(startAt: string, endAt: string, tz: string, quiet: Quiet): string {
+  const start = Date.parse(startAt);
+  const end = Date.parse(endAt);
+  // 시작이 든 칸부터 30분 칸 단위로 본다. 현지 :00/:30은 15분 격자에서 찾는다.
+  let t = Math.floor(start / FIFTEEN_MIN) * FIFTEEN_MIN;
+  for (; t < end; t += FIFTEEN_MIN) {
+    if (localParts(new Date(t), tz).minuteOfDay % 30 !== 0) continue;
+    if (inQuiet(localParts(new Date(t), tz), quiet)) return new Date(Math.max(t, start)).toISOString();
+  }
+  return endAt;
 }
 
 export type RecentSlot = { slot_start: string; category: Category; source: SlotSource };
@@ -87,6 +133,7 @@ export type DesiredPing = {
 
 export type DesiredSchedule = {
   pings: DesiredPing[];
+  blockEnds: DesiredBlockEnd[];
   days: number;
   // 예약 마지막 알림 하루 전에 "알림이 곧 멈춰요" 안내. 예약이 없으면 null.
   expiryAt: string | null;
@@ -101,19 +148,31 @@ export function desiredSchedule(params: {
   quiet: Quiet;
   recent: RecentSlot[];
   pause?: Pause | null;
+  blocks?: ScheduleBlock[]; // 진행 중이거나 예정된 블록(planned·active)
 }): DesiredSchedule {
-  const { now, tz, quiet, pause = null } = params;
-  const days = horizonDays(quiet);
+  const { now, tz, quiet, pause = null, blocks = [] } = params;
+
+  // 끝 알림을 먼저 정해 예약 몫에서 뺀다. 일시 중지 중인 시각의 끝 알림은 걸지 않는다.
+  const blockEnds: DesiredBlockEnd[] = blocks
+    .filter((b) => Date.parse(b.endAt) > now.getTime())
+    .filter((b) => !isPaused(pause, new Date(b.endAt)))
+    .sort((a, b) => Date.parse(a.endAt) - Date.parse(b.endAt))
+    .slice(0, MAX_PINGS)
+    .map((b) => ({ blockId: b.id, fireAt: new Date(b.endAt).toISOString(), body: blockEndBody(b, tz) }));
+  const budget = MAX_PINGS - blockEnds.length;
+
+  const days = horizonDays(quiet, budget);
   const end = now.getTime() + days * 24 * 60 * MINUTE_MS;
   const pings: DesiredPing[] = [];
 
   let t = Math.floor(now.getTime() / FIFTEEN_MIN) * FIFTEEN_MIN + FIFTEEN_MIN;
-  for (; t <= end && pings.length < MAX_PINGS; t += FIFTEEN_MIN) {
+  for (; t <= end && pings.length < budget; t += FIFTEEN_MIN) {
     const fire = new Date(t);
     if (localParts(fire, tz).minuteOfDay % 30 !== 0) continue;
     const slotStart = new Date(t - SLOT_MS);
     if (inQuiet(localParts(slotStart, tz), quiet)) continue;
     if (isPaused(pause, fire)) continue;
+    if (inBlock(t, blocks)) continue;
     pings.push({
       slotStart: slotStart.toISOString(),
       fireAt: fire.toISOString(),
@@ -126,6 +185,7 @@ export function desiredSchedule(params: {
   const expiry = pings.length > 0 ? Date.parse(pings[pings.length - 1].fireAt) - 24 * 60 * MINUTE_MS : 0;
   return {
     pings,
+    blockEnds,
     days,
     expiryAt: expiry > now.getTime() ? new Date(expiry).toISOString() : null,
   };
