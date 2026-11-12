@@ -1,5 +1,6 @@
 import type { Notification, NotificationBehavior } from 'expo-notifications';
 import { useAppStore } from '@/store/appStore';
+import { settleBlocksNow } from '@/runtime/appRuntime';
 
 const HIDE: NotificationBehavior = {
   shouldPlaySound: false,
@@ -17,6 +18,12 @@ export const handleNotification = async (
   const data = notification.request.content.data;
   if (data?.kind === 'ping' && typeof data.slotStart === 'string') {
     useAppStore.getState().openSheet(data.slotStart);
+    return HIDE;
+  }
+  // 블록 끝 알림도 앱 안이면 끝 시트를 바로 연다. 상태를 awaiting으로 옮기는 정리를 먼저 한다.
+  if (data?.kind === 'block_end' && typeof data.blockId === 'string') {
+    const blockId = data.blockId;
+    void settleBlocksNow().then(() => useAppStore.getState().openBlockSheet(blockId));
     return HIDE;
   }
   if (data?.kind === 'expiry') {

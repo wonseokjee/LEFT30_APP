@@ -8,6 +8,13 @@ interface AppState {
   sheetSlot: string | null;
   openSheet: (slotStart: string) => void;
   closeSheet: () => void;
+  // 블록 끝 시트가 보고 있는 블록 id(UX-2 A). null이면 닫힘.
+  sheetBlock: string | null;
+  openBlockSheet: (blockId: string) => void;
+  closeBlockSheet: () => void;
+  // 블록이 바뀔 때마다 올린다. Home·Todo가 다시 읽는다.
+  blockVersion: number;
+  bumpBlocks: () => void;
   // 저장 직후 토스트(메모 추가·되돌리기)
   lastSaved: LastSaved | null;
   setLastSaved: (saved: LastSaved | null) => void;
@@ -20,6 +27,11 @@ export const useAppStore = create<AppState>((set) => ({
   sheetSlot: null,
   openSheet: (slotStart) => set({ sheetSlot: slotStart }),
   closeSheet: () => set({ sheetSlot: null }),
+  sheetBlock: null,
+  openBlockSheet: (blockId) => set({ sheetBlock: blockId }),
+  closeBlockSheet: () => set({ sheetBlock: null }),
+  blockVersion: 0,
+  bumpBlocks: () => set((s) => ({ blockVersion: s.blockVersion + 1 })),
   lastSaved: null,
   setLastSaved: (saved) => set({ lastSaved: saved }),
   needsLogin: false,

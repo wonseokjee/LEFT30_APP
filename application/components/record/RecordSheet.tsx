@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
-import { CATEGORY_LABEL, type Category, type SlotRow } from '@/db/types';
-import { saveSlot, tzAt } from '@/db/records';
+import { CATEGORY_LABEL, type BlockRow, type Category, type SlotRow } from '@/db/types';
+import { getBlock, saveSlot, tzAt } from '@/db/records';
+import { answerBlock, extendBlock } from '@/record/blockLogic';
 import { deviceTz, SLOT_MS } from '@/lib/localTime';
 import { readPause, readQuiet } from '@/scheduler/scheduler';
 import {
@@ -16,7 +18,7 @@ import {
   withRo,
 } from '@/record/recordLogic';
 import { CATEGORY_COLOR, GRID_ORDER, textOn } from '@/record/categoryStyle';
-import { getRuntime, rescheduleNow } from '@/runtime/appRuntime';
+import { afterBlockChange, getRuntime, rescheduleNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 
 const MAX_SCALE = 1.3;
@@ -30,8 +32,121 @@ type Loaded = {
   emptyBefore: string | null;
 };
 
-// 기록 모달(디자인 리뷰 D4): 어두운 바텀 시트, 카테고리를 누르면 바로 저장하고 닫힌다. 확인 버튼은 없다.
+// 기록 시트는 모드가 둘이다(eng D1): 칸 기록(sheetSlot), 블록 끝(sheetBlock, UX-2 A).
+// 칸 기록이 열려 있으면 그쪽이 먼저다.
 export default function RecordSheet() {
+  const sheetSlot = useAppStore((s) => s.sheetSlot);
+  const sheetBlock = useAppStore((s) => s.sheetBlock);
+  if (!sheetSlot && sheetBlock) return <BlockEndSheet blockId={sheetBlock} />;
+  return <SlotSheet />;
+}
+
+/*
+ * 블록 끝 시트 A(UX-2):
+ *   업무 13:30–15:30 끝
+ *   [업무 30분 더]        ← 블록 카테고리 색
+ *   [여기서 끝]
+ *   ─────────────
+ *   중간에 다른 걸 했어요  고치기   → 블록 칸을 채운 뒤 Timetable로
+ * 바깥을 누르면 답 없이 닫힌다(다음 30분 알림 시각에 no_answer).
+ */
+function BlockEndSheet({ blockId }: { blockId: string }) {
+  const close = useAppStore((s) => s.closeBlockSheet);
+  const router = useRouter();
+  const [block, setBlock] = useState<BlockRow | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+    getBlock(getRuntime().db, blockId)
+      .then((b) => {
+        // 이미 끝났거나 지운 블록이면 띄우지 않는다.
+        if (!b || b.deleted || b.state === 'ended' || b.state === 'cancelled') close();
+        else setBlock(b);
+      })
+      .catch((e) => console.warn('block sheet load failed', e));
+  }, [blockId, close]);
+
+  if (!block || block.id !== blockId) return null;
+  const color = CATEGORY_COLOR[block.category];
+  const label = CATEGORY_LABEL[block.category];
+
+  const act = async (fn: () => Promise<unknown>, after?: () => void) => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await fn();
+      setFailed(false);
+      close();
+      after?.();
+      void afterBlockChange();
+    } catch (e) {
+      console.warn('block end failed', e);
+      setFailed(true);
+    } finally {
+      setSaving(false);
+    }
+  };
+  const quiet = () => readQuiet(getRuntime().db);
+
+  return (
+    <Modal visible transparent animationType='slide' onRequestClose={close}>
+      <Pressable style={styles.overlay} onPress={close}>
+        <Pressable style={styles.sheet} onPress={() => undefined}>
+          <View style={styles.handle} />
+          <Text style={styles.header} maxFontSizeMultiplier={MAX_SCALE}>
+            {label} {hhmm(new Date(block.start_at), block.tz)}–{hhmm(new Date(block.end_at), block.tz)} 끝
+          </Text>
+          {failed && (
+            <Text style={styles.error} maxFontSizeMultiplier={MAX_SCALE}>
+              {SAVE_FAILED_TEXT}
+            </Text>
+          )}
+          <TouchableOpacity
+            style={[styles.continueButton, { backgroundColor: color }]}
+            onPress={() => act(async () => extendBlock(getRuntime().db, block, new Date(), await quiet()))}
+            accessibilityLabel={`${label} 30분 더`}
+          >
+            <Text style={[styles.continueText, { color: textOn(color) }]} maxFontSizeMultiplier={MAX_SCALE}>
+              {label} 30분 더
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.endButton}
+            onPress={() => act(() => answerBlock(getRuntime().db, block, new Date()))}
+            accessibilityLabel='여기서 끝'
+          >
+            <Text style={styles.cellText} maxFontSizeMultiplier={MAX_SCALE}>
+              여기서 끝
+            </Text>
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={styles.emptyRow}
+            onPress={() =>
+              act(
+                () => answerBlock(getRuntime().db, block, new Date()),
+                () => router.navigate('/(tabs)/plan'),
+              )
+            }
+            accessibilityLabel='중간에 다른 걸 했어요, 시간표에서 고치기'
+          >
+            <Text style={styles.emptyText} maxFontSizeMultiplier={MAX_SCALE}>
+              중간에 다른 걸 했어요
+            </Text>
+            <Text style={styles.emptyAction} maxFontSizeMultiplier={MAX_SCALE}>
+              고치기
+            </Text>
+          </TouchableOpacity>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// 기록 모달(디자인 리뷰 D4): 어두운 바텀 시트, 카테고리를 누르면 바로 저장하고 닫힌다. 확인 버튼은 없다.
+function SlotSheet() {
   const sheetSlot = useAppStore((s) => s.sheetSlot);
   const openSheet = useAppStore((s) => s.openSheet);
   const closeSheet = useAppStore((s) => s.closeSheet);
@@ -225,6 +340,13 @@ const styles = StyleSheet.create({
   },
   continueText: {
     fontSize: 16,
+  },
+  endButton: {
+    minHeight: 56,
+    borderRadius: 8,
+    backgroundColor: GRAY_8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   grid: {
     flexDirection: 'row',

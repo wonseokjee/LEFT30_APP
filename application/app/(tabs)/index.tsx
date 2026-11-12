@@ -1,5 +1,4 @@
-import Timer from '@/components/timer/timer';
-import WiseSaying from '@/components/wiseSaying/wiseSaying';
+import FocusStatus from '@/components/focus/FocusStatus';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -44,8 +43,7 @@ export default function Index() {
           {isLandscape ? '세로로 전환' : '가로로 전환'}
         </Text>
       </TouchableOpacity>
-      <Timer />
-      <WiseSaying />
+      <FocusStatus />
     </View>
   );
 }

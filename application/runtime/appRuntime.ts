@@ -9,6 +9,7 @@ import { httpTransport, secureStoreAuth } from '@/sync/http';
 import { createScheduler } from '@/scheduler/scheduler';
 import { ensurePingChannel, expoNotifier } from '@/scheduler/expoNotifier';
 import { deviceTz } from '@/lib/localTime';
+import { settleBlocks } from '@/record/blockLogic';
 import { useAppStore } from '@/store/appStore';
 
 // 앱 전체에서 하나만 쓰는 DB·동기화·스케줄러. 앱 시작 시 bootRuntime()으로 만든다.
@@ -95,12 +96,33 @@ export async function rearmNow(): Promise<void> {
   }
 }
 
-// 앱 시작, 포그라운드 복귀 때. 시간대 변경 기록 → 예약 연장 → 동기화.
+// 블록 상태를 시각에 맞게 옮기고, 답을 기다리는 블록이 있으면 끝 시트를 연다.
+export async function settleBlocksNow(): Promise<void> {
+  if (!runtime) return;
+  try {
+    const { endSheet } = await settleBlocks(runtime.db, new Date());
+    const store = useAppStore.getState();
+    store.bumpBlocks();
+    if (endSheet && !store.sheetSlot) store.openBlockSheet(endSheet);
+  } catch (e) {
+    console.warn('settle blocks failed', e);
+  }
+}
+
+// 앱 시작, 포그라운드 복귀 때. 시간대 변경 기록 → 블록 정리 → 예약 연장 → 동기화.
 export async function onForeground(): Promise<void> {
   if (!runtime) return;
   await noteTz(runtime.db, deviceTz(), new Date());
+  await settleBlocksNow();
   await rescheduleNow();
   await syncNow();
+}
+
+// 블록을 만들거나 바꾼 뒤: 화면 갱신 → 알림 다시 계산 → 동기화.
+export async function afterBlockChange(): Promise<void> {
+  useAppStore.getState().bumpBlocks();
+  await rescheduleNow();
+  void syncNow();
 }
 
 // DELETE /me 성공 후: 로컬 데이터 전체와 예약된 알림을 지운다.

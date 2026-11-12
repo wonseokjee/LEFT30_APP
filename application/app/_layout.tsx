@@ -13,7 +13,7 @@ import { afterLogin } from '@/components/login/afterLogin';
 import RecordSheet from '@/components/record/RecordSheet';
 import RecordToast from '@/components/record/RecordToast';
 import BootError from '@/components/app/BootError';
-import { bootRuntime, onForeground } from '@/runtime/appRuntime';
+import { bootRuntime, onForeground, settleBlocksNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 
 const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
@@ -71,6 +71,10 @@ export default function RootLayout() {
     const data = lastResponse.notification.request.content.data;
     if (data?.kind === 'ping' && typeof data.slotStart === 'string') {
       useAppStore.getState().openSheet(data.slotStart);
+    }
+    if (data?.kind === 'block_end' && typeof data.blockId === 'string') {
+      const blockId = data.blockId;
+      void settleBlocksNow().then(() => useAppStore.getState().openBlockSheet(blockId));
     }
     void Notifications.clearLastNotificationResponseAsync();
   }, [boot, lastResponse]);

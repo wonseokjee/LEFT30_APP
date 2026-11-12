@@ -13,6 +13,7 @@ import {
   extendBlock,
   focusEnd,
   nextBoundary,
+  remainingLabel,
   settleBlocks,
   startFocus,
 } from './blockLogic';
@@ -63,6 +64,15 @@ describe('블록 칸과 길이', () => {
     ]);
     // 14:00–16:00 → 14:00·14:30·15:00·15:30 칸
     expect(blockSlots({ start_at: z('14:00'), end_at: z('16:00') }, SEOUL)).toHaveLength(4);
+  });
+
+  it('(DR-1a) 남은 시간은 단위를 붙여 쓴다', () => {
+    const min = 60_000;
+    expect(remainingLabel(109 * min)).toBe('1시간 49분');
+    expect(remainingLabel(49 * min)).toBe('49분');
+    expect(remainingLabel(120 * min)).toBe('2시간');
+    expect(remainingLabel(30_000)).toBe('1분');
+    expect(remainingLabel(-5)).toBe('0분');
   });
 
   it('(DR-8) 길이는 다음 30분 경계부터 세고, 방해금지에서 자른다', () => {

@@ -201,3 +201,12 @@ export async function activeBlock(db: Db, now: Date): Promise<BlockRow | null> {
   const live = rows.filter((b) => b.state === 'active');
   return live.find((b) => b.kind === 'focus') ?? live[0] ?? null;
 }
+
+// "1시간 49분", 1시간 미만이면 "49분"(디자인 리뷰 DR-1a). 분:초 카운트다운과 헷갈리지 않게 단위를 붙인다.
+export function remainingLabel(ms: number): string {
+  const total = Math.max(0, Math.ceil(ms / MINUTE_MS));
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m}분`;
+  return m === 0 ? `${h}시간` : `${h}시간 ${m}분`;
+}
