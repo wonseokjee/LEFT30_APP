@@ -25,6 +25,7 @@ TaskManager.defineTask<ResponsePayload>(CONTINUE_TASK, async ({ data, error }) =
   await setSetting(db, EXP2_KEY, {
     at: new Date().toISOString(),
     category: data.notification?.request?.content?.data?.category ?? null,
+    raw: JSON.stringify(data).slice(0, 1500),
   });
   const id = data.notification?.request?.identifier;
   if (id) await Notifications.dismissNotificationAsync(id);
