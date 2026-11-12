@@ -135,8 +135,11 @@
 - [ ] 루트 `package-lock.json` 잔여 파일 삭제
 - [ ] 루트 README: 모노레포 구조, 로컬 실행 방법
 
-- [ ] **시간표 오늘 열에 Todo 계획 블록을 옅은 색으로 표시(CP-2)** — 연기 (2026-11-11 /plan-ceo-review)
+- [x] **시간표 오늘 열에 Todo 계획 블록을 옅은 색으로 표시(CP-2)** — 이번 범위로 (2026-11-12 /plan-design-review DR-6)
   - 계획 화면 디자인(총량 + Todo, EXP-1b)과 함께 /plan-design-review에서 정한다. `docs/designs/left30-focus-block.md`
 
 - [ ] **기록 직후 토스트에 [집중] 버튼을 더할지** — 실사용 뒤 다시 묻기 (2026-11-11 /plan-eng-review D6)
   - 지금은 홈 [집중] 하나만 둔다. 알림에 답한 직후 블록을 켜고 싶은 일이 잦으면 토스트에 더한다. `docs/designs/left30-focus-block.md` E5
+
+- [ ] **디자인 대폭 개편** — 예정 (2026-11-12 /plan-design-review, 사용자: "나중에 디자인 대폭 수정할거야 일단 놔둬")
+  - 그때 정할 것: Todo 밀어서 지우기 색, Timetable 계획 레이어 투명도, DESIGN.md 작성(/design-consultation). 그전까지는 palette.tsx 회색과 카테고리 색만 쓴다. `docs/designs/left30-focus-block.md` Design Review Pass 5
