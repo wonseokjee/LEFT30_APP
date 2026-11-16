@@ -231,15 +231,229 @@ REALITY: transaction-semantics pass no driver/pool change in W1; local slot-to-r
 - 외부 검토: 실행 안 함.
 - Reality: 8행, unverified=1.
 
-## GSTACK REVIEW REPORT
-| Review | Runs | Status | Findings |
-|---|---|---|---|
-| plan-ceo-review | 1 | issues_open | 결정 12, CRITICAL 1(알림 재예약), WARNING 2(접근법 B 반전, 설계서·고양이 문서 개정) |
-| outside voice | 0 | skipped | 사용자 이전 거절, 에이전트 미요청 |
+## Eng Review (/plan-eng-review, 2026-11-16)
+대상: 이 문서(타이머 개편 W1). 보고서 파일: 이 문서.
 
-OUTSIDE COVERAGE: none (not run)
-VERDICT: CEO 범위 확정. 다음은 /plan-eng-review(저장 구조), 그다음 /plan-design-review(홈·타임라인).
+### Scope Challenge A. 이미 있는 것
+- 스케줄러는 선언형이다. `desiredSchedule`(`application/scheduler/plan.ts`)이 매번 DB 상태로 "울려야 할 알림 전체"를 다시 계산하고, 블록 안 알림은 `inBlock`으로 뺀다(`if (inBlock(t, blocks)) continue;`). 그래서 타이머를 `block` 행으로 두면 **진행 중 알림 끔과 끝난 뒤 재개가 따로 코드 없이 된다**. 끝난 뒤 재예약은 `afterBlockChange()`(`application/runtime/appRuntime.ts:169`)와 앱 열 때의 `rescheduleNow()`가 맡는다.
+- 진행 중 블록 복원: `activeBlock`(`application/record/blockLogic.ts:198`)이 DB에서 읽는다. 앱이 꺼져도 시작 시각이 DB에 있으면 복원된다.
+- 동기화: `block`은 이미 서버와 동기화된다(`application/db/records.ts:101` `enqueue(tx, 'block', block)`). 서버는 kind·category 값을 검증한다(`server/src/Entity/block.entity.ts:45-48`).
+- 복잡도: 변경 파일 약 16~22개(추정), 새 모듈 2개 이상 → 구조 질문 대상.
+
+### Scope Challenge 발견
+1. [CRITICAL] (confidence: 8/10) `application/db/records.ts:101` — W1에서 "공부" 카테고리나 새 타이머 종류를 그대로 큐에 넣으면 서버가 거절해 dead letter로 빠지고, W2에서 서버를 고쳐도 다시 올라가지 않는다. 처리: SYNC B(D11 승인) 구현의 일부로, 서버가 모르는 값의 큐 항목은 보내지 않고 큐에 남겨 W2 뒤에 올라가게 한다(추가 승인 불필요, 승인된 "1단계는 로컬"의 구현).
+2. [INFORMATIONAL] (confidence: 9/10) CEO 리뷰의 CRITICAL(타이머 끝 뒤 재예약 실패)은 선언형 스케줄러로 대부분 이미 막혀 있다. 남는 일은 "멈추기 경로가 `afterBlockChange()`를 부른다"를 테스트로 고정하는 것.
+3. [INFORMATIONAL] (confidence: 8/10) 타이머 시작 전 자투리(예: 14:00 기록 뒤 14:12 시작이면 14:00–14:12)는 D2(타이머 중 알림 끔) 때문에 아무도 묻지 않는다. R1에서 정한다.
+
+### Scope Challenge B. 구조 (진행 중)
+| | Original arrangement(작업본의 암묵안) | Smaller arrangement(제안) |
+|---|---|---|
+| 기록 저장 | 새 `entry` 표(시작~끝 구간) + 기존 slot·집중 블록을 옮김 | `slot`은 그대로 "30분 알림 답"으로, 타이머는 `block` 행(kind 추가, 진행 중 end_at 비움, 과목·집중 분 칸) |
+| 겹침 처리(D12) | 저장할 때 빈 부분만 잘라 저장 | 읽을 때 `timeline.ts` 한 곳에서 타이머 우선으로 slot을 잘라 보여 줌 |
+| 데이터 이전 | 필요(한 방향, 실패 위험) | 없음 |
+| W2 서버 | 새 표 + 동기화 경로 | block에 칸 추가·kind/category 값 추가 |
+| 파일·모듈 | 약 22개, 새 모듈 3(entry 저장, 이전, timeline) | 약 16개, 새 모듈 2(timeline, timerLogic) |
+
+Scope record: feature answers: 없음(기능 삭감 제안 없음); structure: **Original arrangement** (eng D1 답 "Original arrangement", 2026-11-16, 권장 Smaller를 고르지 않음); accepted scope: 새 `entry` 표(시작~끝 구간, 카테고리, 과목, 출처, 집중/휴식 분)에 모든 기록을 둔다. 기존 slot과 집중 블록 기록을 entry로 옮긴다. 진행 중 타이머는 entry(end_at 비움)로 두고 스케줄러가 이를 읽어 알림을 쉰다. 계획 블록(Todo)은 block 표에 남는다. W2에 서버 entry 표·동기화. pending remedies: R1(타이머 시작 전 자투리).
+Scope Challenge 결과: scope accepted as-is (MODE: FULL_REVIEW).
+
+## Decision ledger (eng)
+
+### R1: 타이머 시작 전 자투리
+Finding: 3, INFORMATIONAL, confidence 8/10, `application/scheduler/plan.ts` `if (inBlock(t, blocks)) continue;` (진행 중 타이머 안의 알림을 뺌), reviewer: Claude
+Plan baseline: D2 "타이머 들어가는 경우에는 30분 알람은 비활성화", D10 묶어 채우기는 "놓친 30분 알림 시간"만, D12 알림 답은 빈 부분만
+Runtime evidence: 14:00 기록 뒤 14:12 타이머 시작 → 14:30 알림은 타이머 중이라 빠짐 → 14:00–14:12는 묻는 곳이 없음(코드 경로로 확인, 실기기 미확인)
+Comparison grid:
+| 선택 | 현재 | A | B | C |
+|---|---|---|---|---|
+| 자투리 처리 | 정해지지 않음, 빈칸으로 남음 | 타이머 끝난 뒤 첫 알림이 "지난 30분 + 자투리"를 함께 묻지 않고, 묶어 채우기 시트가 자투리도 빈 시간으로 보여 줌 | 그냥 빈칸으로 둠(시간표에 빈 틈) | 타이머 시작 때 "14:00 이후 뭐 했어?"를 한 번 물음 |
+| D2 알림 끔 | 승인 | 유지 | 유지 | 유지 |
+| D10 묶음 대상 | 놓친 알림 | 놓친 알림 + 타이머 앞 자투리 | 놓친 알림 | 놓친 알림 |
+Question D2: 타이머 시작 전 자투리 시간을 어떻게 할까요? (A 묶어 채우기에 포함 / C 시작할 때 물음 / B 빈 틈으로 둠)
+State: approved
+Actual answer: B. 빈 틈으로 둠 (eng D2, 2026-11-16, 권장 A를 고르지 않음)
+Accepted scope: 아무것도 만들지 않는다. 타이머 앞 자투리는 시간표의 빈 틈으로 남고, 시간표에서 직접 채울 수 있다. D10 묶어 채우기 대상은 "놓친 30분 알림"만 그대로.
+
+### R2: 카테고리 순서 목록이 여러 곳에 손으로 적혀 있음
+Finding: Section 2, INFORMATIONAL, confidence 9/10, `application/record/planVsActual.ts:19` `export const ROW_ORDER: Category[] = ['work', 'rest', 'relationship', 'exercise', 'self_dev', 'sleep']`, 같은 목록이 `application/components/todo/PlanTargetSheet.tsx:14`, `planVsActual.ts:21`(TIE_ORDER)에도 있음. reviewer: Claude
+Plan baseline: CAT C(D6) "공부" 7번째 카테고리 추가
+Runtime evidence: `Record<Category, …>` 표(라벨·색·알림 문구)는 타입 검사가 빠뜨림을 잡지만, `Category[]` 순서 목록 3곳은 "공부"를 빠뜨려도 컴파일된다 → 계획 대비 실제와 목표 시트에서 공부 줄이 조용히 사라짐
+Comparison grid:
+| 선택 | 현재 | A | B |
+|---|---|---|---|
+| 순서 목록 | 3곳 손으로 | `db/types.ts`에 `CATEGORY_ORDER` 하나, 나머지는 여기서 가져오고 모든 카테고리를 포함하는지 테스트 | 3곳에 "study"를 손으로 추가 |
+| 공부 추가(D6) | 승인 | 유지 | 유지 |
+Question D3: 카테고리 순서 목록을 한 곳으로 모을까요? (A 한 곳으로 / B 세 곳에 직접 추가)
+State: approved
+Actual answer: A. 한 곳으로 모음 (eng D3, 2026-11-16)
+Accepted scope: `db/types.ts`에 `CATEGORY_ORDER`(표시 순서) 하나를 두고 `ROW_ORDER`·`PlanTargetSheet ORDER`는 이를 가져다 쓴다. `TIE_ORDER`는 뜻이 달라 따로 두되, 모든 카테고리를 정확히 한 번씩 담는지 두 목록 모두 테스트로 확인한다.
+
+Approval readiness: PASS — structure(eng D1 Original), R1(eng D2 B), R2(eng D3 A). Scope Challenge 발견 1(서버가 모르는 값은 큐에 남김)은 CEO SYNC B(D11)의 구현이라 추가 승인 없음. 발견 2(멈추기 경로 재예약 테스트)는 CEO CRITICAL의 필수 증명이라 추가 승인 없음.
+
+### Section 1: 아키텍처
+```
+                        ┌───────────────────────────────┐
+  30분 알림 답 ────────▶│ record/entries.ts  saveEntry  │  한 트랜잭션: 창 [fire-30, fire]에서
+  알림 버튼 [그대로]───▶│  (유일한 쓰기 입구)            │  기존 entry와 겹치는 부분을 빼고
+  묶어 채우기 ─────────▶│                               │  남은 조각만 저장(D12)
+  시간표 직접 채우기 ──▶│                               │
+  타이머 시작/멈춤 ────▶│ record/timerLogic.ts          │  end_at NULL = 진행 중(동시에 1개)
+                        └──────────────┬────────────────┘
+                                       ▼
+                         entry(id, start_at, end_at?, planned_end_at?, tz, category,
+                               subject?, source, focus_min?, note, deleted, client_updated_at)
+                         UNIQUE INDEX ... WHERE end_at IS NULL AND deleted = 0
+                                       │
+     ┌───────────────┬─────────────────┼──────────────────┬─────────────────┐
+     ▼               ▼                 ▼                  ▼                 ▼
+  시간표(timeline) 계획 대비 실제   놓친 알림 묶음      스케줄러          S1·이벤트
+  구간 그리기      분 합계           (빈 알림 창)        진행 중 entry     (로컬, W2에 서버)
+                                                       있으면 알림 쉼,
+                                                       뽀모도로 신호 예약
+  block 표: Todo 계획 블록만 남음(집중 kind는 이전 뒤 새로 만들지 않음)
+```
+- 이전(로컬 v3, 한 트랜잭션, 실패 시 기존 오류 화면 `initDb`): `slot` 한 줄 → entry(start=slot_start, end=+30분, source 유지). 진행 중 집중 블록 → 진행 중 [타이머] entry(planned_end_at=end_at). 끝난 집중 블록은 이미 declared 칸으로 slot에 있으므로 따로 옮기지 않는다(중복 방지). `slot`·`block`(집중) 행은 W2까지 지우지 않는다.
+- 타이머 종류: 스톱워치(planned_end_at 없음), 뽀모도로(planned_end_at 없음, 집중/휴식은 start_at에서 25/5로 계산), 타이머(planned_end_at 있음, 끝나면 기존 끝 시트 A안: [30분 더]/[여기서 끝]).
+- 스케줄러: 진행 중 entry가 있으면 그 시각 이후 30분 알림을 모두 뺀다(D2). 뽀모도로 신호(휴식·재개)는 시작 시각에서 계산해 최대 12시간 또는 방해금지 시작까지 예약하고 알림 예약 몫(398)에서 뺀다. 멈추면 `afterBlockChange()`와 같은 재예약 경로를 탄다.
+- W1 동기화: entry는 큐에 넣지 않는다. 서버가 모르는 이벤트 종류·카테고리 값의 큐 항목은 보내지 않고 남긴다(W2 뒤 전송).
+- 실패 시나리오: 이전 도중 앱 종료 → SQLite 트랜잭션 롤백, 다음 실행에 다시 시도. 같은 순간 두 타이머 시작(두 번 탭) → 부분 유일 인덱스가 두 번째를 거절, 화면은 진행 중 타이머를 보여 줌.
+- Design-twice: Smaller(slot 유지 + block 타이머)를 대안으로 비교했고 사용자가 Original을 골랐다(eng D1). 레드 플래그 점검: (6) 두 가지 쓰기 방법 → `saveSlot`/`saveSlots` 호출 6곳(`RecordSheet.tsx:392`, `RecordToast.tsx:58`, `records.ts:140`, `batchLogic.ts:105`, `blockLogic.ts:60`, `continueAction.ts:28`)을 모두 `saveEntry`로 옮기고 slot 쓰기 함수는 지운다. (8) 손으로 맞춘 목록 → R2로 처리. (5) 분할 소유 → entry 쓰기는 `entries.ts` 하나만.
+
+Findings:
+1. [CRITICAL] (confidence: 8/10) `application/db/records.ts:101` — 서버가 모르는 값이 dead letter로 사라짐. Disposition: accepted(SYNC B 구현).
+2. [INFORMATIONAL] (confidence: 9/10) slot 쓰기 6곳이 남으면 두 저장소에 나뉘어 기록됨. Disposition: accepted(구조 D1의 필수 구현).
+
+### Section 2: 코드 품질
+1. [INFORMATIONAL] (confidence: 9/10) `application/record/planVsActual.ts:19` — 순서 목록 3곳. Disposition: accepted(R2, D3 A).
+2. [INFORMATIONAL] (confidence: 8/10) `application/record/blockLogic.ts:31` `blockSlots`·`fillSlots`는 30분 칸 전제다. 집중 kind가 entry로 옮겨가면 Todo 계획 블록의 [여기서 끝]/체크만 남는다. 이 둘은 `saveEntry`로 블록 구간 하나를 저장하도록 바꾸고 칸 펼침 코드는 지운다. Disposition: accepted(구조 D1의 필수 구현).
+3. [INFORMATIONAL] (confidence: 7/10) `application/record/blockLogic.ts:24` `nextBoundary`: 기존 [집중]은 다음 30분 경계부터 길이를 셌다. 새 [타이머]는 누른 순간부터 센다(D2와 같은 원칙). Disposition: accepted(CEO D2 적용).
+
+### Section 3: 테스트
+프레임워크: jest + `node:sqlite` 실제 DB(`application/test/nodeDb.ts`, CLAUDE.md).
+```
+CODE PATHS                                           USER FLOWS
+[+] record/entries.ts saveEntry                      [+] 타이머
+  ├── [GAP] 빈 창 → 30분 한 조각                        ├── [GAP] 시작 → 앱 종료 → 다시 열기 = 복원
+  ├── [GAP] 창 안에 타이머 → 앞뒤 두 조각              ├── [GAP] 두 번 탭 → 하나만
+  ├── [GAP] 창 전부 덮임 → 저장 없음                    └── [GAP] 멈추기 → 다음 :00/:30 알림 예약
+  └── [GAP] 진행 중 타이머와 겹침 → 그 시각까지만      [+] 스톱워치 오래 진행
+[+] db/schema.ts v3 이전                                 └── [GAP] 6시간째 확인 → 끝 시각 고치기
+  ├── [GAP] slot N개 → entry N개, 분 합계 같음        [+] 알림 답(빈 부분 문구)
+  ├── [GAP] 진행 중 집중 블록 → 진행 중 타이머          └── [GAP] 15:47 이후 뭐 했어?
+  └── [GAP] 실패 → 롤백, 데이터 그대로
+[+] scheduler desiredSchedule
+  ├── [★★★ TESTED] 블록 안 알림 빼기 — scheduler.test.ts
+  ├── [GAP] 진행 중 entry(end 없음) → 이후 알림 0
+  └── [GAP] 뽀모도로 신호 25/5, 예약 몫 차감
+[+] timeline / 계획 대비 실제 / 묶어 채우기
+  ├── [GAP] 뽀모도로 4바퀴 → 시간표 120분, 집중 100분
+  ├── [GAP] 묶음: 타이머 구간은 빈 시간 아님
+  └── [GAP] 자정을 넘는 구간 → 날짜별로 나눠 셈
+[+] 카테고리 순서
+  └── [GAP] CATEGORY_ORDER·TIE_ORDER가 모든 카테고리를 한 번씩
+[+] 동기화
+  └── [GAP] 서버가 모르는 값은 큐에 남고 보내지 않음
+COVERAGE: 1/19 paths tested | GAPS: 18 (모두 단위/통합, E2E 없음)
+```
+대체되는 테스트: `record/blockLogic.test.ts`의 칸 펼침(blockSlots·fillSlots) 사례, `record/timetable.test.ts`의 칸 격자 사례는 entry 기준으로 다시 쓴다.
+
+### Section 4: 성능
+시간표·합계는 `entry(start_at)` 인덱스 범위 조회 하나. 하루 수십 줄. 이전은 slot 행 수(창업자 기기 수천 줄 이하)만큼 한 트랜잭션. No issues found.
+
+### Outside Voice
+실행하지 않음(skipped): 사용자가 Codex 대리 실행을 거절한 적이 있고 하위 에이전트를 요청하지 않았다. 외부 검토 범위 없음.
+
+### Failure modes
+| 경로 | 실패 | 테스트 | 사용자가 보는 것 |
+|---|---|---|---|
+| 이전 v3 | 중간 실패 | 계획됨 | 기존 "업데이트 중 문제" 화면, 데이터 유지 |
+| 타이머 멈춤 뒤 재예약 | 재예약 예외 | 계획됨 | 다음 앱 열기 때 재예약(조용함, 로그 남음) |
+| 동기화 | 서버가 값 거절 | 계획됨 | 없음(큐에 남음) |
+| 스톱워치 잊음 | 밤새 진행 | 계획됨 | 앱 열 때 확인 화면 |
+critical gap: 0 (모두 테스트 계획 또는 처리 경로 있음)
+
+### NOT in scope
+- 타이머 앞 자투리 채우기(eng D2 B: 빈 틈으로 둠).
+- 서버 entry 표·동기화(W2), 과목 화면(W2).
+
+### What already exists
+선언형 스케줄러(`desiredSchedule`), 로컬 이전 틀(`db/migrate.ts`, 버전별 트랜잭션·오류 화면), 끝 시트 A안, 묶어 채우기 시트, 알림 버튼 작업. 저장소만 entry로 바꾸고 나머지는 재사용한다.
+
+### Worktree parallelization strategy
+| Step | Modules touched | Depends on |
+|---|---|---|
+| 1 entry 표·이전·saveEntry | db/, record/ | — |
+| 2 타이머 로직·스케줄러 | record/, scheduler/ | 1 |
+| 3 시간표·계획 대비 실제·묶음 | record/, components/timetable, components/home | 1 |
+| 4 홈 세 버튼·확인 화면 | components/focus, app/(tabs) | 2 |
+Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유라 같은 브랜치에서 순서대로 합치는 편이 안전하다.
+
+### Implementation Tasks
+- [ ] **T1 (P1, human: ~1.5일 / CC: ~1.5시간)** — db — entry 표(v3)·부분 유일 인덱스·slot/진행 중 집중 이전
+  - Surfaced by: Scope Challenge B 구조(eng D1 Original)
+  - Files: application/db/schema.ts, db/types.ts, db/records.ts
+  - Verify: `npx jest db` (이전 전후 분 합계, 실패 롤백)
+- [ ] **T2 (P1, human: ~1일 / CC: ~1시간)** — record — `saveEntry` 단일 쓰기 입구(빈 부분만), slot 쓰기 6곳 이전
+  - Surfaced by: Section 1 발견 2, CEO D12
+  - Files: record/entries.ts(새), RecordSheet.tsx, RecordToast.tsx, batchLogic.ts, continueAction.ts, blockLogic.ts
+  - Verify: `npx jest record`
+- [ ] **T3 (P1, human: ~1.5일 / CC: ~1.5시간)** — record/scheduler — 타이머 3종, 진행 중 알림 끔, 뽀모도로 신호, 멈춤 재예약
+  - Surfaced by: CEO POMO·HOME, Scope Challenge 발견 2
+  - Files: record/timerLogic.ts(새), scheduler/plan.ts, scheduler/scheduler.ts
+  - Verify: `npx jest scheduler record`
+- [ ] **T4 (P1, human: ~2일 / CC: ~2시간)** — UI — 시간표 구간 타임라인, 계획 대비 실제 분 단위, 묶어 채우기 창 기준
+  - Surfaced by: CEO TIMELINE·GAP
+  - Files: record/timetable.ts, components/timetable/Timetable.tsx, record/planVsActual.ts, record/batchLogic.ts
+  - Verify: jest + 실기기
+- [ ] **T5 (P1, human: ~1일 / CC: ~1시간)** — UI — 홈 세 버튼, 진행 중 큰 숫자, 스톱워치 오래 진행 확인
+  - Surfaced by: CEO HOME·FORGOT
+  - Files: components/focus/*, app/(tabs)/index.tsx
+  - Verify: 실기기
+- [ ] **T6 (P1, human: ~1시간 / CC: ~10분)** — sync — 서버가 모르는 값은 큐에 남기기
+  - Surfaced by: Section 1 발견 1
+  - Files: sync/engine.ts
+  - Verify: `npx jest sync`
+- [ ] **T7 (P2, human: ~1시간 / CC: ~5분)** — types — CATEGORY_ORDER 한 곳 + "공부" 추가 + 포함 테스트
+  - Surfaced by: R2(eng D3 A), CEO CAT
+  - Files: db/types.ts, record/planVsActual.ts, components/todo/PlanTargetSheet.tsx, record/categoryStyle.ts
+  - Verify: `npx tsc --noEmit && npx jest`
+
+### Completion summary (eng)
+- Step 0: Scope Challenge — scope accepted as-is (구조 Original 선택)
+- Reality rows: 아래 PLAN_REALITY 참고
+- Architecture Review: 2 issues found
+- Code Quality Review: 3 issues found
+- Test Review: diagram produced, 18 gaps identified
+- Performance Review: 0 issues found
+- NOT in scope: written / What already exists: written
+- TODOS.md updates: 0 items proposed
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 0 in this review
+- Outside voice: skipped (사용자 이전 거절, 에이전트 미요청)
+- Parallelization: 2 lanes, 1 parallel / 1 sequential
+- Lake Score: 1/3 (R2만 10/10 선택)
+
+REALITY: premise-table pass scheduler suppresses in-block pings, migration runs per-version transaction; unverified=0 application/db/migrate.ts:29
+REALITY: already-done pass no entry table or timer code on base 91f782c application/db/schema.ts:10
+REALITY: surface-check pass no new CLI/HTTP in W1; jest and tsc commands from CLAUDE.md application/db/schema.ts:10
+REALITY: binding-decisions pass follows CEO D1-D12 and eng D1-D3; approach B reversal recorded docs/designs/left30-relaunch.md:62
+REALITY: numbers finding file counts ~16/~22 and effort are [estimated] application/record/blockLogic.ts:1
+REALITY: deferred-asks pass no linked issue TODO.md:85
+REALITY: pr-count pass default one PR per wave application/db/schema.ts:10
+REALITY: transaction-semantics pass v3 migration runs inside db.transaction like v1-v2 application/db/migrate.ts:29
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | ISSUES OPEN | mode: SCOPE_REDUCTION, 1 critical gaps(eng 리뷰에서 처리) |
+| Outside Review | codex (plan-review) | Independent 2nd opinion | 0 | skipped | 실행 안 함(사용자 이전 거절) |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | ISSUES OPEN | 5 issues, 0 critical gaps (모두 accepted, 작업 T1~T7로 연결) |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | 이 계획은 아직 없음(이전 10-21 리뷰는 재출시 범위) |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
+
+- **OUTSIDE COVERAGE:** codex, plan-review, CEO·Eng 모두 skipped(실행 안 함), findings 없음.
+- **VERDICT:** Eng 결정 완료, 미해결 없음. 이슈는 모두 승인된 작업으로 연결됨(issues_open = 할 일 있음). UI 범위가 커서 구현 전 /plan-design-review 권장.
 
 **UNRESOLVED DECISIONS:**
-- 구간 저장 구조, slot·block 이전, 알림 쉬는 이유 목록, 재예약 보장(소유: /plan-eng-review)
-- 뽀모도로 끝내기 방식, 스톱워치 "오래"의 기준, 7색, 세 버튼과 고양이 방 배치, 1분 미만 기록 처리(소유: /plan-design-review)
+- 뽀모도로 끝내기 방식, 스톱워치 "오래"의 기준, 7색, 세 버튼과 고양이 방 배치, 1분 미만 기록 처리(소유: /plan-design-review, CEO 리뷰에서 넘어옴)
