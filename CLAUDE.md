@@ -13,6 +13,8 @@ LEFT30_APP/
 ├── server/        NestJS 11 + TypeORM 0.3 + Postgres (API, 동기화)
 ├── application/   Expo 53 + React Native 0.79 + expo-router + zustand (앱)
 ├── docs/designs/left30-relaunch.md   재출시 설계서 (결정 R·D·ENG·E 번호의 정본)
+├── docs/designs/left30-timer-modes.md  타이머 개편 (기능·데이터, 리뷰 기록)
+├── docs/designs/left30-visual.md     화면 디자인: 고양이·수채화·다크 모드 (그림 원본은 design/cat-image 브랜치)
 └── TODO.md        구현 작업 목록 (T 번호)
 ```
 
