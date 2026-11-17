@@ -71,7 +71,7 @@ Codex는 `gpt-6-astra` 모델이 ChatGPT 계정에서 지원되지 않아 실행
   - `sync_queue`
 - `slot(user_id, slot_start timestamptz UTC, tz, category, note, source, answered_at, client_updated_at, updated_at)`
   - `UNIQUE(user_id, slot_start)`. 30분 칸 하나에 행 하나다. 수정은 upsert로 한다.
-  - `slot_start`는 :00/:30에 정렬한다. `category`는 6개 enum이며 서버가 검증한다. 저장 키와 표시 이름: `sleep`=수면, `rest`=휴식, `exercise`=운동, `relationship`=관계, `self_dev`=자기개발, `work`=업무.
+  - `slot_start`는 :00/:30에 정렬한다. `category`는 6개 enum이며 서버가 검증한다. (2026-11-17 타이머 개편 CEO 리뷰 2: 새로 고를 수 있는 것은 공부·업무·자기개발·운동·기타. 휴식·관계·수면은 옛 기록 표시용으로만 남는다. `docs/designs/left30-timer-modes.md`) 저장 키와 표시 이름: `sleep`=수면, `rest`=휴식, `exercise`=운동, `relationship`=관계, `self_dev`=자기개발, `work`=업무.
   - `tz`는 **칸 시각(`slot_start`) 당시** 기기의 IANA 시간대다(예: `Asia/Seoul`). 앱은 시간대가 바뀔 때마다 `tz_change`에 기록한다. 그래서 나중에 늦게 채우는 칸도 그 칸 시각에 유효했던 시간대를 쓴다.
   - `source`는 아래 표대로 정해지며, 성공 지표에 셀지도 여기서 정해진다.
 
