@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LEFT30 세로 방 + Calico 미리보기</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #17191b; color: #f8f9fa; font: 15px system-ui, sans-serif; }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    p { color: #adb5bd; margin: 0 0 20px; }
+    label { display: inline-flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+    input { width: 180px; accent-color: #6090b9; }
+    .gallery { display: flex; align-items: start; flex-wrap: wrap; gap: 24px; }
+    figure { margin: 0; }
+    figcaption { margin-top: 10px; color: #adb5bd; }
+    .room { position: relative; width: min(42vw, 360px); min-width: 270px; aspect-ratio: 2 / 3; overflow: hidden; background-position: center; background-size: cover; border: 1px solid #495057; }
+    .flat-v1 { background-image: url('./room-dark-portrait-flat-v1.png'); }
+    .cat-frame { position: absolute; width: var(--cat-width, 43%); left: 50%; bottom: 9%; transform: translateX(-50%); line-height: 0; }
+    .cat { display: block; width: 100%; height: auto; }
+    .contact-shadow { position: absolute; left: 50%; bottom: 8.7%; transform: translateX(-50%); width: calc(var(--cat-width, 43%) * 0.9); height: 4%; border-radius: 50%; background: rgba(0, 0, 0, .55); filter: blur(9px); }
+    @media (max-width: 640px) { body { padding: 16px; } .room { width: min(90vw, 360px); } }
+  </style>
+</head>
+<body>
+  <h1>세로 방에 고양이 배치</h1>
+  <p>선택된 세로 방 배경에 Calico dark PNG를 별도 레이어로 올린 미리보기입니다.</p>
+  <label>고양이 크기 <input id="scale" type="range" min="25" max="60" value="43"><output id="value">43%</output></label>
+  <main class="gallery">
+    <figure><div class="room flat-v1"><div class="contact-shadow"></div><div class="cat-frame"><img class="cat" src="../cat/calico_cat_tail_up_dark_v3.png" alt="선택된 단색 세로 방 배경과 Calico dark 고양이"></div></div><figcaption>선택된 세로 방 배경 · 단색 1단계</figcaption></figure>
+  </main>
+  <script>
+    const scale = document.querySelector('#scale');
+    scale.addEventListener('input', () => {
+      document.documentElement.style.setProperty('--cat-width', `${scale.value}%`);
+      document.querySelector('#value').value = `${scale.value}%`;
+    });
+  </script>
+</body>
+</html>

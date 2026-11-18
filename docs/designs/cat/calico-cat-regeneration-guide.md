@@ -107,3 +107,37 @@ pose, background, watermark.
    and watercolor grain against `calico_cat_walk.png`.
 2. Confirm a transparent background and no clipped ears, paws, whiskers, or tail.
 3. Keep approved files untouched; promote a `_v2` image only after visual review.
+
+## Display scale across poses and themes
+
+Use `calico_cat_tail_up.png` as the visual scale reference. The PNG canvas is
+1392 x 1130, but the other poses do not all have the same canvas dimensions:
+for example, `calico_cat_eat.png` is 1778 x 885 and
+`calico_cat_jump_up.png` is 1484 x 1060. Setting every image to the same CSS
+width, or making every PNG canvas the same size, does **not** guarantee that
+the cat's head and torso will appear at the same scale. Transparent padding,
+pose extension, and differences in the generated drawings also affect the
+visible size.
+
+For app display, preserve the approved source PNGs and define a per-pose
+transform instead of resizing the artwork destructively:
+
+1. Calibrate each pose against the `tail_up` reference using stable anatomy
+   (head size and torso length), not the full alpha bounding box. A stretched
+   or jumping cat naturally occupies more space than a loaf or sleeping cat.
+2. Store a scale and an anchor point for each pose. Use the standing paw contact
+   point as the ground anchor; give airborne or edge-peeking poses an explicit
+   transition anchor. Place that anchor on the room's shared floor coordinate.
+3. Keep the room coordinate system, pose scale, and anchor identical between
+   light and dark themes. Switch only the background and the corresponding
+   appearance/lighting layer. A light/dark pair of the same pose should have
+   matching dimensions and alpha alignment where possible.
+4. Calibrate at the actual rendered phone size and check pose transitions,
+   because comparing full-resolution PNGs alone can hide a visible size jump.
+
+This provides a consistent **rendering scale** when the calibrated transform
+is reused. It cannot mathematically guarantee identical *perceived* size if
+two source illustrations have different anatomy or if a pose changes the
+visible silhouette. Those cases require artwork correction or a pose-specific
+visual adjustment, followed by review. Do not stretch width and height
+independently to force a match; preserve the character's aspect ratio.

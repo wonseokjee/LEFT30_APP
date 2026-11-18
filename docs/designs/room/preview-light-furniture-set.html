@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>밝은 방 · 새 가구 3종</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #e9e4de; color: #51463f; font: 14px system-ui, sans-serif; }
+    h1 { margin: 0 0 6px; font-size: 21px; }
+    p { margin: 0 0 18px; }
+    main { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+    section { padding: 14px; background: #fffaf4; border-radius: 12px; box-shadow: 0 2px 14px #5d46301a; }
+    h2 { margin: 0 0 12px; font-size: 15px; }
+    .room { position: relative; width: min(390px, calc(100vw - 76px)); aspect-ratio: 2 / 3; overflow: hidden; background: url('room-light-portrait-flat-v1.png') center / 100% 100%; }
+    .room img { position: absolute; height: auto; }
+    .shelf { top: 30%; left: 5%; width: 90%; }
+    .step { top: 43%; left: 10%; width: 27%; }
+    .tower { bottom: 8%; right: 2%; width: 43%; }
+    .scratch { bottom: 11%; left: 4%; width: 45%; }
+    .timer { position: absolute; top: 27%; left: 11%; color: #765642; font: 62px/1 Georgia, serif; }
+    .assets { display: grid; width: min(460px, calc(100vw - 76px)); gap: 12px; }
+    .asset { display: flex; align-items: center; justify-content: center; min-height: 130px; padding: 12px; background: #e7d8ca; border-radius: 8px; }
+    .asset img { display: block; max-width: 85%; max-height: 170px; }
+    .asset.tall { min-height: 230px; }
+    .asset.tall img { max-height: 210px; }
+  </style>
+</head>
+<body>
+  <h1>밝은 방 · 새 가구 3종</h1>
+  <p>배치와 크기를 살펴보기 위한 시안입니다.</p>
+  <main>
+    <section><h2>방에 배치</h2><div class="room">
+      <img class="shelf" src="floating-shelf-light-mid-v1.png" alt="">
+      <div class="timer">12:41</div>
+      <img class="step" src="wall-step-light-v1.png" alt="벽 발판">
+      <img class="tower" src="cat-tower-light-v1.png" alt="캣타워">
+      <img class="scratch" src="scratch-board-light-v1.svg" alt="스크래처">
+    </div></section>
+    <section><h2>개별 에셋</h2><div class="assets">
+      <div class="asset"><img src="scratch-board-light-v1.svg" alt="낮은 스크래처"></div>
+      <div class="asset"><img src="wall-step-light-v1.png" alt="벽 발판"></div>
+      <div class="asset tall"><img src="cat-tower-light-v1.png" alt="두 단 캣타워"></div>
+    </div></section>
+  </main>
+</body>
+</html>

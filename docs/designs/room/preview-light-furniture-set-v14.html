@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>밝은 방 · 스크래처, 발판, 캣타워 v14</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: #e9e4de; color: #51463f; font: 14px system-ui, sans-serif; }
+    h1 { margin: 0 0 8px; font-size: 21px; }
+    p { margin: 0 0 20px; }
+    main { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+    section { padding: 14px; background: #fffaf4; border-radius: 12px; box-shadow: 0 2px 14px #5d46301a; }
+    h2 { margin: 0 0 10px; font-size: 15px; }
+    .room { position: relative; width: min(300px, calc(100vw - 76px)); aspect-ratio: 2 / 3; overflow: hidden; background: url('room-light-portrait-flat-v1.png') center / 100% 100%; }
+    .room img { position: absolute; height: auto; }
+    .scratcher { bottom: 25%; left: 10%; width: 24%; }
+    .shelf { top: 30%; left: 5%; width: 90%; }
+    .step { top: 46%; left: -10%; width: 90%; }
+    .tower { bottom: 4%; left: 38%; width: 60%; }
+    .timer { position: absolute; top: 27%; left: 11%; color: #765642; font: 48px/1 Georgia, serif; }
+    .asset { display: grid; place-items: center; height: 210px; background: #e7d8ca; border-radius: 8px; }
+    .asset img { max-width: 88%; max-height: 90%; }
+  </style>
+</head>
+<body>
+  <h1>밝은 방 · 가구 수정 시안 v14</h1>
+  <p>긴 선반과 발판의 외곽선·윗면 경계선을 고양이의 표시 크기에 맞춰 굵게 조정했습니다.</p>
+  <main>
+    <section><h2>짧아진 벽 스크래처</h2><div class="room"><img class="scratcher" src="wall-scratcher-light-v5.svg" alt="벽 스크래처"></div></section>
+    <section><h2>긴 선반과 벽 발판</h2><div class="room"><img class="shelf" src="floating-shelf-light-mid-v4.svg" alt="긴 선반"><div class="timer">12:41</div><img class="step" src="wall-step-light-v8.svg" alt="벽 발판"></div></section>
+    <section><h2>반구를 키운 긴 캣타워</h2><div class="room"><img class="tower" src="cat-tower-light-v12.png" alt="긴 캣타워"></div></section>
+    <section><h2>개별 에셋</h2>
+      <div class="asset"><img src="wall-scratcher-light-v5.svg" alt="스크래처 에셋"></div>
+      <div class="asset"><img src="wall-step-light-v8.svg" alt="발판 에셋"></div>
+      <div class="asset"><img src="cat-tower-light-v12.png" alt="캣타워 에셋"></div>
+    </section>
+  </main>
+</body>
+</html>
