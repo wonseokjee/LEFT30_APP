@@ -34,5 +34,6 @@ function queries(raw: Raw): Omit<Db, 'transaction'> {
 // 앱(expoDb.ts)과 같은 직렬 래퍼를 씌운다.
 export function openNodeDb(path = ':memory:'): Db & { close(): void; raw: Raw } {
   const raw: Raw = new DatabaseSync(path);
+  raw.exec('PRAGMA foreign_keys = ON'); // 앱(expoDb.ts)과 같게
   return { ...serialDb(queries(raw)), close: () => raw.close(), raw };
 }

@@ -465,9 +465,10 @@ critical gap: 0 (모두 테스트 계획 또는 처리 경로 있음)
 Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유라 같은 브랜치에서 순서대로 합치는 편이 안전하다.
 
 ### Implementation Tasks
-- [ ] **T1 (P1, human: ~1.5일 / CC: ~1.5시간)** — db — entry 표(v3)·부분 유일 인덱스·slot/진행 중 집중 이전. 표 구성은 eng 리뷰 2 R7(item·entry·pause·plan_v3·block 다시 만들기, STRICT, 정수 시각, uuid v7). eng 리뷰 3: plan_v3에 `position INTEGER NOT NULL`(R8), entry how 값 목록 고침(R14)
+- [x] **T1 (P1, human: ~1.5일 / CC: ~1.5시간)** — db — entry 표(v3)·부분 유일 인덱스·slot/진행 중 집중 이전. 표 구성은 eng 리뷰 2 R7(item·entry·pause·plan_v3·block 다시 만들기, STRICT, 정수 시각, uuid v7). eng 리뷰 3: plan_v3에 `position INTEGER NOT NULL`(R8), entry how 값 목록 고침(R14)
   - Surfaced by: Scope Challenge B 구조(eng D1 Original)
   - Files: application/db/schema.ts, db/types.ts, db/records.ts
+  - 완료(2026-11-18): v3 = item·entry·pause·plan_v3(STRICT, 밀리초, 외래 키 켬), 기본 항목 6개, slot → entry, 진행 중 집중 블록 → 진행 중 타이머 entry(그 블록 declared 칸은 옮기지 않음), uuid v7, `db/time.ts`. **block 다시 만들기는 T9로 옮김**(사용자 "1": block은 W1에서도 서버로 동기화되고 18개 파일이 써서, 할 일 화면을 고칠 때 item_id로 바꾼다).
   - Verify: `npx jest db` (이전 전후 분 합계, 실패 롤백)
 - [ ] **T2 (P1, human: ~1일 / CC: ~1시간)** — record — `saveEntry` 단일 쓰기 입구(빈 부분만), slot 쓰기 6곳 이전
   - Surfaced by: Section 1 발견 2, CEO D12
@@ -502,6 +503,7 @@ Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유
   - Surfaced by: 디자인 리뷰 2 Pass 1~6. 목표 줄("한 시간 / 목표", 4줄 넘으면 접기), 시·분 두 칸 입력(휴대폰 숫자 키보드, 완료·다른 곳=저장, 뒤로=취소, 비우면 빠짐 + 되돌리기, 24시간 초과 알림), 추가 시트(열린 채, 항목 없는 집중·운동 칩, [항목 관리]), 길게 눌러 이름 바꾸기·숨기기, 이름 10자·같은 이름 고름, 목표 0개 안내 + [어제와 동일], 홈 막대 줄 단위 = 목표 줄("집중" 표기), 화면 읽기 라벨
   - Files: components/todo/TodoScreen.tsx, components/todo/PlanTargetSheet.tsx(삭제), 새 components/todo/GoalRows.tsx·GoalAddSheet.tsx·ItemManageSheet.tsx, record/todoLogic.ts, record/planVsActual.ts, components/home/PlanVsActual.tsx, 아침 계획 제안 진입
   - Depends on: T1(plan_v3·item)
+  - T1에서 넘어온 일: block에 item_id를 더하고 옛 title을 같은 이름 항목으로 옮긴다(R7 block 부분). 서버 block 동기화 변경은 W2
   - Verify: `npx tsc --noEmit && npx jest`(시간 입력 해석·24시간 검사·항목 없는 집중 집계·같은 이름 고름 테스트), 에뮬레이터에서 키보드가 줄을 가리지 않는지, TalkBack 읽기
   - eng 리뷰 3: 파일 구성 B(새 파일 `record/items.ts`·`GoalSection.tsx`·`GoalAddSheet.tsx`, 목표 쓰기는 todoLogic 한 곳, `savePlan` 지움). 순서 position(R8), 지우기는 DELETE + 같은 자리 되돌리기(R9), 이름 바꾸기 같은 이름 막음(R10), 아침 제안 어제 실제는 항목 기준(R11), 자정에서 잘라 셈(R12), 24시간 검사는 모든 목표 쓰기(R13). 테스트 계획: `~/.gstack/projects/wonseokjee-LEFT30_APP/wsji9-refactor-architecture-eng-review-test-plan-20261118-161659.md`
 

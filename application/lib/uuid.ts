@@ -1,16 +1,33 @@
-// 이벤트 id용 UUID v4. Hermes에는 crypto.randomUUID가 없을 수 있어 직접 만든다.
-export function uuidv4(): string {
-  const bytes = new Uint8Array(16);
+function randomBytes(n: number): Uint8Array {
+  const bytes = new Uint8Array(n);
   const c = (globalThis as { crypto?: { getRandomValues?: (a: Uint8Array) => Uint8Array } }).crypto;
   if (c?.getRandomValues) {
     c.getRandomValues(bytes);
   } else {
-    for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
+    for (let i = 0; i < n; i++) bytes[i] = Math.floor(Math.random() * 256);
   }
+  return bytes;
+}
+
+// 이벤트 id용 UUID v4. Hermes에는 crypto.randomUUID가 없을 수 있어 직접 만든다.
+export function uuidv4(): string {
+  const bytes = randomBytes(16);
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  return hex(bytes);
+}
+
+// 기록·항목 id용 UUID v7(RFC 9562). 앞 48비트가 밀리초 시각이라 만든 순서대로 쌓인다(eng 리뷰 2 R7).
+export function uuidv7(ms: number = Date.now()): string {
+  const bytes = randomBytes(16);
+  let t = Math.floor(ms);
+  for (let i = 5; i >= 0; i--) {
+    bytes[i] = t % 256;
+    t = Math.floor(t / 256);
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x70;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  return hex(bytes);
 }
 
 function hex(bytes: Uint8Array): string {

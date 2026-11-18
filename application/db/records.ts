@@ -152,6 +152,11 @@ export async function undoSlot(db: Db, saved: SlotRow, previous: SlotRow | null)
 // 회원탈퇴(DELETE /me) 성공 후 로컬 데이터를 모두 지운다. 남은 큐가 다시 로그인했을 때 재업로드되지 않게 한다.
 export async function wipeLocalData(db: Db): Promise<void> {
   await db.transaction(async (tx) => {
+    // v3: 멈춤 → 기록 → 목표 → 사용자 항목 순(외래 키). 기본 항목(parent_id NULL)은 남긴다.
+    await tx.run('DELETE FROM pause');
+    await tx.run('DELETE FROM entry');
+    await tx.run('DELETE FROM plan_v3');
+    await tx.run('DELETE FROM item WHERE parent_id IS NOT NULL');
     for (const table of [
       'slot',
       'plan',

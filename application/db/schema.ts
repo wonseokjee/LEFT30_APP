@@ -1,4 +1,7 @@
-import type { Db } from './types';
+import { SLOT_MS } from '@/lib/localTime';
+import { uuidv7 } from '@/lib/uuid';
+import { isoToMs } from './time';
+import { CATEGORY_ITEM, SYSTEM_ITEMS, type BlockRow, type Db, type EntryRow, type SlotRow } from './types';
 
 export type Migration = {
   version: number;
@@ -100,4 +103,125 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    // 타이머 개편 v3(docs/designs/left30-timer-modes.md eng 리뷰 2 R7, eng 리뷰 3 R8·R14).
+    // 새 표는 STRICT, 시각은 UTC 밀리초. slot·plan·block은 W2까지 그대로 둔다(옛 표는 지우지 않음).
+    // block을 item_id로 바꾸는 일은 할 일 화면 작업(T9)에서 한다(T1 범위 결정, 2026-11-18).
+    version: 3,
+    up: async (tx) => {
+      await tx.exec(`
+        CREATE TABLE item (
+          id TEXT PRIMARY KEY,
+          parent_id TEXT REFERENCES item(id),
+          name TEXT NOT NULL,
+          hidden INTEGER NOT NULL DEFAULT 0,
+          updated_at INTEGER NOT NULL
+        ) STRICT, WITHOUT ROWID;
+        CREATE UNIQUE INDEX item_name ON item (IFNULL(parent_id, ''), name);
+
+        CREATE TABLE entry (
+          id TEXT PRIMARY KEY,
+          item_id TEXT NOT NULL REFERENCES item(id),
+          how TEXT NOT NULL,
+          start_at INTEGER NOT NULL,
+          end_at INTEGER,
+          planned_end_at INTEGER,
+          tz TEXT NOT NULL,
+          note TEXT,
+          deleted INTEGER NOT NULL DEFAULT 0,
+          updated_at INTEGER NOT NULL
+        ) STRICT;
+        CREATE INDEX entry_start ON entry (start_at);
+        CREATE UNIQUE INDEX entry_running ON entry ((1)) WHERE end_at IS NULL AND deleted = 0;
+
+        CREATE TABLE pause (
+          entry_id TEXT NOT NULL REFERENCES entry(id) ON DELETE CASCADE,
+          start_at INTEGER NOT NULL,
+          end_at INTEGER,
+          PRIMARY KEY (entry_id, start_at)
+        ) STRICT, WITHOUT ROWID;
+
+        CREATE TABLE plan_v3 (
+          local_date TEXT NOT NULL,
+          item_id TEXT NOT NULL REFERENCES item(id),
+          target_minutes INTEGER NOT NULL,
+          position INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY (local_date, item_id)
+        ) STRICT, WITHOUT ROWID;
+      `);
+      await migrateToV3(tx, Date.now());
+    },
+  },
 ];
+
+const FOCUS_STATES_RUNNING = ['active', 'awaiting'];
+
+// v3 데이터 옮기기. 옛 계획(plan)은 옮기지 않는다(CEO 리뷰 2 "옛 계획은 무시").
+async function migrateToV3(tx: Db, now: number): Promise<void> {
+  for (const it of SYSTEM_ITEMS) {
+    await tx.run('INSERT INTO item (id, parent_id, name, hidden, updated_at) VALUES (?, NULL, ?, ?, ?)', [
+      it.id,
+      it.name,
+      it.hidden ? 1 : 0,
+      now,
+    ]);
+  }
+
+  // 진행 중(또는 끝 시트를 기다리는) 집중 블록은 진행 중 타이머 기록 하나가 된다.
+  // 그 블록이 앱을 열 때 미리 채운 declared 칸은 이 기록과 겹치므로 옮기지 않는다.
+  const running = await tx.first<Omit<BlockRow, 'deleted'>>(
+    `SELECT * FROM block WHERE kind = 'focus' AND deleted = 0 AND state IN (${FOCUS_STATES_RUNNING.map(() => '?').join(', ')})
+     ORDER BY start_at DESC LIMIT 1`,
+    FOCUS_STATES_RUNNING,
+  );
+  const runStart = running ? isoToMs(running.start_at) : 0;
+  const runEnd = running ? isoToMs(running.end_at) : 0;
+  const insideRunning = (s: SlotRow) =>
+    running !== null &&
+    s.source === 'declared' &&
+    s.category === running.category &&
+    isoToMs(s.slot_start) >= runStart &&
+    isoToMs(s.slot_start) < runEnd;
+
+  const slots = await tx.all<SlotRow>('SELECT * FROM slot ORDER BY slot_start');
+  for (const s of slots) {
+    if (insideRunning(s)) continue;
+    const start = isoToMs(s.slot_start);
+    await insertEntry(tx, {
+      id: uuidv7(start),
+      item_id: CATEGORY_ITEM[s.category],
+      how: s.source,
+      start_at: start,
+      end_at: start + SLOT_MS,
+      planned_end_at: null,
+      tz: s.tz,
+      note: s.note,
+      deleted: 0,
+      updated_at: isoToMs(s.client_updated_at),
+    });
+  }
+
+  if (running) {
+    await insertEntry(tx, {
+      id: uuidv7(runStart),
+      item_id: CATEGORY_ITEM[running.category],
+      how: 'timer',
+      start_at: runStart,
+      end_at: null,
+      planned_end_at: runEnd,
+      tz: running.tz,
+      note: null,
+      deleted: 0,
+      updated_at: now,
+    });
+  }
+}
+
+async function insertEntry(tx: Db, e: EntryRow): Promise<void> {
+  await tx.run(
+    `INSERT INTO entry (id, item_id, how, start_at, end_at, planned_end_at, tz, note, deleted, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [e.id, e.item_id, e.how, e.start_at, e.end_at, e.planned_end_at, e.tz, e.note, e.deleted, e.updated_at],
+  );
+}

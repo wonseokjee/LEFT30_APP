@@ -93,6 +93,64 @@ export type BlockRow = {
   client_updated_at: string;
 };
 
+/*
+ * v3 저장 구조(타이머 개편 eng 리뷰 2 R7, eng 리뷰 3 R8·R14). 시각은 모두 UTC 밀리초 정수.
+ * 카테고리와 세부 항목은 item 한 표: 카테고리는 parent_id가 NULL, 세부 항목은 카테고리 id를 가리킨다.
+ */
+export const SYSTEM_ITEMS = [
+  { id: 'focus', name: '집중', hidden: false },
+  { id: 'exercise', name: '운동', hidden: false },
+  { id: 'other', name: '기타', hidden: false },
+  { id: 'rest', name: '휴식', hidden: true },
+  { id: 'relationship', name: '관계', hidden: true },
+  { id: 'sleep', name: '수면', hidden: true },
+] as const;
+export type SystemItemId = (typeof SYSTEM_ITEMS)[number]['id'];
+
+// 옛 slot·plan 카테고리 → 기본 항목. 업무·자기개발은 집중으로 합친다(CEO 리뷰 2 D4b).
+export const CATEGORY_ITEM: Record<Category, SystemItemId> = {
+  work: 'focus',
+  self_dev: 'focus',
+  exercise: 'exercise',
+  rest: 'rest',
+  relationship: 'relationship',
+  sleep: 'sleep',
+};
+
+export type ItemRow = {
+  id: string; // 기본 항목은 SystemItemId, 사용자 항목은 uuid v7
+  parent_id: string | null;
+  name: string;
+  hidden: number; // 0 | 1
+  updated_at: number;
+};
+
+// 기록 방식: 옛 출처 값 + 타이머 방식(eng 리뷰 3 R14). inferred는 옛 자료에만 있다.
+export type EntryHow = SlotSource | 'stopwatch' | 'pomodoro' | 'timer';
+
+export type EntryRow = {
+  id: string; // uuid v7
+  item_id: string;
+  how: EntryHow;
+  start_at: number;
+  end_at: number | null; // null = 진행 중(동시에 하나)
+  planned_end_at: number | null; // 타이머만
+  tz: string;
+  note: string | null;
+  deleted: number; // 0 | 1
+  updated_at: number;
+};
+
+export type PauseRow = { entry_id: string; start_at: number; end_at: number | null };
+
+export type GoalRow = {
+  local_date: string; // YYYY-MM-DD
+  item_id: string;
+  target_minutes: number;
+  position: number;
+  updated_at: number;
+};
+
 export type EventRow = {
   id: string;
   type: EventType;

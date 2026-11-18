@@ -1,4 +1,20 @@
-import { pingEventId, uuidv5 } from './uuid';
+import { pingEventId, uuidv5, uuidv7 } from './uuid';
+
+describe('uuidv7', () => {
+  it('앞 48비트가 밀리초 시각이고 버전·변형 비트가 맞다', () => {
+    const ms = Date.parse('2026-11-18T09:00:00.000Z');
+    const id = uuidv7(ms);
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(parseInt(id.replace(/-/g, '').slice(0, 12), 16)).toBe(ms);
+  });
+
+  it('시각 순서대로 글자 순서도 커진다', () => {
+    const a = uuidv7(1_000);
+    const b = uuidv7(2_000);
+    expect(a < b).toBe(true);
+    expect(uuidv7(1_000)).not.toBe(a);
+  });
+});
 
 describe('uuidv5', () => {
   it('RFC 4122 예시 값과 같다', () => {
