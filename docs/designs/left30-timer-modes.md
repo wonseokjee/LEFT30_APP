@@ -79,7 +79,7 @@ SCOPE REDUCTION (2026-11-16, 사용자 선택, 권장안). 근거: 예상 변경
 | BREAK (뽀모도로 휴식 기록) | POMO, TIMELINE | 없음 | **A 시간표·계획 대비 실제에는 휴식 포함 한 덩어리, 과목 합계와 타이머 화면에는 집중한 분만** | approved(임시) | D7 답 "나중에 더 좋은 방식 생각하고 일단 a" (2026-11-16). 실사용 뒤 다시 본다. 구현은 휴식 구간을 데이터로 남겨(집중/휴식 분 구분) 나중에 표시만 바꿀 수 있게 한다 |
 | FORGOT (스톱워치 끄는 걸 잊음) | POMO(타이머 중 알림 꺼짐) | 없음. 집중 블록은 끝 시각이 있어 끝 시트가 온다 | **B 제한 없이 계속. 앱을 열면 오래 진행 중일 때 "6시간째 진행 중, 끝난 시각을 고칠까요?"로 확인하고 끝 시각을 고칠 수 있다** | approved | D8 답 "B. 제한 없이, 앱 열 때 확인" (2026-11-16). 기준 3시간, [계속]을 누르면 그 세션에서는 다시 묻지 않음(디자인 리뷰 D11, 2026-11-17). 권장 A(2시간마다 확인)를 고르지 않음. 남는 위험: 켜 둔 채 잠들면 그동안 30분 알림이 꺼져 있다. "오래"의 기준(예: 3시간)과 확인 화면은 디자인 리뷰에서 |
 | CONTROL (정지·일시정지) | HOME, Section 11([멈추기]만 있었음) | 홈 [멈추기] 하나. 일시정지 없음 | **스톱워치·뽀모도로·타이머 모두 [일시정지]와 [정지]를 필수 기능으로 1단계에 둔다.** 정지는 기존 [멈추기]와 같다(카테고리는 시작 때 골랐으므로 끝에 묻지 않음, [타이머]가 정한 끝 시각에 닿으면 기존 끝 시트 A안). 일시정지하면 큰 숫자가 멈추고 아래에 작게 "일시정지 중". 뽀모도로는 남은 집중/휴식 시간을 얼렸다가 이어서 센다(신호 예약을 다시 계산). **2026-11-17 디자인 리뷰:** 일시정지 중 숫자는 흐리게 멈추고 버튼은 [재개](강조색) [정지], 깜빡임 없음(D7). [정지]는 확인 창 없이 바로 정지하고 아래에 "공부 1시간 23분 기록함 · 정지 취소"를 5초 띄운다. 정지 취소는 세션을 이어 간다(D8, 사용자 "되돌리기라고 안하고 정지취소 같은 단어로"). 알림 재개 질문은 그 줄이 사라진 뒤 | approved | 사용자 "뽀모도로나 스톱워치에서 일시정지 및 정지는 필수기능일것같은데?" (2026-11-16). CEO 리뷰에서 빠졌던 항목 |
-| PAUSE (일시정지 시간표 표시) | CONTROL, BREAK, TIMELINE | 없음 | **멈춘 길이로 나눈다. 1분 미만: 그리지 않음. 1~5분: 덩어리 안에 블록보다 약간 옅은 색으로 칠함(뽀모도로 휴식과 같은 표시, 빗금 아님, 2026-11-17 D13 답 "빗금 말고 블록보다 약간 옅은 색으로 색칠"). 5분 이상: 빈 틈으로 두고 앞뒤 조각을 얇은 점선으로 이어 한 세션임을 보인다. 뒤 조각에는 범주명을 반복하지 않는다.** 큰 숫자·과목 합계·계획 대비 실제의 공부 분은 멈춘 시간을 길이와 상관없이 모두 뺀다. 5분 이상 틈은 30분 알림 답이나 직접 기록으로 채울 수 있다 | approved | 사용자 "짧은 5분미만은 b안으로 5분 이상이면 a안으로" (2026-11-16), 1분 미만 생략은 제안 수용. 1분·5분은 첫 값, 실기기에서 조정. 저장: 세션 하나 = 조각 entry 여러 개(같은 `session_id`). 일시정지는 조각을 끝내고 재개는 새 조각을 만든다. 시간표가 5분 미만 사이를 한 덩어리로 그린다 |
+| PAUSE (일시정지 시간표 표시) | CONTROL, BREAK, TIMELINE | 없음 | **멈춘 길이로 나눈다. 1분 미만: 그리지 않음. 1~5분: 덩어리 안에 블록보다 약간 옅은 색으로 칠함(뽀모도로 휴식과 같은 표시, 빗금 아님, 2026-11-17 D13 답 "빗금 말고 블록보다 약간 옅은 색으로 색칠"). 5분 이상: 빈 틈으로 두고 앞뒤 조각을 얇은 점선으로 이어 한 세션임을 보인다. 뒤 조각에는 범주명을 반복하지 않는다.** 큰 숫자·과목 합계·계획 대비 실제의 공부 분은 멈춘 시간을 길이와 상관없이 모두 뺀다. 5분 이상 틈은 30분 알림 답이나 직접 기록으로 채울 수 있다 | approved | 사용자 "짧은 5분미만은 b안으로 5분 이상이면 a안으로" (2026-11-16), 1분 미만 생략은 제안 수용. 1분·5분은 첫 값, 실기기에서 조정. 저장(eng 리뷰 2 R7로 바뀜): 세션 하나 = entry 한 줄, 멈춘 구간은 pause 표. 시간표가 5분 미만 사이를 한 덩어리로 그린다 |
 | NOTIF (진행 중 고정 알림) | expo-notifications(숫자가 가는 시계 미지원) | 없음 | **타이머가 도는 동안 고정 알림 한 줄: 스톱워치는 지난 시간, 타이머·뽀모도로는 남은 시간("집중 · 12:34"). 시스템 크로노미터(`setUsesChronometer`, 남은 시간은 `setChronometerCountDown`)로 숫자를 넘겨 1초 갱신을 하지 않는다. 버튼은 [일시정지]/[재개] 하나만. 정지는 앱에서 한다(2026-11-17 디자인 리뷰 D12 답 "버튼은 일시정지만", 알림창에는 정지 취소가 없어서).** 문구: "공부 · 스톱워치 1:23:05", "공부 · 집중 2바퀴째 18:30 남음", 일시정지 중에는 멈춘 숫자 뽀모도로 단계 전환 때 알림을 바꾼다(앱이 꺼져 있으면 단계 신호 알림이 대신 알린다) | approved | 사용자 "알림창에 남은시간 or 지난시간 보여줬으면", "같이 적어줘" (2026-11-16). 구현: 의존성 없는 작은 Kotlin 네이티브 모듈 권장(대안 notifee는 유지 상태 확인 필요). 버튼은 앱이 꺼져 있어도 기록을 끝내야 하므로 알림 재개 질문(RESUME)은 앱을 열 때 보인다. 안드로이드 14부터 사용자가 밀어 지울 수 있음(타이머는 계속) |
 | RESUME (타이머 뒤 30분 알림) | DIR("타이머가 끝나면 다시 묻는다"), 일시정지 15분 재개안 | 정지하면 바로 30분 알림 재예약 | **임시: 자동으로 다시 켜지 않는다. 타이머·뽀모도로를 정지하면 "30분 알림 다시 켤까요?" [예]/[아니오]를 묻는다. 일시정지 중에는 길이와 상관없이 알림을 쉰다(15분 뒤 다시 울림 안은 쓰지 않음)** | approved(임시, 숙제) | 사용자 "자동적으로 적용하는 것에 대해서는 좀 고민 해봐야할 것같아. 숙제로 남겨두고 일단 적용하지 않는 걸로", 질문 답 "일단 3번 하고 다시켤까요에 예, 아니오 선택" (2026-11-16). [아니오]의 뒤(언제 다시 켜지나)는 숙제: 개발 기본값은 계정 관리 "알림" 스위치(D25)를 "다시 켤 때까지"로 끈 것과 같은 상태. 답하지 않고 앱을 닫으면 꺼진 채로 둔다. **추가: 질문 아래 작은 체크 칸 "다시 묻지 않기".** 체크하고 [예]나 [아니오]를 누르면 그 답을 기억해 다음부터 묻지 않고 같은 답을 적용한다. 바꾸려면 계정 관리의 설정 한 줄 "타이머 뒤 30분 알림: 매번 묻기 / 항상 켜기 / 항상 끄기"에서 고친다(기본 매번 묻기). 사용자 "다시묻지 않기 체크하면 상태 유지. 해제하고 싶으면 설정에서 다시 조정" (2026-11-16). 설정은 로컬 저장(W1), 서버 동기화는 W2에서 판단 |
 
@@ -389,7 +389,7 @@ Approval readiness: PASS — structure(eng D1 Original), R1(eng D2 B), R2(eng D3
 - 이전(로컬 v3, 한 트랜잭션, 실패 시 기존 오류 화면 `initDb`): `slot` 한 줄 → entry(start=slot_start, end=+30분, source 유지). 진행 중 집중 블록 → 진행 중 [타이머] entry(planned_end_at=end_at). 끝난 집중 블록은 이미 declared 칸으로 slot에 있으므로 따로 옮기지 않는다(중복 방지). `slot`·`block`(집중) 행은 W2까지 지우지 않는다.
 - 타이머 종류: 스톱워치(planned_end_at 없음), 뽀모도로(planned_end_at 없음, 집중/휴식은 start_at에서 25/5로 계산), 타이머(planned_end_at 있음, 끝나면 기존 끝 시트 A안: [30분 더]/[여기서 끝]).
 - 스케줄러: 진행 중 entry가 있으면 그 시각 이후 30분 알림을 모두 뺀다(D2). 뽀모도로 신호(휴식·재개)는 시작 시각에서 계산해 최대 12시간 또는 방해금지 시작까지 예약하고 알림 예약 몫(398)에서 뺀다. 멈추면 `afterBlockChange()`와 같은 재예약 경로를 탄다. (추가, RESUME 임시) 정지 뒤 30분 알림은 [예]를 고를 때만 다시 예약하고, [아니오]·미응답은 D25 "다시 켤 때까지" 꺼짐 상태로 둔다. 쉬는 이유(타이머 진행 중, 일시정지, D25 끔)는 목록으로 따로 들고 모두 풀릴 때만 알림을 건다.
-- (추가, CONTROL·PAUSE) entry에 `session_id`를 둔다. 일시정지 = 진행 중 조각에 end_at, 재개 = 같은 session_id로 새 조각(부분 유일 인덱스 유지). 일시정지 중임은 세션 상태로 표시한다(진행 중 조각 없음 + 세션 미종료). 뽀모도로 단계는 조각들의 실제 진행 분을 더해 계산하고, 재개 때 신호를 다시 예약한다.
+- (추가, CONTROL·PAUSE, **eng 리뷰 2 R7로 대체: 세션 한 줄 + pause 표**) entry에 `session_id`를 둔다. 일시정지 = 진행 중 조각에 end_at, 재개 = 같은 session_id로 새 조각(부분 유일 인덱스 유지). 일시정지 중임은 세션 상태로 표시한다(진행 중 조각 없음 + 세션 미종료). 뽀모도로 단계는 조각들의 실제 진행 분을 더해 계산하고, 재개 때 신호를 다시 예약한다.
 - (추가, NOTIF) 고정 알림은 작은 네이티브 모듈(Kotlin, NotificationCompat 크로노미터 + 버튼 브로드캐스트). 버튼 처리는 SQLite에 조각을 끝내거나 만들고, 다음 앱 열기 때 선언형 스케줄러가 맞춘다.
 - W1 동기화: entry는 큐에 넣지 않는다. 서버가 모르는 이벤트 종류·카테고리 값의 큐 항목은 보내지 않고 남긴다(W2 뒤 전송).
 - 실패 시나리오: 이전 도중 앱 종료 → SQLite 트랜잭션 롤백, 다음 실행에 다시 시도. 같은 순간 두 타이머 시작(두 번 탭) → 부분 유일 인덱스가 두 번째를 거절, 화면은 진행 중 타이머를 보여 줌.
@@ -465,7 +465,7 @@ critical gap: 0 (모두 테스트 계획 또는 처리 경로 있음)
 Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유라 같은 브랜치에서 순서대로 합치는 편이 안전하다.
 
 ### Implementation Tasks
-- [ ] **T1 (P1, human: ~1.5일 / CC: ~1.5시간)** — db — entry 표(v3)·부분 유일 인덱스·slot/진행 중 집중 이전
+- [ ] **T1 (P1, human: ~1.5일 / CC: ~1.5시간)** — db — entry 표(v3)·부분 유일 인덱스·slot/진행 중 집중 이전. 표 구성은 eng 리뷰 2 R7(item·entry·pause·plan_v3·block 다시 만들기, STRICT, 정수 시각, uuid v7)
   - Surfaced by: Scope Challenge B 구조(eng D1 Original)
   - Files: application/db/schema.ts, db/types.ts, db/records.ts
   - Verify: `npx jest db` (이전 전후 분 합계, 실패 롤백)
@@ -477,7 +477,7 @@ Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유
   - Surfaced by: CEO POMO·HOME, Scope Challenge 발견 2
   - Files: record/timerLogic.ts(새), scheduler/plan.ts, scheduler/scheduler.ts
   - Verify: `npx jest scheduler record`
-  - 추가(CONTROL·PAUSE·RESUME): 일시정지/재개(session_id 조각), 뽀모도로 얼림·이어 세기, 정지 뒤 [예]일 때만 재예약, "다시 묻지 않기"로 기억한 답 적용, 계정 관리 설정 한 줄, 쉬는 이유 목록. T1에 `session_id` 칸 포함
+  - 추가(CONTROL·PAUSE·RESUME): 일시정지/재개(session_id 조각), 뽀모도로 얼림·이어 세기, 정지 뒤 [예]일 때만 재예약, "다시 묻지 않기"로 기억한 답 적용, 계정 관리 설정 한 줄, 쉬는 이유 목록. T1에 pause 표 포함(R7, 옛 안은 `session_id` 칸)
 - [ ] **T8 (P1, human: ~1일 / CC: ~1시간)** — native — 진행 중 고정 알림(크로노미터, [일시정지]/[재개]·[정지] 버튼)
   - Surfaced by: NOTIF
   - Files: application/modules/ongoing-timer(새, Kotlin), record/timerLogic.ts
@@ -580,13 +580,137 @@ REALITY: transaction-semantics pass v3 migration runs inside db.transaction like
 - 테스터 2주 뒤 기타 비율 확인. 크면 나눌지 다시 본다.
 - 세부 항목별 계획 화면(D8): /plan-design-review. 세부 항목·계획 저장 구조: /plan-eng-review(T1 전).
 
+## Eng Review 2: 세부 항목·계획 저장 구조 (/plan-eng-review, 2026-11-17)
+
+대상: 이 문서 "CEO 리뷰 2"의 D4b·D5~D8(집중으로 합침, 세부 항목 1단계, 항목별 계획). 범위: T1(로컬 v3) 전에 정할 저장 구조 하나. 구현 코드는 쓰지 않는다.
+
+### Scope Challenge
+- 이미 있는 것: eng 리뷰 1의 entry 설계에 `subject?`(글자) 칸이 있다(위 Section 1 다이어그램). `plan` 표는 `PRIMARY KEY (local_date, category)`(`application/db/schema.ts:25`, `CREATE TABLE plan (... PRIMARY KEY (local_date, category))`). Todo 계획 블록 `block`은 `category`와 `title`을 가진다(`application/db/schema.ts:72`, `title TEXT`; `application/record/todoLogic.ts:130` 제목 저장).
+- 최소 변경: v3 마이그레이션(entry 만들기)에 함께 넣는다. 따로 v4를 만들지 않는다.
+- 복잡도: 바뀌는 파일 약 6~8개[estimated](schema, entries, plan 저장·읽기, PlanTargetSheet, 시작 시트, 기록 시트), 새 표 1개. 8개 미만·새 서비스 0개라 구조 질문(B)은 건너뛴다.
+- 결과: scope accepted as-is.
+
+REALITY: premise-table pass unverified=0, 세 사실 모두 위 file:line application/db/schema.ts:25
+REALITY: already-done pass entry·item 코드 없음(T1 전) application/db/schema.ts:10
+REALITY: surface-check pass 새 CLI·HTTP 없음(W1 로컬) application/db/schema.ts:10
+REALITY: binding-decisions pass CEO 리뷰 2 D4b·D5~D8, eng D1(entry Original)을 따름 docs/designs/left30-timer-modes.md:75
+REALITY: numbers finding 파일 수는 [estimated] application/db/schema.ts:1
+REALITY: deferred-asks pass 연결된 이슈 없음 TODO.md:1
+REALITY: pr-count pass 한 PR(W1) application/db/schema.ts:10
+REALITY: transaction-semantics pass v3 한 트랜잭션 안(기존 v1·v2와 같음) application/db/migrate.ts:29
+
+### Findings
+1. [CRITICAL] (confidence: 8/10) entry `subject?` 글자 칸만으로는 D8(항목별 계획)과 이름 바꾸기를 못 받친다. 계획이 이름 글자에 묶이면 이름을 고칠 때 계획·기록이 갈라진다. → R3
+2. [CRITICAL] (confidence: 9/10) `application/db/schema.ts:25` `PRIMARY KEY (local_date, category)`라 같은 날 집중 계획을 항목별로 여러 줄 둘 수 없다. → R4
+3. [INFORMATIONAL] (confidence: 7/10) `application/db/schema.ts:72` Todo 계획 블록은 `title` 글자를 쓴다. 세부 항목과 같은 뜻이라 따로 두면 계획 대비 실제에서 블록 제목과 항목이 이어지지 않는다. → R5
+4. [INFORMATIONAL] (confidence: 8/10) CEO 리뷰 2는 옛 `work`·`self_dev`를 "표시와 합계에서 집중으로 본다"고 했다. entry는 v3에서 새로 만드는 표라, 옮길 때 `focus`로 바꿔 넣으면 읽는 곳마다 바꿀 필요가 없다. 동작이 같은 사실 정리라 질문하지 않는다(옛 slot 표와 서버는 그대로). Disposition: accepted(CEO 리뷰 2 데이터 항목의 구현).
+
+## Decision ledger (eng 2)
+
+### R3 (R6으로 대체): 세부 항목 저장
+Finding: 1, CRITICAL, 8/10, entry 설계 `subject?`, reviewer: Claude
+Plan baseline: eng D1 entry에 `subject?` 글자 칸(승인), CEO 리뷰 2 D5·D8
+Runtime evidence: 코드 없음(T1 전)
+Comparison grid:
+| 선택 | 현재 | A 항목 표 | B 글자 칸 |
+|---|---|---|---|
+| 저장 | entry.subject 글자 | `item(id, category, name, hidden, last_used_at, client_updated_at)` + entry.item_id | entry.subject 글자 그대로 |
+| 이름 바꾸기 | 없음 | item 한 줄만 고침 | 모든 entry·계획 글자를 고침 |
+| 최근 칩 | 없음 | item.last_used_at 순 | entry에서 GROUP BY |
+| 숨기기 | 없음 | hidden=1 | 불가 |
+| W2 동기화 | 없음 | item 종류 하나 추가 | 이름 바꿀 때 많은 줄 전송 |
+Question D1: 세부 항목을 따로 표(item)로 둘까요?
+State: superseded
+Actual answer: 사용자 "좀 더 db 최적화 가능할 것 같은데 다시 고민해봐"(첫 질문 "좀 더 디테일 하게 설명 해줘" 뒤 예시 item-storage.html)
+Accepted scope: none
+
+### R4 (R6으로 대체): 계획 표
+Finding: 2, CRITICAL, 9/10, `application/db/schema.ts:25`
+Plan baseline: plan(local_date, category, target_minutes), CEO 리뷰 2 D8
+Comparison grid:
+| 선택 | 현재 | A plan 표를 다시 만듦 | B 항목 계획 표를 따로 |
+|---|---|---|---|
+| 구조 | PK(local_date, category) | plan(local_date, category, item_id NULL, target_minutes), UNIQUE(local_date, category, IFNULL(item_id,'')) | plan 그대로 + plan_item(local_date, item_id, target_minutes) |
+| 읽는 곳 | 1곳 | 1곳 | 2곳을 합쳐 읽음 |
+| 옛 계획 | 그대로 | v3에서 옮기지 않음(CEO 리뷰 2: 무시) | 그대로 남음 |
+Question D2: 계획 표를 항목 칸을 넣어 다시 만들까요?
+State: superseded
+Actual answer: 사용자 "d1부터 다시 설계"
+Accepted scope: none
+
+### R5 (R6으로 대체): Todo 계획 블록과 세부 항목
+Finding: 3, INFORMATIONAL, 7/10, `application/db/schema.ts:72`
+Plan baseline: block.title 글자(승인된 Todo 블록)
+Comparison grid:
+| 선택 | 현재 | A block.item_id 추가 | B title 그대로 |
+|---|---|---|---|
+| 블록 제목 | 글자 | 집중 블록이면 항목을 고름(item_id), 그 밖은 title | 글자 |
+| 계획 대비 실제 | 카테고리 | 항목 단위로 이어짐 | 블록과 항목이 따로 |
+Question D3: Todo 계획 블록도 세부 항목을 쓰게 할까요?
+State: superseded
+Actual answer: 사용자 "d1 부터 다시 설계"
+Accepted scope: none
+
+### R6: 모든 기록은 항목 하나를 가리킨다 (R3·R4·R5를 합침)
+Finding: 1·2·3을 합침. 카테고리가 집중·운동·기타 셋이 되어 카테고리를 기본 항목으로 볼 수 있다. reviewer: Claude
+Plan baseline: R3·R4·R5 A안들(답 없이 대체됨)
+Runtime evidence: `application/db/schema.ts:25` plan PK, `:72` block title. 옛 slot.category 값 6개
+Comparison grid:
+| 선택 | 앞 설계(R3·R4·R5 A) | A 항목 하나 | B 앞 설계 |
+|---|---|---|---|
+| item | id, category, name, hidden, last_used_at | id(기본 항목은 고정 글자 focus·exercise·other·rest·relationship·sleep, 사용자 항목은 uuid), kind, name, hidden | 앞 설계 |
+| entry | category + item_id(빈칸 가능) | item_id만, NOT NULL(세부 없으면 focus) | 앞 설계 |
+| plan | (날짜, 카테고리, IFNULL(item_id,'')) | PK(local_date, item_id) | 앞 설계 |
+| block | category + item_id + title | item_id만(옛 제목은 v3에서 같은 이름 항목으로) | 앞 설계 |
+| 최근 칩 | last_used_at | entry에서 MAX(start_at) GROUP BY item_id | 앞 설계 |
+| 인덱스 | entry(start_at) + 진행 중 부분 유일 | 같음 | 같음 |
+| 옛 값 이전 | 카테고리 매핑 | slot.category를 그대로 item_id로(work·self_dev → focus) | 앞 설계 |
+| 시기 | v3 | v3 | v3 |
+Question D4: 기록·계획·할 일 블록이 모두 항목 하나만 가리키게 할까요? (예시 item-storage-v2.html)
+State: superseded(R7에 그대로 포함)
+Actual answer: 질문 거절 뒤 사용자 "db에 저장하는 방식은 중요한데, 좀 더 최적화 고민하고 정규화 통해서 낭비없는 백엔드 구축이 되었으면 좋겠는데. 인터넷도 찾아보고 해봐"
+Accepted scope: R7 참고
+
+### R7: 3차 정규화 (R6 + 남은 중복 7개 제거)
+Finding: R6 설계에 남은 중복. reviewer: Claude. 예시 item-storage-v3.html
+Evidence: uuid v4 키는 SQLite B-tree 끼워 넣기가 느려지고 v7은 일정함(andersmurphy.com 2026-06-05 측정, 1천만 줄), Immich 모바일 동기화 uuid v7, SQLite STRICT 표(3.37+), 계산이 잦으면 정수 시각(sqlite-users), Toggl 기록 → 프로젝트 → 세부 작업 구조. 규모: 하루 수십 줄, 1년 약 1만 줄[estimated]
+Questions: D9 정규화 묶음, D10 일시정지 저장, D11 시각 형식
+State: accepted
+Actual answer: D9 "가. 다섯 가지 모두", D10 "가. 세션 한 줄 + 멈춤 표", D11 "가. 새 표는 정수 밀리초" (2026-11-18)
+Accepted scope (로컬 v3, 한 트랜잭션, 새 표는 모두 STRICT):
+```sql
+item(id TEXT PK, parent_id TEXT NULL REFERENCES item(id), name TEXT NOT NULL,
+     hidden INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL) STRICT, WITHOUT ROWID
+  UNIQUE INDEX (IFNULL(parent_id,''), name)
+  -- 기본 항목: focus·exercise·other(parent NULL), rest·relationship·sleep(parent NULL, hidden=1)
+  -- 사용자 항목: id uuid v7, parent_id = 카테고리 id. 2단을 넘지 않게 저장 함수 한 곳에서 막는다
+entry(id TEXT PK uuid v7, item_id TEXT NOT NULL REFERENCES item(id),
+      how TEXT NOT NULL,  -- answered|filled|stopwatch|pomodoro|timer (source와 타이머 방식을 합침)
+      start_at INTEGER NOT NULL, end_at INTEGER NULL, planned_end_at INTEGER NULL,  -- 밀리초
+      tz TEXT NOT NULL, note TEXT NULL, deleted INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL) STRICT
+  INDEX (start_at); UNIQUE INDEX ((1)) WHERE end_at IS NULL AND deleted = 0
+pause(entry_id TEXT REFERENCES entry(id) ON DELETE CASCADE, start_at INTEGER NOT NULL,
+      end_at INTEGER NULL, PRIMARY KEY (entry_id, start_at)) STRICT, WITHOUT ROWID
+plan_v3(local_date TEXT, item_id TEXT REFERENCES item(id), target_minutes INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL, PRIMARY KEY (local_date, item_id)) STRICT, WITHOUT ROWID
+block: 다시 만든다. id, item_id, start_at, end_at(정수), tz, state, ended_how, deleted, updated_at.
+       category·title·kind 칸을 뺀다. 옛 title은 같은 이름 항목으로 만들어 잇는다
+```
+- 저장하지 않고 계산: 카테고리 = `COALESCE(parent_id, id)`(항목은 메모리), 기록 분 = end − start − 멈춤 합, 뽀모도로 단계·집중 분(`focus_min` 칸 없앰), 멈춤 중 = 끝 없는 pause 줄, 최근 칩 = entry MAX(start_at) GROUP BY item_id(30일).
+- 바뀌는 앞 결정: eng 리뷰 1 Section 1의 entry 칸 목록(category·subject·source·focus_min·client_updated_at → item_id·how·updated_at), "(추가, CONTROL·PAUSE) session_id 조각" 방식, 결정 장부 PAUSE의 "저장:" 부분. 화면 표시(1분·5분 기준)는 그대로이고, 시간표는 세션 구간에서 멈춘 구간을 빼서 그린다. 5분 이상 멈춘 틈의 알림 답은 겹침 계산에서 멈춘 구간을 빈 곳으로 본다.
+- uuid v7: `lib/uuid.ts`에 생성 함수 추가(약 10줄). 형식은 36자 글자 그대로라 서버·동기화는 바뀌지 않는다.
+- 시각 변환: 옛 slot·plan의 ISO 글자 ↔ 밀리초 변환은 `db/` 한 곳에 둔다. 이전은 `unixepoch(x) * 1000`.
+- 지운 줄: W1에서는 동기화하지 않는 표라 바로 지운다. W2에서 서버가 받았다고 답한 지운 줄을 로컬에서 실제로 지운다.
+- 하지 않는 것: uuid를 16바이트 BLOB로(서버·JSON·디버깅이 글자, 1년 약 200KB[estimated]), tz를 tz_change로 빼기(기록 한 줄만으로 날짜를 알아야 동기화가 단순), sync_queue 방식 바꾸기(W2 리뷰).
+- 테스트: 기본 항목 id 상수와 DB 줄 일치, 2단 막기, 멈춤 두 번 세션의 분 합계, 진행 중·멈춤 중 판정, 옛 slot 이전 분 합계 같음(work·self_dev → focus), 할 일 블록 title → 항목, STRICT 지원 확인(`sqlite_version()` 3.37 이상).
+
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 2 | ISSUES OPEN | 1회: SCOPE_REDUCTION, 1 critical gap(eng에서 처리). 2회(11-17 카테고리): SCOPE_REDUCTION, 카테고리 집중·운동·기타로, 세부 항목 1단계, 항목별 계획(설계·eng로 넘김) |
 | Outside Review | codex (plan-review) | Independent 2nd opinion | 0 | skipped | 실행 안 함(사용자 이전 거절) |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 1 | ISSUES OPEN | 5 issues, 0 critical gaps (모두 accepted, 작업 T1~T7로 연결) |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | ISSUES OPEN | 1회: 5 issues, 0 critical gaps (모두 accepted, T1~T7). 2회(11-18 저장 구조): 4 findings, 2 critical → R7(항목 표·세션+멈춤·정수 시각·STRICT·uuid v7) accepted, T1에 포함 |
 | Design Review | `/plan-design-review` | UI/UX gaps | 1 | CLEAR(그림 대기 2개) | D6~D38 결정. 글꼴·강조색 최종값만 방 스타일 받은 뒤 |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
@@ -596,5 +720,5 @@ REALITY: transaction-semantics pass v3 migration runs inside db.transaction like
 **UNRESOLVED DECISIONS:**
 - 1분 미만 기록 처리(소유: /plan-design-review). 나머지 디자인 항목은 2026-11-17 디자인 리뷰 D6~D38로 정함
 - 글꼴·강조색 최종값(방 스타일 받은 뒤)
-- 세부 항목별 계획 화면(소유: /plan-design-review), 세부 항목·계획 저장 구조(소유: /plan-eng-review, T1 전)
+- 세부 항목별 계획 화면(소유: /plan-design-review)(저장 구조는 eng 리뷰 2 R7로 정함)
 - **숙제(사용자):** 타이머·뽀모도로가 끝난 뒤 30분 알림을 자동으로 다시 켤지, [아니오] 뒤 언제 다시 켜질지. 그때까지 RESUME 임시안으로 개발
