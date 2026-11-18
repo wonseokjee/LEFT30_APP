@@ -498,6 +498,11 @@ Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유
   - Surfaced by: R2(eng D3 A), CEO CAT
   - Files: db/types.ts, record/planVsActual.ts, components/todo/PlanTargetSheet.tsx, record/categoryStyle.ts
   - Verify: `npx tsc --noEmit && npx jest`
+- [ ] **T9 (P1, human: ~2일 / CC: ~1.5시간)** — UI — 할 일 맨 위 목표 줄과 목표 추가 시트(디자인 리뷰 2, left30-visual.md 4.3d D2~D16). `PlanTargetSheet` 지움
+  - Surfaced by: 디자인 리뷰 2 Pass 1~6. 목표 줄("한 시간 / 목표", 4줄 넘으면 접기), 시·분 두 칸 입력(휴대폰 숫자 키보드, 완료·다른 곳=저장, 뒤로=취소, 비우면 빠짐 + 되돌리기, 24시간 초과 알림), 추가 시트(열린 채, 항목 없는 집중·운동 칩, [항목 관리]), 길게 눌러 이름 바꾸기·숨기기, 이름 10자·같은 이름 고름, 목표 0개 안내 + [어제와 동일], 홈 막대 줄 단위 = 목표 줄("집중" 표기), 화면 읽기 라벨
+  - Files: components/todo/TodoScreen.tsx, components/todo/PlanTargetSheet.tsx(삭제), 새 components/todo/GoalRows.tsx·GoalAddSheet.tsx·ItemManageSheet.tsx, record/todoLogic.ts, record/planVsActual.ts, components/home/PlanVsActual.tsx, 아침 계획 제안 진입
+  - Depends on: T1(plan_v3·item)
+  - Verify: `npx tsc --noEmit && npx jest`(시간 입력 해석·24시간 검사·항목 없는 집중 집계·같은 이름 고름 테스트), 에뮬레이터에서 키보드가 줄을 가리지 않는지, TalkBack 읽기
 
 ### Completion summary (eng)
 - Step 0: Scope Challenge — scope accepted as-is (구조 Original 선택)
@@ -557,7 +562,7 @@ REALITY: transaction-semantics pass v3 migration runs inside db.transaction like
 |---|---|
 | 30분 알림 답, 기록 시트, 놓친 시간 채우기 | **집중 · 운동 · 기타** (3개, 한 줄). 기록 시트에서 집중 뒤 세부 항목 칩(선택) |
 | 타이머 시작 시트 | 카테고리 없음(항상 집중). 방식 세 칸 + 세부 항목(선택) + [시작] |
-| 아침 계획 | 집중의 세부 항목별 목표 + 운동 (D8, 화면 미정) |
+| 아침 계획 | 할 일 맨 위 목표 줄: 세부 항목·항목 없는 집중·운동 (D8, 화면은 left30-visual.md 4.3d) |
 | 홈 "오늘 지금까지" | 계획이 있는 세부 항목·운동 중 진행률 높은 두 줄 |
 
 ### 영향과 처리 (Sections 1~10 요약, 이 결정 범위만)
@@ -578,7 +583,7 @@ REALITY: transaction-semantics pass v3 migration runs inside db.transaction like
 
 ### TODO
 - 테스터 2주 뒤 기타 비율 확인. 크면 나눌지 다시 본다.
-- 세부 항목별 계획 화면(D8): /plan-design-review. 세부 항목·계획 저장 구조: /plan-eng-review(T1 전).
+- ~~세부 항목별 계획 화면(D8)~~ → 디자인 리뷰 2(2026-11-18, left30-visual.md 4.3d). ~~저장 구조~~ → eng 리뷰 2 R7.
 
 ## Eng Review 2: 세부 항목·계획 저장 구조 (/plan-eng-review, 2026-11-17)
 
@@ -704,21 +709,60 @@ block: 다시 만든다. id, item_id, start_at, end_at(정수), tz, state, ended
 - 하지 않는 것: uuid를 16바이트 BLOB로(서버·JSON·디버깅이 글자, 1년 약 200KB[estimated]), tz를 tz_change로 빼기(기록 한 줄만으로 날짜를 알아야 동기화가 단순), sync_queue 방식 바꾸기(W2 리뷰).
 - 테스트: 기본 항목 id 상수와 DB 줄 일치, 2단 막기, 멈춤 두 번 세션의 분 합계, 진행 중·멈춤 중 판정, 옛 slot 이전 분 합계 같음(work·self_dev → focus), 할 일 블록 title → 항목, STRICT 지원 확인(`sqlite_version()` 3.37 이상).
 
+## 디자인 리뷰 2 완료 요약 (세부 항목별 목표, 2026-11-18)
+
+```
+  +====================================================================+
+  |         DESIGN PLAN REVIEW — COMPLETION SUMMARY                    |
+  +====================================================================+
+  | System Audit         | DESIGN.md 없음(D20, left30-visual.md가 대신), UI 범위 있음 |
+  | Step 0               | 2/10, 일곱 관점 모두                         |
+  | Pass 1  (Info Arch)  | 2/10 → 9/10 (D2 D4 D5 D6 D8)                 |
+  | Pass 2  (States)     | 3/10 → 8/10 (D7 D9, 로딩·오류는 D30~D32)      |
+  | Pass 3  (Journey)    | 3/10 → 8/10 (D10 D11 D12)                    |
+  | Pass 4  (AI Slop)    | 7/10 → 7/10 (글꼴 미정, 11절 6a)              |
+  | Pass 5  (Design Sys) | 6/10 → 8/10 (기존 시트·칩·알림 재사용)        |
+  | Pass 6  (Responsive) | 2/10 → 8/10 (D3 D7 D13 D15)                  |
+  | Pass 7  (Decisions)  | 15 resolved, 0 deferred                     |
+  +--------------------------------------------------------------------+
+  | NOT in scope         | written (3 items)                           |
+  | What already exists  | written                                     |
+  | TODOS.md updates     | 0 items proposed                            |
+  | Approved Mockups     | 이미지 0(디자이너 키 없음), HTML 예시 1      |
+  | Decisions made       | 15 added to plan                            |
+  | Decisions deferred   | 0                                           |
+  | Overall design score | 2/10 → 7/10                                 |
+  +====================================================================+
+```
+
+- 결정: D2~D16(D1은 범위 선택). 내용은 left30-visual.md 4.3d. 사용자가 권장안과 다르게 고른 것: D3(바퀴 대신 휴대폰 숫자 키보드), D4(사용자 제안: 시트 대신 할 일 화면), D8(접기), D9(안내 한 줄), D12(두 길 모두).
+- 외부 검토: Claude 에이전트 완료. Codex는 답을 냈지만 끝 표시 검사에 걸려 기록상 "검토 미완료"(내용은 질문에 참고). 공통 지적 다섯 개(항목 없는 집중, 입력 확정·취소·24시간, "정함", 첫 사용, 관리·순서·접근성)는 모두 질문으로 정함.
+- 시안: 디자이너 이미지 도구는 키가 없어 쓰지 못함(`$D setup`). 브라우저 예시 `~/.gstack/projects/wonseokjee-LEFT30_APP/designs/item-plan-20261118/item-plan.html`.
+- 전체 점수 7은 글꼴(11절 6a, 방 스타일 뒤) 때문이다. 이 리뷰 범위의 결정은 모두 정했다.
+
+**NOT in scope**
+- 운동 세부 항목(D14, 테스터 요청 시).
+- 목표와 할 일 블록을 자동으로 맞추기(목표를 바꿔도 블록은 그대로, 반대도 그대로).
+- 지난 날짜 목표 고치기(오늘만).
+
+**What already exists**
+- 할 일 화면 맨 위 줄·하루 막대·블록 목록(`TodoScreen.tsx`), [되돌리기] 알림, 2초 저장 실패 알림(D31), 불러오기·오류(D30·D32), 최근 칩(R7 쿼리), 시작 시트의 [+ 새 항목], 아침 계획 제안(E1).
+
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
 | CEO Review | `/plan-ceo-review` | Scope & strategy | 2 | ISSUES OPEN | 1회: SCOPE_REDUCTION, 1 critical gap(eng에서 처리). 2회(11-17 카테고리): SCOPE_REDUCTION, 카테고리 집중·운동·기타로, 세부 항목 1단계, 항목별 계획(설계·eng로 넘김) |
-| Outside Review | codex (plan-review) | Independent 2nd opinion | 0 | skipped | 실행 안 함(사용자 이전 거절) |
+| Outside Review | codex (design phase) | Independent 2nd opinion | 1 | unavailable | 디자인 리뷰 2: Codex 답은 왔으나 끝 표시 검사 실패(기록상 미완료). Claude 에이전트(in-host)는 완료, 지적 5개 공통 |
 | Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | ISSUES OPEN | 1회: 5 issues, 0 critical gaps (모두 accepted, T1~T7). 2회(11-18 저장 구조): 4 findings, 2 critical → R7(항목 표·세션+멈춤·정수 시각·STRICT·uuid v7) accepted, T1에 포함 |
-| Design Review | `/plan-design-review` | UI/UX gaps | 1 | CLEAR(그림 대기 2개) | D6~D38 결정. 글꼴·강조색 최종값만 방 스타일 받은 뒤 |
+| Design Review | `/plan-design-review` | UI/UX gaps | 2 | ISSUES OPEN | 1회: D6~D38 결정. 2회(11-18 세부 항목별 목표): score: 2/10 → 7/10, 15 decisions, T9 |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
-- **OUTSIDE COVERAGE:** codex, plan-review, CEO·Eng 모두 skipped(실행 안 함), findings 없음.
-- **VERDICT:** Eng 결정 완료, 미해결 없음. 이슈는 모두 승인된 작업으로 연결됨(issues_open = 할 일 있음). UI 범위가 커서 구현 전 /plan-design-review 권장.
+- **OUTSIDE COVERAGE:** codex, design phase(디자인 리뷰 2), unavailable(끝 표시 없음), 지적은 참고로만 씀. CEO·Eng 단계는 외부 검토 실행 안 함.
+- **CROSS-MODEL:** 완료된 외부 검토가 없어 판단하지 않음(Claude 에이전트는 같은 호스트).
+- **VERDICT:** Eng 결정 완료(T1~T9가 할 일). 디자인 리뷰 2는 범위 결정을 모두 정했고, 남은 점수 제한은 글꼴뿐. eng review required(디자인 리뷰 2가 화면 흐름을 바꿨으므로 T9 구현 전 확인 권장).
 
 **UNRESOLVED DECISIONS:**
-- 1분 미만 기록 처리(소유: /plan-design-review). 나머지 디자인 항목은 2026-11-17 디자인 리뷰 D6~D38로 정함
+- 1분 미만 기록 처리(소유: /plan-design-review)
 - 글꼴·강조색 최종값(방 스타일 받은 뒤)
-- 세부 항목별 계획 화면(소유: /plan-design-review)(저장 구조는 eng 리뷰 2 R7로 정함)
 - **숙제(사용자):** 타이머·뽀모도로가 끝난 뒤 30분 알림을 자동으로 다시 켤지, [아니오] 뒤 언제 다시 켜질지. 그때까지 RESUME 임시안으로 개발
