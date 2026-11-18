@@ -465,7 +465,7 @@ critical gap: 0 (모두 테스트 계획 또는 처리 경로 있음)
 Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유라 같은 브랜치에서 순서대로 합치는 편이 안전하다.
 
 ### Implementation Tasks
-- [ ] **T1 (P1, human: ~1.5일 / CC: ~1.5시간)** — db — entry 표(v3)·부분 유일 인덱스·slot/진행 중 집중 이전. 표 구성은 eng 리뷰 2 R7(item·entry·pause·plan_v3·block 다시 만들기, STRICT, 정수 시각, uuid v7)
+- [ ] **T1 (P1, human: ~1.5일 / CC: ~1.5시간)** — db — entry 표(v3)·부분 유일 인덱스·slot/진행 중 집중 이전. 표 구성은 eng 리뷰 2 R7(item·entry·pause·plan_v3·block 다시 만들기, STRICT, 정수 시각, uuid v7). eng 리뷰 3: plan_v3에 `position INTEGER NOT NULL`(R8), entry how 값 목록 고침(R14)
   - Surfaced by: Scope Challenge B 구조(eng D1 Original)
   - Files: application/db/schema.ts, db/types.ts, db/records.ts
   - Verify: `npx jest db` (이전 전후 분 합계, 실패 롤백)
@@ -503,6 +503,7 @@ Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유
   - Files: components/todo/TodoScreen.tsx, components/todo/PlanTargetSheet.tsx(삭제), 새 components/todo/GoalRows.tsx·GoalAddSheet.tsx·ItemManageSheet.tsx, record/todoLogic.ts, record/planVsActual.ts, components/home/PlanVsActual.tsx, 아침 계획 제안 진입
   - Depends on: T1(plan_v3·item)
   - Verify: `npx tsc --noEmit && npx jest`(시간 입력 해석·24시간 검사·항목 없는 집중 집계·같은 이름 고름 테스트), 에뮬레이터에서 키보드가 줄을 가리지 않는지, TalkBack 읽기
+  - eng 리뷰 3: 파일 구성 B(새 파일 `record/items.ts`·`GoalSection.tsx`·`GoalAddSheet.tsx`, 목표 쓰기는 todoLogic 한 곳, `savePlan` 지움). 순서 position(R8), 지우기는 DELETE + 같은 자리 되돌리기(R9), 이름 바꾸기 같은 이름 막음(R10), 아침 제안 어제 실제는 항목 기준(R11), 자정에서 잘라 셈(R12), 24시간 검사는 모든 목표 쓰기(R13). 테스트 계획: `~/.gstack/projects/wonseokjee-LEFT30_APP/wsji9-refactor-architecture-eng-review-test-plan-20261118-161659.md`
 
 ### Completion summary (eng)
 - Step 0: Scope Challenge — scope accepted as-is (구조 Original 선택)
@@ -690,7 +691,7 @@ item(id TEXT PK, parent_id TEXT NULL REFERENCES item(id), name TEXT NOT NULL,
   -- 기본 항목: focus·exercise·other(parent NULL), rest·relationship·sleep(parent NULL, hidden=1)
   -- 사용자 항목: id uuid v7, parent_id = 카테고리 id. 2단을 넘지 않게 저장 함수 한 곳에서 막는다
 entry(id TEXT PK uuid v7, item_id TEXT NOT NULL REFERENCES item(id),
-      how TEXT NOT NULL,  -- answered|filled|stopwatch|pomodoro|timer (source와 타이머 방식을 합침)
+      how TEXT NOT NULL,  -- answered|continued|late|declared|batch|inferred(옛 자료)|stopwatch|pomodoro|timer (source와 타이머 방식을 합침, eng 3 R14로 고침)
       start_at INTEGER NOT NULL, end_at INTEGER NULL, planned_end_at INTEGER NULL,  -- 밀리초
       tz TEXT NOT NULL, note TEXT NULL, deleted INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL) STRICT
   INDEX (start_at); UNIQUE INDEX ((1)) WHERE end_at IS NULL AND deleted = 0
@@ -748,21 +749,553 @@ block: 다시 만든다. id, item_id, start_at, end_at(정수), tz, state, ended
 **What already exists**
 - 할 일 화면 맨 위 줄·하루 막대·블록 목록(`TodoScreen.tsx`), [되돌리기] 알림, 2초 저장 실패 알림(D31), 불러오기·오류(D30·D32), 최근 칩(R7 쿼리), 시작 시트의 [+ 새 항목], 아침 계획 제안(E1).
 
+## Eng Review 3: 할 일 목표(T9) 구현 구조 (/plan-eng-review, 2026-11-18)
+
+대상: `docs/designs/left30-visual.md` 4.3d(디자인 리뷰 2 D2~D16)와 이 문서의 T9. 범위: 목표 줄·추가 시트·항목 관리의 구현 구조, R7 저장 구조와의 연결, 테스트. 구현 코드는 쓰지 않는다.
+
+### Scope Challenge
+- 이미 있는 것:
+  - 목표 읽기 `planRowsOn`(`application/record/todoLogic.ts:282`), 하루 전체 쓰기 `savePlan`(`application/db/records.ts:48`, "계획에서 뺀 카테고리는 0으로 저장한다(삭제 없음)").
+  - 할 일 맨 위 한 줄 `totalsLine`(`todoLogic.ts:264`), 아침 제안 `takeMorningOffer`·`acceptSame`(`application/record/morningPlan.ts:24,52`).
+  - 홈 계획 대비 실제 `buildPva`(`application/record/planVsActual.ts:27`).
+  - `PlanTargetSheet`를 여는 곳 세 군데: `TodoScreen.tsx:291`, `components/home/PlanVsActual.tsx:113`, `components/record/RecordSheet.tsx:74`.
+- 복잡도: 고치는 파일 약 8개[estimated], 새 모듈 3개 → 구조 질문(B).
+- Scope record: feature answers: 없음(기능 삭감 제안 없음); structure: **B Smaller arrangement** (eng 3 D1 답 "B) Smaller arrangement (recommended)", 2026-11-18); accepted scope: 새 파일 3개.
+  - `record/items.ts`: 항목 만들기·이름 바꾸기·숨기기·같은 이름 고르기.
+  - `components/todo/GoalSection.tsx`: 목표 줄·시·분 입력·접기.
+  - `components/todo/GoalAddSheet.tsx`: 추가 시트, 두 번째 화면이 [항목 관리].
+  - 목표 읽기·쓰기·24시간 검사는 `record/todoLogic.ts` 한 곳에 둔다. `PlanTargetSheet`와 하루 전체 쓰기 `savePlan`은 지운다.
+  - pending remedies: R8(목표 순서), R9(목표 지우기), R10(이름 바꿀 때 같은 이름), R11(아침 제안의 어제 실제).
+- 결과: scope accepted as-is.
+
+REALITY: premise-table pass unverified=0, 위 "이미 있는 것" 다섯 줄 모두 file:line 확인 application/db/records.ts:47
+REALITY: already-done pass T9 코드 없음(목표 줄·items.ts 없음, 마지막 todo 변경은 45b476d) application/components/todo/TodoScreen.tsx:43
+REALITY: surface-check pass 새 CLI·HTTP 없음, 숫자 키보드 `keyboardType="number-pad"`는 React Native TextInput 문서의 공통 값 application/components/todo/PlanTargetSheet.tsx:1
+REALITY: binding-decisions pass eng D1 Original(entry), R7 저장 구조, 디자인 리뷰 2 D2~D16을 따름 docs/designs/left30-visual.md:132
+REALITY: numbers finding 파일 수·줄 수는 [estimated], TodoScreen 449줄·todoLogic 294줄은 [measured: wc -l] application/record/todoLogic.ts:294
+REALITY: deferred-asks pass 연결된 이슈 없음 TODO.md:1
+REALITY: pr-count pass 한 PR(W1, T1 뒤) application/db/schema.ts:10
+REALITY: transaction-semantics pass 목표 쓰기와 24시간 검사는 한 트랜잭션(기존 savePlan과 같은 db.transaction) application/db/records.ts:54
+
+### Findings (Scope Challenge·Section 1 아키텍처)
+1. [CRITICAL] (confidence: 9/10) R7 `plan_v3(... PRIMARY KEY (local_date, item_id)) STRICT, WITHOUT ROWID`(이 문서 R7 Accepted scope)에는 순서 칸이 없다. 디자인 D8 "추가한 순서대로 고정, 어제와 동일은 어제 순서"를 지킬 값이 없다. WITHOUT ROWID라 rowid 순서도 없고, updated_at은 고칠 때마다 바뀐다. → R8
+2. [CRITICAL] (confidence: 8/10) `application/db/records.ts:47` "계획에서 뺀 카테고리는 0으로 저장한다(삭제 없음)". 디자인 D7 "비우면 그 목표가 빠진다 + [되돌리기]"를 항목 줄 하나 단위로 할 때 줄을 지울지 0으로 둘지 정해지지 않았다. → R9
+3. [INFORMATIONAL] (confidence: 7/10) 디자인 D12·D13은 새로 만들 때 같은 이름만 정했다. 이름 바꾸기로 이미 있는 이름("영어" → "보고서")을 고르면 R7 `UNIQUE INDEX item_name ON item (IFNULL(parent_id,''), name)`에 걸려 저장이 실패한다. → R10
+4. [INFORMATIONAL] (confidence: 8/10) `application/record/morningPlan.ts:42` `SELECT slot_start, tz, category FROM slot ...`와 `:48` `targets[s.category] = (targets[s.category] ?? 0) + 30`: 어제 계획이 없을 때 어제 실제로 목표를 만드는 규칙(E1)이 카테고리·30분 칸 기준이다. 항목 기준으로 바꿀 때 기타·옛 카테고리와 분 단위를 정해야 한다. → R11
+5. [INFORMATIONAL] (confidence: 9/10) 같은 일을 하는 두 길(레드 플래그 6): 하루 전체 쓰기 `savePlan`(`records.ts:48`)과 새 줄 단위 목표 쓰기가 함께 남으면 안 된다. `PlanTargetSheet.tsx`, `morningPlan.ts:53` `await savePlan(...)`, `RecordSheet.tsx:74`를 새 쓰기로 옮기고 `savePlan`은 지운다. Disposition: accepted(D1 구조의 필수 구현, 질문 없음).
+
+## Decision ledger (eng 3)
+
+### R8: 목표 순서 저장
+Finding: 1, CRITICAL, 9/10, R7 plan_v3 정의(이 문서 "### R7" Accepted scope), reviewer: Claude
+Plan baseline: R7 plan_v3(local_date, item_id, target_minutes, updated_at), 디자인 D8 "추가한 순서 고정, 어제와 동일은 어제 순서" (사용자 "나. 4줄 넘으면 접기")
+Runtime evidence: 코드 없음(T1 전)
+Comparison grid:
+| 선택 | 현재 | A position 칸 | B 항목 처음 쓴 순서 |
+|---|---|---|---|
+| 저장 | 순서 없음 | plan_v3에 `position INTEGER NOT NULL` | 칸 없음, item을 처음 쓴 시각(entry MIN start_at) 순 |
+| 추가 | - | 그날 MAX(position)+1 | - |
+| 어제와 동일 | - | 어제 position 그대로 복사 | 같은 규칙이라 저절로 비슷 |
+| D8 지킴 | 못 지킴 | 지킴 | 못 지킴(추가 순서가 아님, 기록하면 바뀜) |
+| 그 밖 R7 | 그대로 | 그대로 | 그대로 |
+Question D2:
+D2 — 목표 줄의 순서를 어떻게 저장할까요?
+Project/branch/task: refactor/architecture, T9 목표 줄(디자인 D8).
+ELI10: 디자인에서 목표 줄은 '추가한 순서'로 고정하고, 어제와 동일은 어제 순서를 따르기로 했습니다. 그런데 앞서 정한 목표 표(plan_v3)에는 순서를 적을 칸이 없습니다. 이 표는 줄 번호도 없는 형식(WITHOUT ROWID)이고, 고친 시각은 고칠 때마다 바뀌어 순서로 쓸 수 없습니다.
+Stakes if we pick wrong: 목표를 고칠 때마다 줄 순서가 바뀌어, 디자인에서 막으려던 '줄이 뛰는' 일이 생깁니다.
+Recommendation: A because 순서는 그날 그 목표 줄의 사실이라 같은 줄에 정수 하나로 두는 것이 정규화에도 맞고, 다른 방법으로는 D8을 지킬 수 없습니다.
+Completeness: A=10/10, B=4/10
+Pros / cons:
+A) position 칸 하나 추가 (recommended)
+  ✅ 추가할 때 그날 가장 큰 번호 + 1, 어제와 동일은 어제 번호 그대로 복사해 D8을 정확히 지킵니다.
+  ✅ 정수 한 칸(1~2바이트)이라 낭비가 거의 없고, 고쳐도 순서는 그대로입니다.
+  ❌ 목표를 쓰는 함수가 번호를 매겨야 하고, 그 규칙을 테스트로 묶어야 합니다. (사람: ~1시간 / CC: ~5분)
+B) 칸 없이 계산
+  ✅ 표에 칸이 늘지 않습니다.
+  ✅ 항목을 처음 쓴 순서처럼 계산할 수는 있습니다.
+  ❌ 추가한 순서가 아니고, 기록을 하면 순서가 바뀌어 D8을 지키지 못합니다.
+Net: 정수 한 칸으로 디자인 결정을 지키느냐, 칸을 아끼고 순서가 흔들리게 두느냐.
+Header: 목표 순서
+Options:
+A) position 칸 추가 (recommended)
+plan_v3에 position INTEGER NOT NULL. 추가 = 그날 최대 + 1, 어제와 동일 = 어제 번호 복사. 고쳐도 순서 그대로. (사람: ~1시간 / CC: ~5분)
+B) 칸 없이 계산
+칸을 늘리지 않고 항목을 처음 쓴 순서로 계산. 추가 순서가 아니고 기록하면 바뀌어 D8을 지키지 못함.
+
+State: approved
+Actual answer: "A) position 칸 추가 (recommended)" (eng 3 D2, 2026-11-18)
+Accepted scope: plan_v3에 `position INTEGER NOT NULL`을 더한다(R7 표 정의에 반영, T1). 목표 추가는 그날 MAX(position)+1, 어제와 동일은 어제 position을 그대로 복사한다. 시간을 고쳐도 position은 바뀌지 않는다. 읽기는 `ORDER BY (item_id IN ('focus','exercise')), position`(항목 없는 집중·운동은 맨 아래, D8, Codex 지적 4 사실 정정). 테스트: 추가 순서, 고친 뒤 순서 유지, 어제와 동일 순서 복사, 운동을 먼저 넣어도 맨 아래.
+History: none
+
+### R9: 목표 지우기
+Finding: 2, CRITICAL, 8/10, `application/db/records.ts:47`, reviewer: Claude
+Plan baseline: 디자인 D7 "두 칸을 비우거나 0으로 저장하면 그 날짜의 목표만 빠진다, [되돌리기]". 지금 코드는 "계획에서 뺀 카테고리는 0으로 저장한다(삭제 없음)". R8 position 승인됨. R7 "지운 줄: W1에서는 동기화하지 않는 표라 바로 지운다. W2에서 서버가 받았다고 답한 지운 줄을 로컬에서 실제로 지운다".
+Runtime evidence: `records.ts:56` `target_minutes: targets[category] ?? 0`, 동기화 큐에는 지우기 종류가 없다(`records.ts:4` `QueueKind = 'slot' | 'plan' | 'event' | 'block'`, plan은 덮어쓰기만)
+Comparison grid:
+| 선택 | 현재 | A 0으로 둠 | B 줄을 지움 | C 0으로 표시 후 정리 |
+|---|---|---|---|---|
+| 사용자 화면 | - | 줄이 빠지고 [되돌리기] | 같음 | 같음 |
+| 지우기 | 0으로 덮어씀(하루 전체) | 그 줄 target_minutes=0, 계속 남김 | DELETE | 그 줄 target_minutes=0, 큐에 덮어쓰기로 보냄 |
+| 정리 | - | 없음 | - | W1: 큐에 넣은 뒤 로컬 줄 바로 지움. W2: 서버가 받았다고 답하면 로컬에서 지움, 서버는 0을 받으면 서버 줄을 지움 |
+| 되돌리기 | - | 원래 분 다시 씀 | 같은 position으로 다시 INSERT | 같은 position으로 다시 씀(줄이 지워졌으면 다시 넣음) |
+| 동기화 | 덮어쓰기 | 덮어쓰기 그대로 | 지우기 종류 새로 필요 | 덮어쓰기 그대로(0 = 지움 표시) |
+| 남는 줄 | 하루 6줄 | 지운 목표 0줄이 영구히 | 없음 | 서버 응답 뒤 없음 |
+| R8 position | 승인 | 그대로 | 그대로 | 그대로 |
+Question D3:
+D3 — 목표를 지울 때 줄을 남길까요, 지울까요? (다시 묻기)
+Project/branch/task: refactor/architecture, T9 목표 줄(디자인 D7).
+ELI10: 사용자 화면은 세 안 모두 같습니다(줄이 빠지고 [되돌리기]). 다른 것은 저장과 동기화입니다. A는 0인 줄을 영원히 남기고, B는 바로 지우는 대신 서버에 '지우기'를 따로 알려야 합니다. C는 R7에서 기록에 정한 규칙과 같습니다. 일단 0으로 표시해 덮어쓰기로 보내고, 서버가 받은 뒤 휴대폰과 서버 양쪽에서 실제로 지웁니다.
+Stakes if we pick wrong: 지운 목표가 쌓이거나(A), 다른 기기에서 지운 목표가 되살아납니다(B에서 지우기 전송을 빠뜨릴 때).
+Recommendation: C because 결국 목표가 있는 줄만 남아 낭비가 없고, 동기화는 덮어쓰기 하나로 끝나며, 기록(entry)의 지운 줄 규칙과 같아 규칙이 하나입니다.
+Completeness: A=7/10, B=8/10, C=10/10
+Pros / cons:
+A) 0으로 둠
+  ✅ 동기화는 덮어쓰기 하나로 끝나, 지운 목표가 되살아날 일이 없습니다.
+  ✅ 되돌리기가 가장 단순합니다(같은 줄에 원래 분).
+  ❌ 지운 목표 줄이 휴대폰과 서버에 영원히 남습니다.
+B) 줄을 지움
+  ✅ 표에 목표가 있는 줄만 남습니다.
+  ✅ 읽을 때 0을 걸러낼 필요가 없습니다.
+  ❌ W2에서 '지우기' 동기화 종류를 새로 만들어야 하고, 빠뜨리면 다른 기기에서 되살아납니다.
+C) 0으로 표시 후 정리 (recommended)
+  ✅ 서버가 받은 뒤 양쪽에서 실제로 지워 결국 목표가 있는 줄만 남습니다.
+  ✅ 동기화는 덮어쓰기 그대로이고, 기록의 지운 줄 규칙(R7)과 같아 규칙이 하나입니다.
+  ❌ 큐 응답 뒤 정리하는 코드가 한 군데 늘고, 서버는 0을 받으면 지우는 규칙을 W2에 넣어야 합니다. (사람: ~2시간 / CC: ~10분)
+Net: 단순함(A), 즉시 깔끔함(B), 결국 깔끔함 + 단순한 동기화(C).
+Header: 목표 지우기
+Options:
+C) 0으로 표시 후 정리 (recommended)
+지우면 0으로 덮어써 큐에 보냄. W1은 바로 로컬 줄 지움, W2는 서버가 받은 뒤 지움. 서버는 0을 받으면 서버 줄 지움. 기록의 지운 줄 규칙(R7)과 같음. (사람: ~2시간 / CC: ~10분)
+A) 0으로 둠
+그 줄만 target_minutes=0으로 영구히 남김. 읽기 함수 한 곳에서 0을 거름. 동기화는 덮어쓰기 그대로. (사람: ~1시간 / CC: ~5분)
+B) 줄을 지움
+DELETE로 바로 없앰. 되돌리기 = 같은 position으로 다시 넣음. W2에 서버 '지우기' 동기화가 새로 필요.
+
+State: approved
+Actual answer: "B) 줄을 지움" (eng 3 D3 다시 묻기, 2026-11-18, 권장 C를 고르지 않음)
+Accepted scope: 목표를 비우거나 0으로 저장하면 그 plan_v3 줄을 DELETE한다. [되돌리기]는 지운 줄의 분과 position을 그대로 다시 넣는다. 그 position이 차 있으면 그 이상 줄의 position을 1씩 민다(Codex 지적 4 사실 정정). 테이블에는 목표가 있는 줄만 있으므로 읽기에서 0을 거르지 않는다(0은 저장하지 않음). W2 요구: 서버 동기화에 목표 지우기를 전할 방법(지우기 종류 또는 지운 줄 표시)을 새로 만든다. 빠뜨리면 다른 기기에서 되살아나므로 W2 eng 리뷰 항목으로 둔다. W1에서는 plan_v3를 서버로 보내지 않는다(서버가 모르는 표). 테스트: 지우기 뒤 줄 없음, 되돌리기 뒤 같은 분·같은 position, 같은 날 다시 추가하면 맨 아래.
+History: 첫 질문(A 0으로 둠 / B 줄을 지움, 권장 A)에 사용자 "유저가 보기에는 둘다 상관 없는 건가?? 서버상으로는 b가 좋은거고/". 화면은 같다고 답하고, R7 지운 줄 규칙과 같은 C를 더해 다시 물었다.
+
+### R10: 이름을 이미 있는 이름으로 바꿀 때
+Finding: 3, INFORMATIONAL, 7/10, R7 `CREATE UNIQUE INDEX item_name ON item (IFNULL(parent_id,''), name)`, reviewer: Claude
+Plan baseline: 디자인 D12(길게 눌러·[항목 관리]에서 이름 바꾸기), D13(새로 만들 때 같은 이름이면 그 항목을 고름, 10자). 이름 바꾸기의 같은 이름은 정해지지 않음.
+Runtime evidence: 코드 없음(T1 전). 유일 인덱스가 있어 그대로 두면 저장이 오류로 끝난다.
+Comparison grid:
+| 선택 | 현재 | A 막고 알림 | B 두 항목 합치기 |
+|---|---|---|---|
+| "영어"를 "보고서"로(보고서 있음) | 정해지지 않음(DB 오류) | 저장하지 않고 입력 칸 아래 "이미 있는 이름이에요" | 영어의 기록·목표·블록을 보고서로 옮기고 영어 항목을 지움 |
+| 숨긴 항목과 같은 이름 | - | 같게 막음("숨긴 항목에 있어요") | 숨긴 항목과 합침 |
+| 같은 날 두 항목 모두 목표 | - | 해당 없음 | 두 목표를 더해야 함(24시간 검사 다시) |
+| 되돌리기 | - | 필요 없음 | 합치기 되돌리기가 어려움 |
+| R8·R9 | 승인 | 그대로 | 그대로 |
+Question D4:
+D4 — 항목 이름을 이미 있는 이름으로 바꾸려 하면?
+Project/branch/task: refactor/architecture, T9 항목 관리(디자인 D12·D13).
+ELI10: 새 항목을 만들 때 같은 이름이면 그 항목을 고르기로 했습니다. 그런데 '이름 바꾸기'에서 '영어'를 이미 있는 '보고서'로 바꾸려 하면 어떻게 할지는 정하지 않았습니다. 같은 이름 두 개는 저장 구조가 막습니다.
+Stakes if we pick wrong: 정하지 않으면 저장 오류(D31 2초 알림)만 뜨고 왜 안 되는지 알 수 없습니다. 합치기를 고르면 기록을 옮기는 일이 되돌리기 어렵습니다.
+Recommendation: A because 이름 바꾸기에서 같은 이름은 대부분 실수이고, 합치기는 기록을 옮기는 되돌리기 어려운 일이라 이번 단계에 넣을 만큼 자주 일어나지 않습니다.
+Note: options differ in kind, not coverage — no completeness score.
+Pros / cons:
+A) 막고 알림 (recommended)
+  ✅ 입력 칸 아래 '이미 있는 이름이에요'로 이유를 바로 알고 다른 이름을 고칩니다.
+  ✅ 기록을 옮기지 않아 되돌릴 일이 없고, 코드는 유일 검사 하나입니다.
+  ❌ 실제로 두 항목을 하나로 합치고 싶은 사람은 할 수 없습니다(나중 기능). (사람: ~30분 / CC: ~5분)
+B) 두 항목 합치기
+  ✅ '영어'와 '영어공부'처럼 실수로 둘이 된 항목을 하나로 모을 수 있습니다.
+  ✅ 옛 기록 합계가 한 항목으로 이어집니다.
+  ❌ 기록·목표·블록을 옮기고 같은 날 목표를 더하는 일이라 되돌리기 어렵고, 확인 창과 테스트가 많이 늘어납니다. (사람: ~1일 / CC: ~45분)
+Net: 실수를 막는 작은 규칙이냐, 합치기라는 새 기능이냐.
+Header: 같은 이름 바꾸기
+Options:
+A) 막고 알림 (recommended)
+저장하지 않고 입력 칸 아래 "이미 있는 이름이에요"(숨긴 항목이면 "숨긴 항목에 있어요"). 기록은 그대로. (사람: ~30분 / CC: ~5분)
+B) 두 항목 합치기
+확인 뒤 기록·목표·블록을 기존 항목으로 옮기고 바꾸던 항목을 지움. 같은 날 목표는 더함. (사람: ~1일 / CC: ~45분)
+
+State: approved
+Actual answer: "A) 막고 알림 (recommended)" (eng 3 D4, 2026-11-18)
+Accepted scope: `record/items.ts`의 이름 바꾸기는 앞뒤 빈칸을 지운 이름이 같은 카테고리의 다른 항목(숨긴 것 포함)과 같으면 저장하지 않고 이유를 돌려준다. 화면은 입력 칸 아래 "이미 있는 이름이에요"(숨긴 항목이면 "숨긴 항목에 있어요")를 보인다. 자기 이름 그대로면 아무 일도 하지 않는다. 합치기는 하지 않는다(NOT in scope). 테스트: 같은 이름·숨긴 항목 이름·자기 이름·10자 초과.
+History: none
+
+### R11: 아침 제안에서 어제 계획이 없을 때 어제 실제로 목표 만들기
+Finding: 4, INFORMATIONAL, 8/10, `application/record/morningPlan.ts:42`, `:48`, reviewer: Claude
+Plan baseline: 재출시 설계 E1(승인) "[어제와 동일]: 어제 plan 복사. 어제 plan이 없으면 어제 실제 기록으로 카테고리별 시간을 만든다(inferred 제외)", "어제 기록이 8칸 미만이면 제안 없이 바로 새로 짜기"(`morningPlan.ts:8~11`). 디자인 D11(할 일 화면 [어제와 동일]은 어제 목표가 있을 때만).
+Runtime evidence: `morningPlan.ts:42` `SELECT slot_start, tz, category FROM slot WHERE source != 'inferred' ...`, `:48` `targets[s.category] = (targets[s.category] ?? 0) + 30`, `MIN_ACTUAL_SLOTS = 8`
+Comparison grid:
+| 선택 | 현재 | A 항목 기준으로 이어 감 | B 어제 실제는 쓰지 않음 |
+|---|---|---|---|
+| 어제 목표 있음 | 복사 | 어제 목표 줄 복사(R8 position 그대로) | 같음 |
+| 어제 목표 없음 | 어제 slot 카테고리 × 30분 | 어제 entry를 항목별로 합침. 기타·옛 휴식·관계·수면은 뺌. 분은 5분 단위로 반올림, 5분 미만 항목은 뺌. 순서는 많이 한 순 | 제안 없이 [새로 짜기]만 |
+| 제안 기준 | 어제 8칸(4시간) 이상 | 위 규칙으로 남은 합 4시간 이상 | - |
+| 할 일 화면 [어제와 동일](D11) | - | 어제 목표가 있을 때만(그대로) | 같음 |
+| R8·R9·R10 | 승인 | 그대로 | 그대로 |
+Question D5:
+D5 — 어제 목표가 없을 때 아침 제안이 어제 실제 기록으로 목표를 만들까요?
+Project/branch/task: refactor/architecture, T9 아침 계획 제안(E1) 옮기기.
+ELI10: 지금 아침 제안은 어제 계획이 없으면 어제 실제 기록(30분 칸의 카테고리)으로 목표를 만들어 [어제와 동일]로 보여 줍니다. 이제 기록은 분 단위이고 목표는 세부 항목 단위라 이 규칙을 옮겨야 합니다. 옮기려면 기타·옛 카테고리를 빼고 분을 정리하는 규칙이 필요합니다.
+Stakes if we pick wrong: 기타 2시간 13분 같은 이상한 목표가 제안되거나(규칙 없이 옮길 때), 어제 계획 없이 쓰던 사람이 매일 아침 목표를 처음부터 넣어야 합니다(없앨 때).
+Recommendation: A because 승인된 E1의 동작(계획 없는 사람도 [어제와 동일] 한 번으로 시작)을 그대로 지키고, 바꾸는 것은 항목 단위로 옮기는 규칙뿐입니다.
+Completeness: A=9/10, B=6/10
+Pros / cons:
+A) 항목 기준으로 이어 감 (recommended)
+  ✅ 어제 계획 없이 기록만 한 사람도 아침에 [어제와 동일] 한 번으로 목표가 생깁니다(E1 그대로).
+  ✅ 기타·옛 카테고리를 빼고 5분 단위로 반올림해 '영어 1h 15m'처럼 고치기 쉬운 값이 됩니다.
+  ❌ 규칙 다섯 개(뺄 것, 반올림, 5분 미만, 4시간 기준, 순서)를 테스트로 묶어야 합니다. (사람: ~2시간 / CC: ~10분)
+B) 어제 실제는 쓰지 않음
+  ✅ 아침 제안이 '어제 목표 복사'만 남아 가장 단순합니다.
+  ✅ 테스트할 규칙이 줄어듭니다.
+  ❌ 승인된 E1 동작이 줄어, 어제 목표가 없는 날에는 [새로 짜기]만 나옵니다.
+Net: 승인된 아침 제안을 항목 단위로 옮기느냐, 이참에 줄이느냐.
+Header: 어제 실제로 목표
+Options:
+A) 항목 기준으로 이어 감 (recommended)
+어제 entry를 항목별로 합침. 기타·옛 휴식·관계·수면 빼고, 5분 단위 반올림, 5분 미만 뺌, 합 4시간 이상일 때 제안, 많이 한 순. (사람: ~2시간 / CC: ~10분)
+B) 어제 실제는 쓰지 않음
+어제 목표가 있을 때만 [어제와 동일] 제안. 없으면 [새로 짜기]만. E1 동작이 줄어듦.
+
+State: approved
+Actual answer: "A) 항목 기준으로 이어 감 (recommended)" (eng 3 D5, 2026-11-18)
+Accepted scope: `takeMorningOffer`는 어제 목표 줄이 있으면 그대로 복사(position 포함). 없으면 어제 entry(local_date 기준, 지운 것 제외)를 항목별로 합친다. 기타(`other`)와 숨긴 옛 카테고리(rest·relationship·sleep)는 빼고, 분은 5분 단위로 반올림, 5분 미만 항목은 뺀다. 남은 합이 240분(옛 8칸) 이상이면 제안하고, position은 많이 한 순(같으면 item id 순)이다. 아니면 [새로 짜기]. 테스트: 다섯 규칙과 경계(239/240분, 2분/3분 반올림).
+History: none
+
+### Section 1: 아키텍처
+```
+  할 일 탭                         추가 시트                 시작·기록 시트(T5, T2)
+  GoalSection.tsx ─────────┐      GoalAddSheet.tsx ──┐      칩 [+ 새 항목]·길게 누르기
+   목표 줄·시분 입력·접기    │       추가 / [항목 관리]  │              │
+                            ▼                         ▼              ▼
+              record/todoLogic.ts (목표의 주인)     record/items.ts (항목의 주인)
+               goalsOn(date)  ORDER BY position     createOrPick(name)  같은 이름 고름·숨김 풂
+               setGoal(date,item,min) 24시간 검사    rename(id,name)     같은 이름 막음(R10)
+               removeGoal → DELETE(R9), undo       hide/unhide(id)
+               copyGoals(어제) / fromActual(R11)    recentItems() (R7 쿼리)
+               actualByItem(date)  ← 목표 줄·홈 막대·아침 제안이 함께 씀
+                            │                         │
+                            ▼                         ▼
+                 plan_v3(local_date,item_id,     item(id,parent_id,name,hidden)
+                  target_minutes,position,updated_at)   entry(item_id,...) pause
+  홈 PlanVsActual(buildPva) ── goalsOn + actualByItem, 진행률 높은 두 줄(D37), 항목 없는 집중은 "집중"(D16)
+  아침 제안(RecordSheet) ── [어제와 동일] = copyGoals/fromActual, [새로 짜기] = 할 일 탭 + 추가 시트
+```
+- 두 모양: (가) 항목 쓰기를 todoLogic에 함께 둠 (나) items.ts로 따로 둠. 항목은 시작 시트·기록 시트·추가 시트 세 곳이 쓰고, 목표와 수명이 달라(숨겨도 목표·기록은 남음) (나)를 고른다(D1 B).
+- 레드 플래그:
+  - (6) 두 길: 하루 전체 쓰기 `savePlan`은 지우고, 부르던 세 곳을 `setGoal`·`copyGoals`로 옮긴다(발견 5, accepted).
+  - (8) 손으로 맞춘 목록: 기본 항목 id 상수와 DB 줄은 R7 테스트로 묶었다.
+  - (2) 정보 새어 나감: "실제 분" 계산을 목표 줄·홈 막대·아침 제안이 따로 하지 않게 `actualByItem` 하나로 둔다(같은 동작의 구현, 질문 없음).
+- 실패 하나: 목표를 고치는 중 같은 날 다른 줄도 고치는 일은 한 화면이라 없다. 24시간 검사는 `setGoal` 트랜잭션 안에서 다른 줄 합 + 새 값으로 한다.
+
+### Section 2: 코드 품질
+No issues found. 발견 5(두 길 정리)와 `actualByItem` 하나로 두기는 위에 적었다. 새 공용 함수는 만들지 않는다. 시·분 입력은 GoalSection 안에서만 쓴다.
+
+### Section 3: 테스트
+```
+CODE PATHS                                              USER FLOWS
+[+] record/todoLogic.ts                                 [+] 할 일 목표
+  ├── goalsOn            [GAP] position 순, 0 없음          ├── [GAP] 목표 누름 → 시·분 → 완료 = 저장
+  ├── setGoal            [GAP] 새 줄 = 최대+1, 고쳐도 자리    ├── [GAP] 뒤로가기 = 취소
+  │                      [GAP] 24시간 초과 거절(남은 분)      ├── [GAP] 비움 → 줄 빠짐 → [되돌리기] 같은 자리
+  ├── removeGoal/undo    [GAP] DELETE 뒤 되돌리기 같은 분·자리 ├── [GAP] 4줄 넘으면 접기·추가한 줄 보이게 펼침
+  ├── copyGoals          [GAP] 어제 순서 그대로              ├── [GAP] 목표 0개: 안내 + [어제와 동일](어제 목표 있을 때만)
+  ├── fromActual(R11)    [GAP] 기타·옛 빼기, 5분 반올림,      └── [GAP] 추가 시트 연달아 추가, 넣은 칩 빠짐
+  │                             5분 미만 빼기, 240분 경계    [+] 항목
+  └── actualByItem       [GAP] 항목 없는 집중은 focus만,      ├── [GAP] 같은 이름 새로 만들기 = 고름 + 숨김 풂
+                                멈춘 시간 빼기, 진행 중 포함  ├── [GAP] 이름 바꾸기 같은 이름 막음(R10)
+[+] record/items.ts                                       └── [GAP] 숨기면 최근 칩에서만 빠짐
+  ├── createOrPick       [GAP] 빈칸 지우기, 10자, 같은 이름   [+] 홈
+  ├── rename             [GAP] 같은 이름·숨긴 이름·자기 이름   └── [GAP] 진행률 높은 두 줄, "집중" 표기
+  └── hide/unhide        [GAP]
+[+] record/planVsActual.ts buildPva  [★★ 있음, 카테고리 기준] → 항목 기준으로 다시 씀
+[+] record/morningPlan.ts            [★★ 있음, slot 기준] → R11로 다시 씀
+COVERAGE: 0/22 새 경로(T9 전)  |  기존 planVsActual.test.ts·morningPlan.test.ts는 다시 씀
+```
+- 테스트 파일: `record/todoLogic.test.ts`(goals 부분 새로), `record/items.test.ts`(새), `record/planVsActual.test.ts`·`record/morningPlan.test.ts`(다시 씀). 모두 `test/nodeDb.ts`로 실제 SQLite.
+- 화면 흐름(입력·접기·되돌리기)은 에뮬레이터에서 손으로 확인한다(이 앱에 화면 자동 테스트 틀이 없음).
+- 없어지는 테스트: `PlanTargetSheet` 관련 없음(테스트 파일 없음). `morningPlan.test.ts`의 slot 기준 사례, `planVsActual.test.ts`의 카테고리 6개 순서 사례는 항목 기준으로 바꾼다.
+- 회귀 계약: 아침 제안 E1(15시 전 첫 진입 한 번, 오늘 목표가 있으면 띄우지 않음)과 S2용 `plan_vs_actual_viewed` 하루 한 번은 그대로 지킨다. 기존 테스트 사례를 옮겨 유지한다.
+
+### Section 4: 성능
+No issues found(Codex 지적 1은 R12로 처리). 하루 목표 줄 몇 개, entry는 그날과 겹치는 줄(하루 수십 줄)을 읽는다(R12). 진행 중 타이머가 있으면 목표 줄의 실제 분은 화면이 보이는 동안 1분마다 다시 계산한다(새 조회 없이 진행 중 줄만 더함).
+
+
+### Outside Voice (Codex, 2026-11-18, completed)
+Codex는 저장소 읽기 명령이 정책에 막혀 코드 원문 대신 계획만 보고 답했다. 지적 5개:
+1. [High] 날짜별 실제 집계가 자정을 넘는 세션을 놓친다(`entry(start_at)` 당일 범위만 읽으면 어제 시작한 세션이 빠짐). → R12
+2. [High] 24시간 제한이 `setGoal`에만 있다. 되돌리기·어제 복사·어제 실제(반올림 483+483+474 → 485+485+475=1445)로 넘을 수 있다. → R13
+3. [High] E1의 "inferred 제외"를 새 구조에서 지킬 수 없다. R7 `how` 값(answered|filled|stopwatch|pomodoro|timer)에 inferred가 없다. 확인 결과 옛 `SlotSource = 'answered' | 'continued' | 'late' | 'inferred' | 'declared' | 'batch'`(`application/db/types.ts:38`)인데 R7 이전은 `source`를 그대로 `how`에 넣는다. R7의 how 목록이 옛 값 다섯 개를 빠뜨렸다. → R14
+4. [Medium] `ORDER BY position`만으로는 D8 "항목 없는 집중·운동은 맨 아래"가 안 된다. 되돌리기는 position이 겹칠 수 있다. → 사실 정정(질문 없음): 읽기는 `ORDER BY (item_id IN ('focus','exercise')), position`. 되돌리기는 지운 position으로 다시 넣되, 그 자리가 차 있으면 그 이상 줄의 position을 1씩 민다(D7 "같은 자리" 유지). R8·R9 Accepted scope에 덧붙인다.
+5. [Medium] 최근 칩은 30일 안에 기록한 항목만 보여, 기록 없이 만든 항목이나 오래된 항목은 추가 시트에서 고를 수 없다(이름을 다시 쳐야 함). → R15
+
+### R12: 자정을 넘는 세션의 하루 몫
+Finding: Codex 1, High, Section 4 "`entry(start_at)` 범위로 읽는다", reviewer: Codex
+Plan baseline: Section 4(이 리뷰) "하루 목표 줄 몇 개, entry 하루 수십 줄을 `entry(start_at)` 범위로 읽는다". 시간표는 어제·오늘 두 열(4.3a D26).
+Runtime evidence: 코드 없음(T1 전). 지금 `loadPva`는 `slot_start >= ?`(36시간 전)로 읽고 칸의 local_date로 거른다(`application/record/planVsActual.ts:65~69`). 칸은 30분이라 날을 넘지 않았다.
+Comparison grid:
+| 선택 | 현재 | A 자정에서 잘라 나눔 | B 시작한 날에 모두 |
+|---|---|---|---|
+| 23:00~01:00 세션 | 해당 없음(칸) | 어제 1h, 오늘 1h | 어제 2h |
+| 조회 | start_at 범위 | start_at < 오늘 끝 AND (end_at IS NULL OR end_at > 오늘 시작) | start_at 범위 |
+| 멈춘 구간 | - | 같은 경계로 잘라 뺌 | 세션 전체에서 뺌 |
+| 시간표와 맞음 | - | 맞음(두 열에 나뉘어 그려짐) | 안 맞음 |
+| 쓰는 곳 | - | actualByItem 한 곳(목표 줄·홈·아침 제안) | 같음 |
+Question D6:
+D6 — 자정을 넘긴 세션은 어느 날의 실제 시간으로 셀까요?
+Project/branch/task: refactor/architecture, T9 목표 줄의 실제 분(actualByItem).
+ELI10: 밤 11시에 켠 스톱워치를 새벽 1시에 끄면, 그 2시간이 어제 것인지 오늘 것인지 정해야 합니다. 시작 시각으로만 하루를 고르면 오늘 화면에서 이 세션이 통째로 빠집니다. Codex가 짚었습니다. 시간표는 이미 어제·오늘 두 열로 그립니다.
+Stakes if we pick wrong: 오늘 목표 줄과 홈 막대가 새벽에 한 시간을 빼고 보여 주거나, 시간표와 합계가 서로 다릅니다.
+Recommendation: A because 시간표가 같은 세션을 두 날에 나눠 그리므로 합계도 같은 경계로 나눠야 화면끼리 맞습니다.
+Completeness: A=10/10, B=6/10
+Pros / cons:
+A) Apply: 자정에서 잘라 나눔 (recommended)
+  ✅ 23:00~01:00은 어제 1h, 오늘 1h로 시간표 두 열과 합계가 정확히 맞습니다.
+  ✅ 어제 시작해 아직 돌고 있는 세션도 오늘 몫이 오늘 목표 줄에 잡힙니다.
+  ❌ 조회 조건과 멈춘 구간 자르기가 조금 늘고, 경계 테스트가 필요합니다. (사람: ~2시간 / CC: ~10분)
+B) Keep: 시작한 날에 모두
+  ✅ 조회가 start_at 범위 하나로 가장 단순합니다.
+  ✅ '세션 하나 = 한 날'이라 설명이 쉽습니다.
+  ❌ 새벽에 오늘 목표 줄이 0으로 보이고, 시간표 두 열과 합계가 어긋납니다.
+C) Investigate
+  ✅ 실제로 자정을 넘기는 기록이 얼마나 되는지 테스터 2주 데이터를 본 뒤 정합니다.
+  ✅ 지금 구현을 늦추지 않습니다(그동안 A나 B 중 무엇을 쓸지는 정해야 함).
+  ❌ 그 사이 한쪽으로 구현해야 해서 결국 다시 고칠 수 있습니다.
+D) Defer
+  ✅ 이번 T9에서 빼고 나중에 정합니다.
+  ✅ 지금 질문이 하나 줍니다.
+  ❌ 구현하는 사람이 아무 규칙이나 고르게 됩니다.
+Net: 시간표와 맞는 정확한 합계냐, 단순한 조회냐.
+Header: 자정 넘는 세션
+Options:
+A) Apply: 자정에서 잘라 나눔 (recommended)
+날짜 구간과 겹치는 세션을 읽고 세션·멈춘 구간을 그날 경계로 잘라 더함. actualByItem 한 곳. (사람: ~2시간 / CC: ~10분)
+B) Keep: 시작한 날에 모두
+start_at 범위로 읽고 세션 전체를 시작한 날로 셈. 시간표와 합계가 어긋날 수 있음.
+C) Investigate
+테스터 2주 데이터에서 자정 넘는 세션 비율을 본 뒤 정함. 그동안은 구현 보류.
+D) Defer
+이번 T9에서 정하지 않고 남김.
+
+State: approved
+Actual answer: "A) Apply: 자정에서 잘라 나눔 (recommended)" (eng 3 D6, 2026-11-18)
+Accepted scope: `actualByItem(date)`는 그날 [시작, 끝)과 겹치는 entry(`start_at < 끝 AND (end_at IS NULL OR end_at > 시작)`, 지운 것 제외)를 읽고, 세션과 pause를 그날 경계로 잘라 더한다. 진행 중은 지금까지. 목표 줄·홈 막대·아침 제안(R11 어제 실제)이 이 함수 하나를 쓴다. Section 4 조회 문장을 이것으로 바꾼다. 테스트: 23:00~01:00 → 어제 60·오늘 60, 자정에 걸친 pause, 어제 시작해 진행 중.
+History: none
+
+### R13: 하루 24시간 제한을 모든 목표 쓰기에
+Finding: Codex 2, High, Section 1 "24시간 검사는 `setGoal` 트랜잭션 안에서", reviewer: Codex
+Plan baseline: 디자인 D7 "하루 합계가 24시간을 넘으면 저장하지 않고, 친 값을 그대로 두고 2초 알림". R9(되돌리기 = 지운 분·자리로 다시 넣음), R11(5분 단위 반올림), D11(어제와 동일 복사).
+Runtime evidence: 코드 없음. 예: 1시간 목표 지움 → 남은 시간을 다른 목표로 채움 → 되돌리기 = 25시간. R11 반올림 483+483+474=1440 → 485+485+475=1445.
+Comparison grid:
+| 선택 | 현재 | A 모든 쓰기에 같은 검사 | B setGoal에만 |
+|---|---|---|---|
+| 시간 고치기·추가 | 저장 안 함 + 알림(D7) | 같음 | 같음 |
+| 되돌리기가 넘음 | 정하지 않음 | 되돌리지 않고 같은 24시간 알림 | 그대로 넣음(넘음) |
+| 어제와 동일 복사 | 정하지 않음 | 어제 합이 넘으면(옛 자료) 넘는 만큼 마지막 줄부터 줄임 | 그대로 복사 |
+| 어제 실제(R11) 반올림 | 정하지 않음 | 반올림 뒤 넘으면 가장 큰 줄에서 넘친 분을 뺌 | 그대로(넘을 수 있음) |
+| 검사 위치 | - | todoLogic의 목표 쓰기 한 곳(모든 경로가 지남) | setGoal 안 |
+| R9·R11 | 승인 | 그대로(넘칠 때만 위 처리) | 그대로 |
+Question D7:
+D7 — 하루 24시간 제한을 되돌리기·어제 복사·어제 실제에도 걸까요?
+Project/branch/task: refactor/architecture, T9 목표 쓰기.
+ELI10: 하루 목표 합이 24시간을 넘지 않게 하는 검사는 지금 계획에서 '시간 고치기'에만 있습니다. 그런데 목표를 지우고 다른 목표를 늘린 뒤 [되돌리기]를 누르거나, 어제 실제로 목표를 만들며 5분 단위로 반올림하면 24시간을 넘을 수 있습니다. Codex가 짚었습니다.
+Stakes if we pick wrong: 하루 목표가 25시간이 되어 홈 막대와 합계가 말이 안 되는 숫자를 보입니다.
+Recommendation: A because 규칙은 '하루 목표 합은 24시간 이하' 하나이고, 모든 쓰기가 한 함수를 지나게 하면 어디서 넣어도 깨지지 않습니다.
+Completeness: A=10/10, B=6/10
+Pros / cons:
+A) Apply: 모든 쓰기에 같은 검사 (recommended)
+  ✅ 되돌리기가 넘으면 되돌리지 않고 같은 24시간 알림을 띄워, 사용자가 다른 목표를 줄인 뒤 다시 할 수 있습니다.
+  ✅ 어제 실제 반올림으로 넘친 몇 분은 가장 큰 줄에서 빼서 늘 24시간 이하가 됩니다.
+  ❌ 넘칠 때의 처리 세 가지를 테스트로 묶어야 합니다. (사람: ~1시간 / CC: ~10분)
+B) Keep: setGoal에만
+  ✅ 검사가 한 경로에만 있어 코드가 가장 짧습니다.
+  ✅ 넘치는 경우가 드물어 대부분의 날에는 차이가 없습니다.
+  ❌ 드물게 25시간 같은 목표가 저장되고, 그 뒤 시간 고치기가 계속 거절됩니다.
+C) Investigate
+  ✅ 넘치는 경우가 실제로 생기는지 테스터 기간에 본 뒤 정합니다.
+  ✅ 지금은 B처럼 두고 지켜봅니다.
+  ❌ 넘친 목표가 생기면 사용자가 직접 줄여야 합니다.
+D) Defer
+  ✅ 이번 T9에서 정하지 않습니다.
+  ✅ 질문이 줄어듭니다.
+  ❌ 구현하는 사람이 경로마다 다르게 처리할 수 있습니다.
+Net: 한 규칙을 모든 길에 거느냐, 드문 경우를 두고 단순하게 가느냐.
+Header: 24시간 제한
+Options:
+A) Apply: 모든 쓰기에 같은 검사 (recommended)
+목표 쓰기 한 함수에서 검사. 되돌리기가 넘으면 되돌리지 않고 24시간 알림. 어제 복사·어제 실제는 넘친 분을 큰 줄(복사는 마지막 줄)부터 뺌. (사람: ~1시간 / CC: ~10분)
+B) Keep: setGoal에만
+시간 고치기·추가에만 검사. 되돌리기·복사·어제 실제는 넘을 수 있음.
+C) Investigate
+테스터 기간에 넘치는 경우를 본 뒤 정함. 그동안은 B.
+D) Defer
+이번 T9에서 정하지 않고 남김.
+
+State: approved
+Actual answer: "A) Apply: 모든 쓰기에 같은 검사 (recommended)" (eng 3 D7, 2026-11-18)
+Accepted scope: todoLogic의 목표 쓰기 한 함수를 시간 고치기·추가·되돌리기·어제 복사·어제 실제가 모두 지난다. 그 함수는 한 트랜잭션에서 하루 합 ≤ 1440분을 검사한다. 고치기·추가·되돌리기가 넘으면 저장하지 않고 D7 24시간 알림(남은 분). 어제 복사가 넘으면(옛 자료) 마지막 줄부터 넘친 분을 줄인다. 어제 실제(R11)가 반올림으로 넘으면 가장 큰 줄에서 넘친 분을 뺀다. 테스트: 되돌리기 거절, 1445 → 1440, 복사 넘침 줄이기.
+History: none
+
+### R14: 기록 방식(how) 값 목록 (R7 다시 열기)
+Finding: Codex 3, High, R7 Accepted scope `how TEXT NOT NULL, -- answered|filled|stopwatch|pomodoro|timer`, reviewer: Codex(확인: Claude)
+Plan baseline: R7 승인(eng 2 D9 "가. 다섯 가지 모두": source와 타이머 방식을 how 하나로 합침). R7 이전 SQL은 `source`를 그대로 how에 넣는다.
+Runtime evidence: `application/db/types.ts:38` `export type SlotSource = 'answered' | 'continued' | 'late' | 'inferred' | 'declared' | 'batch';`. 재출시 설계 `left30-relaunch.md:90` "'그대로 계속' 버튼은 직전 60분 안에 `answered`·`continued` 칸이 있을 때만 보인다", `:83` inferred는 "만들지 않는다"(옛 자료에만), `:163` 어제 실제는 `answered`·`continued`·`late`만.
+다시 여는 이유: R7 목록에 옛 값 다섯 개(continued·late·inferred·declared·batch)가 빠졌고, 내가 만든 `filled`는 옛 값과 겹친다. 이전 SQL과 목록이 서로 어긋나고, '그대로 계속' 버튼과 E1 규칙이 이 구분을 쓴다.
+Comparison grid:
+| 선택 | R7(승인) | A 옛 값 + 타이머 방식 | B source·방식 두 칸으로 되돌림 |
+|---|---|---|---|
+| 칸 | how 하나 | how 하나 | source + mode 두 칸 |
+| 값 | answered·filled·stopwatch·pomodoro·timer | answered·continued·late·declared·batch·inferred(옛 자료만)·stopwatch·pomodoro·timer | source 6개 + mode 3개 |
+| filled | 있음 | 없앰(묶어 채우기 = batch, 지난 칸 채우기 = late) | 없음 |
+| 이전 | source 그대로 | source 그대로(목록과 맞음) | source 그대로 + mode NULL |
+| '그대로 계속'·E1 | 깨짐 | 지킴 | 지킴 |
+| R11 어제 실제 | inferred 못 거름 | how IN ('inferred') 제외 | source로 제외 |
+| eng 2 D9(합치기) | 승인 | 그대로(값만 고침) | 되돌림 |
+Question D8:
+D8 — 기록 방식(how) 칸의 값 목록을 고칠까요? (R7 다시 열기)
+Project/branch/task: refactor/architecture, R7 entry 표(T1)와 T9 아침 제안.
+ELI10: eng 리뷰 2에서 기록 출처와 타이머 방식을 'how' 칸 하나로 합쳤습니다. 그때 적은 값 목록에 지금 쓰는 출처 다섯 개(그대로 계속, 늦게 답함, 자동 채움, 블록 확인, 묶어 채우기)가 빠졌습니다. 옛 기록을 옮길 때는 출처를 그대로 넣기로 해서 목록과 실제 값이 어긋납니다. '그대로 계속' 버튼과 아침 제안 규칙이 이 구분을 씁니다. Codex가 찾았고 코드로 확인했습니다.
+Stakes if we pick wrong: '그대로 계속' 버튼이 언제 보일지 판단을 못 하고, 옛 자동 채움 기록이 아침 제안 목표에 섞입니다.
+Recommendation: A because 합치기 결정(eng 2 D9)은 그대로 두고 빠진 값만 채우면 이전 SQL·버튼·제안 규칙이 모두 맞습니다.
+Completeness: A=10/10, B=9/10
+Pros / cons:
+A) Apply: 옛 값 + 타이머 방식 (recommended)
+  ✅ how 한 칸에 answered·continued·late·declared·batch·inferred(옛 자료)·stopwatch·pomodoro·timer를 두어, 옛 기록을 그대로 옮기고 버튼·제안 규칙을 지킵니다.
+  ✅ 근거 없이 만든 'filled'를 없애 같은 뜻의 값이 둘이 되지 않습니다.
+  ❌ R7 문서의 값 목록과 이전 테스트를 고쳐야 합니다. (사람: ~30분 / CC: ~5분)
+B) Keep 대신 되돌림: source·mode 두 칸
+  ✅ 출처와 방식이 따로라 각각 읽기 쉽습니다.
+  ✅ 옛 값은 손대지 않습니다.
+  ❌ 승인된 합치기(eng 2 D9)를 되돌리고, 타이머 기록은 source가 늘 같아 같은 사실을 두 번 적게 됩니다.
+C) Investigate
+  ✅ 옛 기록에 실제로 어떤 출처가 얼마나 있는지 본 뒤 정합니다.
+  ✅ 값 목록을 데이터로 확인합니다.
+  ❌ T1 전에 정해야 하는 표 정의라 오래 미룰 수 없습니다.
+D) Defer
+  ✅ 이번에는 정하지 않습니다.
+  ✅ 질문이 줄어듭니다.
+  ❌ T1을 구현하는 사람이 목록과 이전 SQL 중 하나를 골라야 하고, 틀리면 버튼이 깨집니다.
+Net: 빠진 값만 채우느냐, 합치기를 되돌리느냐.
+Header: how 값 목록
+Options:
+A) Apply: 옛 값 + 타이머 방식 (recommended)
+how 값 = answered·continued·late·declared·batch·inferred(옛 자료만)·stopwatch·pomodoro·timer. filled 없앰. 이전은 source 그대로. 어제 실제는 inferred 제외. (사람: ~30분 / CC: ~5분)
+B) Keep 대신 되돌림: source·mode 두 칸
+how를 source(옛 6개)와 mode(타이머 3개, 아니면 NULL) 두 칸으로 나눔. eng 2 D9 합치기를 되돌림.
+C) Investigate
+옛 기록의 출처 분포를 확인한 뒤 정함. T1 전까지.
+D) Defer
+정하지 않고 남김. T1 구현 때 다시 봄.
+
+State: approved
+Actual answer: "A) Apply: 옛 값 + 타이머 방식 (recommended)" (eng 3 D8, 2026-11-18)
+Accepted scope: R7 entry의 how 값은 answered·continued·late·declared·batch·inferred(옛 자료만, 새로 만들지 않음)·stopwatch·pomodoro·timer. `filled`는 없앤다. 이전 SQL은 source를 그대로 넣는다(목록과 맞음). R11 어제 실제는 inferred를 뺀다(E1 `answered`·`continued`·`late`만 넣는 규칙은 how 기준으로: answered·continued·late·declared·batch·타이머 3종을 넣고 inferred만 뺀다. declared·batch·타이머는 E1 뒤에 생긴 실제 기록이라 넣는다). R7 Accepted scope의 how 주석을 고친다. 테스트: 이전 뒤 how 값 보존, '그대로 계속' 조건(answered·continued), 어제 실제 inferred 제외.
+History: none
+
+### R15: 추가 시트에서 고를 수 있는 항목
+Finding: Codex 5, Medium, 디자인 D10 "칩: 오늘 목표가 없는 최근 항목 칩(최근 사용순, R7 최근 칩)", R7 최근 칩 쿼리 `WHERE start_at >= :30일전 ... LIMIT 6`, reviewer: Codex
+Plan baseline: D10(추가 시트 칩 = 최근 항목 + 항목 없는 집중 + 운동 + [+ 새 항목]), D12([항목 관리]는 이름 바꾸기·숨기기·꺼내기), D13(같은 이름을 치면 그 항목을 고름)
+Runtime evidence: 코드 없음. 최근 칩은 30일 안에 기록한 항목 6개까지.
+Comparison grid:
+| 선택 | 현재(D10) | A 숨기지 않은 모든 항목 칩 | B Keep |
+|---|---|---|---|
+| 추가 시트 칩 | 최근 30일 기록 항목 최대 6개 | 숨기지 않은 모든 세부 항목(오늘 목표 없는 것), 최근 사용순, 기록 없으면 만든 순 | 그대로 |
+| 기록 없이 만든 항목·오래된 항목 | 이름을 다시 쳐야 고름 | 칩으로 바로 | 이름을 다시 쳐야 |
+| 시작·기록 시트 칩 | R7 최근 칩 | 그대로(최근 칩) | 그대로 |
+| 항목이 많을 때 | 6개 | 칩이 여러 줄(숨기기로 정리) | 6개 |
+Question D9:
+D9 — 목표 추가 시트에 어떤 항목 칩을 보일까요?
+Project/branch/task: refactor/architecture, T9 추가 시트(디자인 D10).
+ELI10: 추가 시트의 칩은 '최근 30일 안에 기록한 항목 6개'로 정해 두었습니다. 그러면 만들어 놓고 아직 기록하지 않은 항목이나 한 달 넘게 쓰지 않은 항목은 칩에 없어서, 이름을 다시 쳐야 고를 수 있습니다. Codex가 짚었습니다. 목표는 '앞으로 할 일'이라 기록이 없는 항목을 고를 일이 많습니다.
+Stakes if we pick wrong: 새 시험 과목처럼 아직 기록이 없는 항목에 목표를 세우려면 매번 이름을 쳐야 합니다.
+Recommendation: A because 목표는 앞으로 할 일을 정하는 곳이라 기록 이력이 아닌 '있는 항목 전체'에서 고르는 것이 맞고, 항목이 쌓이면 이미 정한 숨기기로 정리됩니다.
+Completeness: A=9/10, B=7/10
+Pros / cons:
+A) Apply: 숨기지 않은 모든 항목 칩 (recommended)
+  ✅ 만들어 놓은 항목은 기록이 없어도 칩으로 바로 고릅니다.
+  ✅ 최근 쓴 것이 앞에 와서 평소에는 지금과 거의 같아 보입니다.
+  ❌ 항목이 20개를 넘으면 칩이 여러 줄이 됩니다(안 쓰는 항목은 숨겨야 함). (사람: ~30분 / CC: ~5분)
+B) Keep: 최근 30일 6개
+  ✅ 칩이 한두 줄로 늘 짧습니다.
+  ✅ 시작 시트·기록 시트의 최근 칩과 같은 규칙입니다.
+  ❌ 기록이 없거나 오래된 항목은 이름을 다시 쳐야 고를 수 있습니다.
+C) Investigate
+  ✅ 테스터가 항목을 몇 개나 만드는지 본 뒤 정합니다.
+  ✅ 지금은 B로 둡니다.
+  ❌ 그동안 기록 없는 항목에 목표를 세우기 불편합니다.
+D) Defer
+  ✅ 이번 T9에서 정하지 않습니다.
+  ✅ 질문이 줄어듭니다.
+  ❌ 구현하는 사람이 아무 규칙이나 고릅니다.
+Net: 목표용 칩을 '있는 항목 전체'로 넓히느냐, 짧은 최근 칩을 지키느냐.
+Header: 추가 시트 칩
+Options:
+A) Apply: 숨기지 않은 모든 항목 칩 (recommended)
+추가 시트 칩 = 숨기지 않은 세부 항목 전체(오늘 목표 없는 것), 최근 사용순, 기록 없으면 만든 순. 시작·기록 시트는 최근 칩 그대로. (사람: ~30분 / CC: ~5분)
+B) Keep: 최근 30일 6개
+D10 그대로. 기록 없거나 오래된 항목은 이름을 다시 쳐서 고름.
+C) Investigate
+테스터의 항목 수를 본 뒤 정함. 그동안 B.
+D) Defer
+이번 T9에서 정하지 않고 남김.
+
+State: pending (조사)
+Actual answer: "C) Investigate" (eng 3 D9, 2026-11-18)
+Accepted scope: 구현 변경 없음. 추가 시트 칩은 D10 그대로(최근 30일 항목 최대 6개 + 항목 없는 집중 + 운동 + [+ 새 항목]). 조사: 테스터 2주 동안 사람마다 만든 항목 수와, 기록 없는 항목에 목표를 세우려 이름을 다시 친 횟수(같은 이름 고르기 발생 수)를 본 뒤 A(모든 항목 칩)를 다시 묻는다.
+History: none
+
+Approval readiness: PASS — structure(eng 3 D1 B), R8(D2 A), R9(D3 다시 묻기 B), R10(D4 A), R11(D5 A), R12(D6 A), R13(D7 A), R14(D8 A), R15(D9 C 조사, 구현 변경 없음), TODO(D10 A). 발견 5(savePlan 정리)와 Codex 지적 4(정렬·되돌리기 자리)는 승인된 동작의 구현이라 질문 없음.
+
+### NOT in scope (eng 3)
+- 두 항목 합치기(R10에서 막기만 함).
+- 추가 시트 칩을 모든 항목으로 넓히기(R15 조사, TODO.md).
+- 서버의 목표 지우기 동기화(R9, W2 eng 리뷰에서).
+- 지난 날짜 목표 고치기(디자인 리뷰 2 NOT in scope).
+
+### What already exists (eng 3)
+- `planRowsOn`·`totalsLine`·`hours`(todoLogic), `buildPva`·`gapLine`(planVsActual), `takeMorningOffer`·`acceptSame`(morningPlan), 할 일 화면 [되돌리기] 알림, `test/nodeDb.ts` 실제 SQLite 테스트 틀. 목표 쓰기는 todoLogic으로 모으고 나머지는 항목 기준으로 고쳐 다시 쓴다.
+
+### Failure modes (eng 3)
+| 경로 | 실패 | 처리 | 사용자에게 |
+|---|---|---|---|
+| 목표 저장 | DB 오류 | 원래 값으로 되돌림 | D31 2초 알림 |
+| 24시간 초과(모든 쓰기) | 합 > 1440 | 저장 안 함 또는 넘친 분 줄임(R13) | 24시간 알림 |
+| 이름 바꾸기 같은 이름 | 유일 인덱스 | 미리 검사해 막음(R10) | 입력 칸 아래 문구 |
+| 되돌리기 자리 겹침 | position 같음 | 그 이상 줄을 1씩 밂 | 같은 자리로 보임 |
+| 자정 넘는 세션 | 하루 경계 | 잘라 나눔(R12) | 시간표와 합계 같음 |
+조용히 틀리는 실패 없음: critical gaps 0.
+
+### Worktree parallelization (eng 3)
+Sequential implementation, no parallelization opportunity. T9는 T1(plan_v3·item·entry)에 기대고, 같은 record/ 모듈을 고친다.
+
+### 완료 요약 (eng 3)
+- Step 0: Scope Challenge — scope accepted as-is (구조 B)
+- Reality rows: 8/8 emitted (`PLAN_REALITY: phase=eng rows=7/7 missing=none unverified=1 verdict=complete`), 1 unverified premise(파일·줄 수 [estimated])
+- Architecture Review: 3 issues found (발견 1·2·3) + Codex 4
+- Code Quality Review: 1 issue found (발견 5, accepted)
+- Test Review: diagram produced, 22 gaps identified(새 경로, T9 구현 때 채움)
+- Performance Review: 0 issues found (Codex 지적 1은 R12)
+- NOT in scope: written
+- What already exists: written
+- TODOS.md updates: 1 item proposed (accepted)
+- Failure modes: 0 critical gaps flagged
+- Unresolved decisions: 1 in this review (R15 조사)
+- Outside voice: codex, completed (지적 5개, 4개 질문 + 1개 사실 정정)
+- Parallelization: 1 lane, 0 parallel / 1 sequential
+- Lake Score: 4/7 (Completeness를 매긴 답 7개 중 10/10 안을 고른 것: D2·D6·D7·D8. D3 B 8/10, D5 A 9/10, D9 C 조사)
+
 ## GSTACK REVIEW REPORT
 
 | Review | Trigger | Why | Runs | Status | Findings |
 |--------|---------|-----|------|--------|----------|
-| CEO Review | `/plan-ceo-review` | Scope & strategy | 2 | ISSUES OPEN | 1회: SCOPE_REDUCTION, 1 critical gap(eng에서 처리). 2회(11-17 카테고리): SCOPE_REDUCTION, 카테고리 집중·운동·기타로, 세부 항목 1단계, 항목별 계획(설계·eng로 넘김) |
-| Outside Review | codex (design phase) | Independent 2nd opinion | 1 | unavailable | 디자인 리뷰 2: Codex 답은 왔으나 끝 표시 검사 실패(기록상 미완료). Claude 에이전트(in-host)는 완료, 지적 5개 공통 |
-| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | ISSUES OPEN | 1회: 5 issues, 0 critical gaps (모두 accepted, T1~T7). 2회(11-18 저장 구조): 4 findings, 2 critical → R7(항목 표·세션+멈춤·정수 시각·STRICT·uuid v7) accepted, T1에 포함 |
-| Design Review | `/plan-design-review` | UI/UX gaps | 2 | ISSUES OPEN | 1회: D6~D38 결정. 2회(11-18 세부 항목별 목표): score: 2/10 → 7/10, 15 decisions, T9 |
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 2 | CLEAR | 2회(11-17 카테고리): mode: SCOPE_REDUCTION, 0 critical gaps |
+| Outside Review | codex (plan-review, eng 3) | Independent 2nd opinion | 2 | completed | eng 3: 지적 5개(High 3, Medium 2) → R12·R13·R14 적용, R15 조사, 지적 4 사실 정정. 디자인 리뷰 2 단계는 unavailable(끝 표시 없음) |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 3 | ISSUES OPEN | 3회(11-18 T9): 4 issues, 0 critical gaps. R8~R14 accepted, R15 조사 1개 남음. 1회 5 issues, 2회 R7 |
+| Design Review | `/plan-design-review` | UI/UX gaps | 2 | ISSUES OPEN | 2회(11-18): score: 2/10 → 7/10, 15 decisions(글꼴만 남음) |
 | DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
 
-- **OUTSIDE COVERAGE:** codex, design phase(디자인 리뷰 2), unavailable(끝 표시 없음), 지적은 참고로만 씀. CEO·Eng 단계는 외부 검토 실행 안 함.
-- **CROSS-MODEL:** 완료된 외부 검토가 없어 판단하지 않음(Claude 에이전트는 같은 호스트).
-- **VERDICT:** Eng 결정 완료(T1~T9가 할 일). 디자인 리뷰 2는 범위 결정을 모두 정했고, 남은 점수 제한은 글꼴뿐. eng review required(디자인 리뷰 2가 화면 흐름을 바꿨으므로 T9 구현 전 확인 권장).
+- **OUTSIDE COVERAGE:** codex, plan-review(eng 3), completed, 지적 5개 모두 처리(4개 질문 + 1개 사실 정정). codex, design phase(디자인 리뷰 2), unavailable. CEO 단계는 외부 검토 실행 안 함.
+- **CROSS-MODEL:** eng 3에서 Claude 리뷰가 찾은 것(순서 칸, 지우기, 이름 바꾸기, 아침 제안)과 Codex가 찾은 것(자정, 24시간 모든 경로, how 값, 칩 범위)은 겹치지 않았다. Codex의 how 값 지적은 Claude가 코드(`application/db/types.ts:38`)로 확인했다.
+- **VERDICT:** CEO CLEARED. Eng는 결정을 모두 내렸고 남은 것은 R15 조사(구현 변경 없음, TODO.md)뿐이라 T1 → T9 구현을 시작할 수 있다. eng review required(상태가 issues_open이라 대시보드 기준 CLEAR는 아님).
 
 **UNRESOLVED DECISIONS:**
-- 1분 미만 기록 처리(소유: /plan-design-review)
-- 글꼴·강조색 최종값(방 스타일 받은 뒤)
-- **숙제(사용자):** 타이머·뽀모도로가 끝난 뒤 30분 알림을 자동으로 다시 켤지, [아니오] 뒤 언제 다시 켜질지. 그때까지 RESUME 임시안으로 개발
+- R15 목표 추가 시트 칩 범위(조사, 테스터 2주 뒤, TODO.md)
+- (이전 리뷰에서 문서에 남긴 것) 1분 미만 기록 처리(소유: /plan-design-review)
+- (이전 리뷰에서 문서에 남긴 것) 글꼴·강조색 최종값(방 스타일 받은 뒤)
+- (이전 리뷰에서 문서에 남긴 것) **숙제(사용자):** 타이머·뽀모도로가 끝난 뒤 30분 알림을 자동으로 다시 켤지, [아니오] 뒤 언제 다시 켜질지. 그때까지 RESUME 임시안으로 개발
