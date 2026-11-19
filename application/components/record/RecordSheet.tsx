@@ -3,7 +3,8 @@ import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'reac
 import { useRouter } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { CATEGORY_LABEL, type BlockRow, type Category, type SlotRow } from '@/db/types';
-import { getBlock, saveSlot, tzAt } from '@/db/records';
+import { getBlock, tzAt } from '@/db/records';
+import { saveEntry } from '@/record/entries';
 import { logPingAnswered } from '@/scheduler/pingEvents';
 import { deferRun, fillRun, type MissedRun } from '@/record/batchLogic';
 import { acceptSame, type MorningOffer } from '@/record/morningPlan';
@@ -389,7 +390,7 @@ function SlotSheet() {
         answered_at: existing?.answered_at ?? now.toISOString(),
         client_updated_at: now.toISOString(),
       };
-      await saveSlot(getRuntime().db, row);
+      await saveEntry(getRuntime().db, [row]);
       // S1-COUNT: 답한 시간대를 센다. 처음 기록할 때만(고치기는 세지 않음).
       if (!existing) {
         await logPingAnswered(getRuntime().db, row.slot_start, row.source, now);

@@ -470,9 +470,11 @@ Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유
   - Files: application/db/schema.ts, db/types.ts, db/records.ts
   - 완료(2026-11-18): v3 = item·entry·pause·plan_v3(STRICT, 밀리초, 외래 키 켬), 기본 항목 6개, slot → entry, 진행 중 집중 블록 → 진행 중 타이머 entry(그 블록 declared 칸은 옮기지 않음), uuid v7, `db/time.ts`. **block 다시 만들기는 T9로 옮김**(사용자 "1": block은 W1에서도 서버로 동기화되고 18개 파일이 써서, 할 일 화면을 고칠 때 item_id로 바꾼다).
   - Verify: `npx jest db` (이전 전후 분 합계, 실패 롤백)
-- [ ] **T2 (P1, human: ~1일 / CC: ~1시간)** — record — `saveEntry` 단일 쓰기 입구(빈 부분만), slot 쓰기 6곳 이전
+- [x] **T2 (P1, human: ~1일 / CC: ~1시간)** — record — `saveEntry` 단일 쓰기 입구(빈 부분만), slot 쓰기 6곳 이전
   - Surfaced by: Section 1 발견 2, CEO D12
   - Files: record/entries.ts(새), RecordSheet.tsx, RecordToast.tsx, batchLogic.ts, continueAction.ts, blockLogic.ts
+  - 완료(2026-11-19): `record/entries.ts`의 `saveEntry`·`undoEntry`가 유일한 기록 쓰기 입구. 칸 [start, +30분)에서 타이머가 덮은 부분(5분 이상 멈춘 틈은 뺌)을 빼고 빈 조각만 entry로 쓴다. 같은 칸을 다시 쓰면 타이머가 아닌 기록을 바꾼다. 쓰기 6곳(RecordSheet·RecordToast 저장·메모·되돌리기, continueAction, batchLogic, blockLogic, todoLogic 체크 되돌리기)을 옮겼고, 앱 코드가 옛 칸 쓰기 함수를 직접 부르면 테스트가 실패한다.
+  - **임시 두 곳 쓰기**(사용자 "가. 잠깐 두 곳에 씀", 2026-11-19): saveEntry는 같은 트랜잭션에서 옛 slot에도 쓴다(1단계 서버 동기화도 유지). slot을 읽는 9곳을 옮기는 작업: 스케줄러·기록 시트·묶어 채우기(T3/T4에서), 시간표(T4), 집중 시작 시트·집중 블록(T3·T5에서 없어짐), 홈 계획 대비 실제·아침 제안·할 일 체크(T9). 마지막 곳을 옮기면 `writeSlot` 호출을 지운다.
   - Verify: `npx jest record`
 - [ ] **T3 (P1, human: ~1.5일 / CC: ~1.5시간)** — record/scheduler — 타이머 3종, 진행 중 알림 끔, 뽀모도로 신호, 멈춤 재예약
   - Surfaced by: CEO POMO·HOME, Scope Challenge 발견 2

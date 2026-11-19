@@ -1,6 +1,7 @@
 import type { BlockRow, Category, Db, PlanRow, SlotRow } from '@/db/types';
 import { CATEGORIES } from '@/db/types';
-import { blocksBetween, getBlock, logEvent, saveBlock, undoSlot } from '@/db/records';
+import { blocksBetween, getBlock, logEvent, saveBlock } from '@/db/records';
+import { undoEntry } from './entries';
 import { localParts, MINUTE_MS } from '@/lib/localTime';
 import { uuidv4 } from '@/lib/uuid';
 import { answerBlock, blockSlots, nextBoundary } from './blockLogic';
@@ -251,7 +252,7 @@ export async function checkBlock(db: Db, block: BlockRow, now: Date, overwrite: 
 }
 
 export async function undoCheck(db: Db, undo: CheckUndo, now: Date): Promise<void> {
-  for (const { saved, previous } of undo.slots) await undoSlot(db, saved, previous);
+  for (const { saved, previous } of undo.slots) await undoEntry(db, saved, previous);
   await saveBlock(db, { ...undo.block, client_updated_at: now.toISOString() });
 }
 

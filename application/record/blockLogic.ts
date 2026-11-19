@@ -1,5 +1,6 @@
 import type { BlockEndHow, BlockRow, Category, Db, SlotRow } from '@/db/types';
-import { blocksBetween, getBlock, logEvent, saveBlock, saveSlot } from '@/db/records';
+import { blocksBetween, getBlock, logEvent, saveBlock } from '@/db/records';
+import { saveEntry } from './entries';
 import { localParts, MINUTE_MS, SLOT_MS } from '@/lib/localTime';
 import { uuidv4 } from '@/lib/uuid';
 import { capToQuiet, type Quiet } from '@/scheduler/plan';
@@ -57,7 +58,7 @@ async function fillSlots(
     if (Date.parse(slotStart) + SLOT_MS > upTo.getTime()) break;
     const existing = await db.first<SlotRow>('SELECT * FROM slot WHERE slot_start = ?', [slotStart]);
     if (existing && (!overwrite || existing.category === block.category)) continue;
-    await saveSlot(db, {
+    await saveEntry(db, [{
       slot_start: slotStart,
       tz: block.tz,
       category: block.category,
@@ -65,7 +66,7 @@ async function fillSlots(
       source: 'declared',
       answered_at: now.toISOString(),
       client_updated_at: now.toISOString(),
-    });
+    }]);
     n++;
   }
   return n;

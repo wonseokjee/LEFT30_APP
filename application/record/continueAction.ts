@@ -1,5 +1,6 @@
 import type { Category, Db, SlotRow } from '@/db/types';
-import { saveSlot, tzAt } from '@/db/records';
+import { tzAt } from '@/db/records';
+import { saveEntry } from './entries';
 import { logPingAnswered } from '@/scheduler/pingEvents';
 import { sourceFor } from './recordLogic';
 
@@ -25,7 +26,7 @@ export async function saveContinue(
     answered_at: at,
     client_updated_at: at,
   };
-  await saveSlot(db, row);
+  await saveEntry(db, [row]);
   await logPingAnswered(db, slotStart, row.source, now);
   return 'saved';
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8 } from '@/assets/palette';
 import { CATEGORY_LABEL } from '@/db/types';
-import { saveSlot, undoSlot } from '@/db/records';
+import { saveEntry, undoEntry } from '@/record/entries';
 import { withRo } from '@/record/recordLogic';
 import { getRuntime, rescheduleNow, syncNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
@@ -42,7 +42,7 @@ export default function RecordToast() {
 
   const undo = async () => {
     try {
-      await undoSlot(getRuntime().db, slot, previous);
+      await undoEntry(getRuntime().db, slot, previous);
     } catch (e) {
       console.warn('undo failed', e);
       setFailed(true);
@@ -55,11 +55,13 @@ export default function RecordToast() {
   const saveMemo = async () => {
     try {
       const note = memo.trim();
-      await saveSlot(getRuntime().db, {
-        ...slot,
-        note: note.length > 0 ? note : null,
-        client_updated_at: new Date().toISOString(),
-      });
+      await saveEntry(getRuntime().db, [
+        {
+          ...slot,
+          note: note.length > 0 ? note : null,
+          client_updated_at: new Date().toISOString(),
+        },
+      ]);
     } catch (e) {
       console.warn('memo save failed', e);
       setFailed(true);

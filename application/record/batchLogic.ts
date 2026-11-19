@@ -1,5 +1,6 @@
 import type { BlockRow, Category, Db, SlotRow } from '@/db/types';
-import { blocksBetween, getSetting, logEvent, saveSlots, setSetting } from '@/db/records';
+import { blocksBetween, getSetting, logEvent, setSetting } from '@/db/records';
+import { saveEntry } from './entries';
 import { localParts, SLOT_MS } from '@/lib/localTime';
 import { uuidv4 } from '@/lib/uuid';
 import { inQuiet, isPaused, type Pause, type Quiet } from '@/scheduler/plan';
@@ -102,7 +103,7 @@ export async function fillRun(db: Db, run: MissedRun, category: Category, now: D
       )
     ).map((r) => r.slot_start),
   );
-  await saveSlots(
+  await saveEntry(
     db,
     run.slots.filter((s) => !taken.has(s)).map((slot_start) => ({
       slot_start,

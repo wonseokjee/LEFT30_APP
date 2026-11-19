@@ -2,7 +2,7 @@ import { openNodeDb } from '@/test/nodeDb';
 import { ALL_DAYS } from '@/scheduler/plan';
 import { migrate } from '@/db/migrate';
 import { MIGRATIONS } from '@/db/schema';
-import { saveSlot, undoSlot, wipeLocalData } from '@/db/records';
+import { saveSlot, wipeLocalData } from '@/db/records';
 import type { SlotRow } from '@/db/types';
 import {
   continueCandidate,
@@ -107,36 +107,14 @@ describe('기록 규칙', () => {
   });
 });
 
-describe('되돌리기와 전체 삭제', () => {
+describe('전체 삭제', () => {
   async function setup() {
     const db = openNodeDb();
     await migrate(db, MIGRATIONS);
     return db;
   }
 
-  it('새로 만든 칸을 되돌리면 로컬 행과 보내지 않은 큐 항목이 사라진다', async () => {
-    const db = await setup();
-    const keep = row('2026-10-21T04:30:00.000Z');
-    const saved = row('2026-10-21T05:00:00.000Z');
-    await saveSlot(db, keep);
-    await saveSlot(db, saved);
-    await undoSlot(db, saved, null);
-    expect(await db.all('SELECT slot_start FROM slot')).toEqual([{ slot_start: keep.slot_start }]);
-    const queued = await db.all<{ payload: string }>('SELECT payload FROM sync_queue');
-    expect(queued.map((q) => JSON.parse(q.payload).slot_start)).toEqual([keep.slot_start]);
-  });
-
-  it('고친 칸을 되돌리면 이전 값이 더 최신 시각으로 다시 저장된다', async () => {
-    const db = await setup();
-    const prev = row('2026-10-21T05:00:00.000Z', { category: 'rest' });
-    await saveSlot(db, prev);
-    const saved = { ...prev, category: 'work' as const, client_updated_at: '2026-10-21T05:31:00.000Z' };
-    await saveSlot(db, saved);
-    await undoSlot(db, saved, prev);
-    const [r] = await db.all<SlotRow>('SELECT * FROM slot');
-    expect(r.category).toBe('rest');
-    expect(r.client_updated_at > saved.client_updated_at).toBe(true);
-  });
+  // 되돌리기는 record/entries.test.ts(undoEntry)로 옮겼다(T2).
 
   it('회원탈퇴 후 로컬 데이터가 모두 지워진다', async () => {
     const db = await setup();

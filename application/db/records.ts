@@ -12,18 +12,20 @@ export async function enqueue(tx: Db, kind: QueueKind, payload: object): Promise
   );
 }
 
+// 옛 30분 칸만 쓰는 낮은 단계 함수. 앱 코드는 기록을 record/entries.ts의 saveEntry로만 쓴다
+// (새 기록 표와 옛 칸을 함께 씀, T2). 이 두 함수는 entries.ts와 테스트(옛 버전 DB 준비)만 쓴다.
 export async function saveSlot(db: Db, slot: SlotRow): Promise<void> {
   await saveSlots(db, [slot]);
 }
 
-// 여러 칸을 한 트랜잭션으로 저장한다(놓친 칸 묶음: 일부만 써지지 않게).
 export async function saveSlots(db: Db, slots: SlotRow[]): Promise<void> {
   await db.transaction(async (tx) => {
-    for (const slot of slots) await insertSlot(tx, slot);
+    for (const slot of slots) await writeSlot(tx, slot);
   });
 }
 
-async function insertSlot(tx: Db, slot: SlotRow): Promise<void> {
+// 트랜잭션 안에서 칸 하나를 쓰고 동기화 큐에 넣는다.
+export async function writeSlot(tx: Db, slot: SlotRow): Promise<void> {
   await tx.run(
     `INSERT INTO slot (slot_start, tz, category, note, source, answered_at, client_updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -133,20 +135,13 @@ export async function logEvent(db: Db, event: EventRow): Promise<void> {
   });
 }
 
-// 기록 직후 토스트의 "되돌리기". 저장 전 값이 있으면 그 값을 새 시각으로 다시 저장하고,
-// 없던 칸이면 로컬 행과 아직 보내지 않은 큐 항목을 지운다(서버에는 삭제 API가 없다).
-export async function undoSlot(db: Db, saved: SlotRow, previous: SlotRow | null): Promise<void> {
-  if (previous) {
-    await saveSlot(db, { ...previous, client_updated_at: new Date().toISOString() });
-    return;
-  }
-  await db.transaction(async (tx) => {
-    await tx.run('DELETE FROM slot WHERE slot_start = ?', [saved.slot_start]);
-    await tx.run(
-      "DELETE FROM sync_queue WHERE kind = 'slot' AND json_extract(payload, '$.slot_start') = ?",
-      [saved.slot_start],
-    );
-  });
+// 트랜잭션 안에서 칸과 아직 보내지 않은 큐 항목을 지운다(서버에는 삭제 API가 없다).
+// 되돌리기는 record/entries.ts의 undoEntry가 이 함수를 쓴다.
+export async function deleteSlot(tx: Db, slotStart: string): Promise<void> {
+  await tx.run('DELETE FROM slot WHERE slot_start = ?', [slotStart]);
+  await tx.run("DELETE FROM sync_queue WHERE kind = 'slot' AND json_extract(payload, '$.slot_start') = ?", [
+    slotStart,
+  ]);
 }
 
 // 회원탈퇴(DELETE /me) 성공 후 로컬 데이터를 모두 지운다. 남은 큐가 다시 로그인했을 때 재업로드되지 않게 한다.
