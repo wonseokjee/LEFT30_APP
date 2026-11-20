@@ -18,6 +18,7 @@ import {
   capToQuiet,
 } from './plan';
 import { blockEndId, createScheduler, EXPIRY_ID, PAUSE_KEY, QUIET_KEY, type Notifier } from './scheduler';
+import { AFTER_TIMER_KEY, pauseTimer, resumeTimer, startTimer, stopTimer } from '@/record/timerLogic';
 
 const SEOUL = 'Asia/Seoul';
 // 23:00~07:00 (현지, 매일)
@@ -425,5 +426,95 @@ describe('스케줄러', () => {
     expect(r).toMatchObject({ status: 'ok', cancelled: 0 });
     expect(r.status === 'ok' && r.added).toBe(32);
     expect(Date.parse(fake.scheduled.get(EXPIRY_ID)!.fireAt) - Date.parse(expiryBefore)).toBe(24 * 3600_000);
+  });
+});
+
+// 타이머 개편 T3: 진행 중 타이머 동안 30분 알림 쉼(D2), 뽀모도로 신호(POMO), 정지 뒤 재예약(CEO CRITICAL, G15).
+describe('타이머와 알림', () => {
+  const MIN = 60_000;
+  const t = (min: number) => NOW.getTime() + min * MIN; // NOW = 10:10 KST
+  const pings = (fake: ReturnType<typeof fakeNotifier>) =>
+    [...fake.scheduled.entries()].filter(([k]) => k.startsWith('slot:')).map(([, v]) => v.fireAt).sort();
+  const signals = (fake: ReturnType<typeof fakeNotifier>) =>
+    [...fake.scheduled.entries()].filter(([k]) => k.startsWith('timer:')).map(([, v]) => [v.fireAt, v.body]).sort();
+
+  it('스톱워치가 도는 동안 시작 뒤 30분 알림은 하나도 없다', async () => {
+    const { db, fake, scheduler } = await setup();
+    await startTimer(db, { kind: 'stopwatch', itemId: 'focus', now: t(0), tz: SEOUL });
+    await scheduler.reschedule();
+    expect(pings(fake)).toEqual([]);
+  });
+
+  it('정지하면 다음 :00/:30부터 30분 알림이 다시 걸린다', async () => {
+    const { db, fake, scheduler, setNow } = await setup();
+    await startTimer(db, { kind: 'stopwatch', itemId: 'focus', now: t(0), tz: SEOUL });
+    await scheduler.reschedule();
+    setNow(new Date(t(45))); // 10:55
+    await stopTimer(db, t(45));
+    await scheduler.reschedule();
+    expect(pings(fake)[0]).toBe('2026-10-21T02:00:00.000Z'); // 11:00 KST
+  });
+
+  it('정지 뒤 30분 알림을 항상 끄기로 두면 정지해도 다시 걸지 않는다', async () => {
+    const { db, fake, scheduler } = await setup();
+    await setSetting(db, AFTER_TIMER_KEY, 'off');
+    await startTimer(db, { kind: 'stopwatch', itemId: 'focus', now: t(0), tz: SEOUL });
+    await stopTimer(db, t(5));
+    await scheduler.reschedule();
+    expect(pings(fake)).toEqual([]);
+  });
+
+  it('타이머는 정한 끝까지 쉬고 끝 신호 하나, 그 뒤 알림은 그대로', async () => {
+    const { db, fake, scheduler } = await setup();
+    await startTimer(db, { kind: 'timer', itemId: 'focus', now: t(0), tz: SEOUL, minutes: 50 }); // ~11:00
+    await scheduler.reschedule();
+    expect(pings(fake)[0]).toBe('2026-10-21T02:30:00.000Z'); // 11:00 알림은 끝과 같은 시각이라 빠지고 11:30부터
+    expect(signals(fake)).toEqual([['2026-10-21T02:00:00.000Z', '집중 타이머 끝']]);
+  });
+
+  it('뽀모도로 신호를 걸고, 일시정지하면 신호를 지우고, 재개하면 미뤄서 다시 건다', async () => {
+    const { db, fake, scheduler, setNow } = await setup();
+    await startTimer(db, {
+      kind: 'pomodoro',
+      itemId: 'focus',
+      now: t(0),
+      tz: SEOUL,
+      pomodoro: { focus_min: 25, break_min: 5, rounds: 1 },
+    });
+    await scheduler.reschedule();
+    expect(signals(fake)).toEqual([
+      ['2026-10-21T01:35:00.000Z', '휴식 시작 · 5분'],
+      ['2026-10-21T01:40:00.000Z', '집중 뽀모도로 1바퀴 끝'],
+    ]);
+    expect(pings(fake)[0]).toBe('2026-10-21T02:00:00.000Z'); // 10:40 끝 → 11:00부터
+
+    setNow(new Date(t(10)));
+    await pauseTimer(db, t(10));
+    await scheduler.reschedule();
+    expect(signals(fake)).toEqual([]);
+    expect(pings(fake)).toEqual([]); // 일시정지 중에는 길이와 상관없이 쉼(RESUME)
+
+    setNow(new Date(t(20)));
+    await resumeTimer(db, t(20));
+    await scheduler.reschedule();
+    expect(signals(fake).map(([at]) => at)).toEqual(['2026-10-21T01:45:00.000Z', '2026-10-21T01:50:00.000Z']);
+  });
+
+  it('신호는 방해금지 시작 전까지만 건다', () => {
+    const d = desiredSchedule({
+      now: new Date('2026-10-21T13:50:00.000Z'), // 22:50 KST
+      tz: SEOUL,
+      quiet: NIGHT,
+      recent: [],
+      timer: {
+        startAt: Date.parse('2026-10-21T13:50:00.000Z'),
+        coverUntil: Infinity,
+        signals: [
+          { key: 'e:0', fireAt: '2026-10-21T13:55:00.000Z', body: 'a' },
+          { key: 'e:1', fireAt: '2026-10-21T14:15:00.000Z', body: 'b' }, // 23:15
+        ],
+      },
+    });
+    expect(d.signals.map((s) => s.key)).toEqual(['e:0']);
   });
 });

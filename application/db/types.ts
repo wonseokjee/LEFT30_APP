@@ -126,7 +126,9 @@ export type ItemRow = {
 };
 
 // 기록 방식: 옛 출처 값 + 타이머 방식(eng 리뷰 3 R14). inferred는 옛 자료에만 있다.
-export type EntryHow = SlotSource | 'stopwatch' | 'pomodoro' | 'timer';
+export const TIMER_HOWS = ['stopwatch', 'pomodoro', 'timer'] as const;
+export type TimerKind = (typeof TIMER_HOWS)[number];
+export type EntryHow = SlotSource | TimerKind;
 
 export type EntryRow = {
   id: string; // uuid v7
@@ -142,6 +144,9 @@ export type EntryRow = {
 };
 
 export type PauseRow = { entry_id: string; start_at: number; end_at: number | null };
+
+// 뽀모도로 세션의 구간 설정(v4). 한 바퀴 = 집중 + 휴식, 마지막 바퀴도 휴식까지.
+export type PomodoroRow = { entry_id: string; focus_min: number; break_min: number; rounds: number };
 
 export type GoalRow = {
   local_date: string; // YYYY-MM-DD

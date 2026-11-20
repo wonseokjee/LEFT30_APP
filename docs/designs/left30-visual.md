@@ -565,6 +565,7 @@ type Rule = {
 - [ ] **T13 (P2, human: ~4시간 / CC: ~25분)** — 홈 바닥 — "오늘 계획 없음 ›", "오늘 지금까지" 끄기 스위치, 바닥 테두리 본문색, 빈 칩 시트
   - Surfaced by: Pass 2·6 G11·G19·G21.
 - [ ] **T14 (P1, human: ~1일 / CC: ~40분)** — 스케줄러 — 정지 뒤 30분 알림 자동 재개, 설정 둘, 앱이 열려 있어도 뽀모도로 단계 신호
+  - 진행(2026-11-20): 스케줄러·설정 값·앱 안 신호 소리는 timer-modes T3에서 끝냄(RESUME 행 고침). 남은 것: 계정 관리의 설정 줄 화면.
   - Surfaced by: 교차 검증 G15·G20. 먼저 `left30-timer-modes.md` RESUME 행을 고친다. Verify: 스케줄러 jest(정지 → 다음 30분 경계 알림 예약), 앱 열린 채 단계 전환 진동.
 
 ## Design Review Completion Summary

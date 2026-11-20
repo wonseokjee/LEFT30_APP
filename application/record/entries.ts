@@ -1,6 +1,6 @@
 import { deleteSlot, writeSlot } from '@/db/records';
 import { isoToMs } from '@/db/time';
-import { CATEGORY_ITEM, type Db, type SlotRow } from '@/db/types';
+import { CATEGORY_ITEM, TIMER_HOWS, type Db, type SlotRow } from '@/db/types';
 import { SLOT_MS } from '@/lib/localTime';
 import { uuidv7 } from '@/lib/uuid';
 
@@ -18,7 +18,6 @@ import { uuidv7 } from '@/lib/uuid';
  * 것으로 본다. 5분 미만 멈춤은 세션 덩어리 안이라 덮은 것으로 본다(PAUSE "5분 이상 틈은 알림 답으로 채울 수 있다").
  */
 
-const TIMER_HOWS = ['stopwatch', 'pomodoro', 'timer'] as const;
 const TIMER_IN = TIMER_HOWS.map((h) => `'${h}'`).join(', ');
 const GAP_MIN_MS = 5 * 60 * 1000;
 

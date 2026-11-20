@@ -30,6 +30,11 @@ export const handleNotification = async (
     void settleBlocksNow().then(() => useAppStore.getState().openBlockSheet(blockId));
     return HIDE;
   }
+  // 뽀모도로 단계·타이머 끝 신호(G20): 앱이 열려 있어도 닫혀 있을 때와 같은 소리·진동. 창은 띄우지 않고 화면만 바뀐다.
+  if (data?.kind === 'timer_signal') {
+    useAppStore.getState().bumpBlocks();
+    return { ...HIDE, shouldPlaySound: true };
+  }
   if (data?.kind === 'expiry') {
     return { ...HIDE, shouldPlaySound: true, shouldShowBanner: true, shouldShowList: true };
   }

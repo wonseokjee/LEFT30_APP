@@ -153,6 +153,21 @@ export const MIGRATIONS: Migration[] = [
       await migrateToV3(tx, Date.now());
     },
   },
+  {
+    // 뽀모도로 세션마다 집중·휴식 분과 바퀴 수(T3, 사용자 "작은 표 하나", 2026-11-20).
+    // 설정은 다음 시작부터 바뀌므로 세션에 남긴다. 단계·집중 분은 저장하지 않고 이 값과 멈춤으로 계산한다.
+    version: 4,
+    up: async (tx) => {
+      await tx.exec(`
+        CREATE TABLE pomodoro (
+          entry_id TEXT PRIMARY KEY REFERENCES entry(id) ON DELETE CASCADE,
+          focus_min INTEGER NOT NULL CHECK (focus_min BETWEEN 5 AND 90),
+          break_min INTEGER NOT NULL CHECK (break_min BETWEEN 1 AND 30),
+          rounds INTEGER NOT NULL CHECK (rounds >= 1)
+        ) STRICT, WITHOUT ROWID;
+      `);
+    },
+  },
 ];
 
 const FOCUS_STATES_RUNNING = ['active', 'awaiting'];

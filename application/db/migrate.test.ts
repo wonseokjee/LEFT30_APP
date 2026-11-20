@@ -276,3 +276,32 @@ describe('v3: 항목·기록·멈춤·목표 표(eng 리뷰 2 R7, eng 리뷰 3 R
     expect(await db.all('SELECT id FROM item')).toHaveLength(SYSTEM_ITEMS.length);
   });
 });
+
+describe('v4: 뽀모도로 구간 설정 표(T3)', () => {
+  const pomodoroEntry = async (db: ReturnType<typeof openNodeDb>) => {
+    await db.run(
+      `INSERT INTO entry (id, item_id, how, start_at, end_at, planned_end_at, tz, note, deleted, updated_at)
+       VALUES ('p1', 'focus', 'pomodoro', 0, NULL, 7200000, 'Asia/Seoul', NULL, 0, 0)`,
+    );
+  };
+
+  it('세션마다 한 줄, 범위 밖 값은 막고 기록을 지우면 같이 지운다', async () => {
+    const db = openNodeDb();
+    await migrate(db, MIGRATIONS);
+    await pomodoroEntry(db);
+    await expect(db.run("INSERT INTO pomodoro VALUES ('p1', 4, 5, 4)")).rejects.toThrow(/CHECK/);
+    await expect(db.run("INSERT INTO pomodoro VALUES ('nope', 25, 5, 4)")).rejects.toThrow(/FOREIGN KEY/);
+    await db.run("INSERT INTO pomodoro VALUES ('p1', 25, 5, 4)");
+    await db.run("DELETE FROM entry WHERE id = 'p1'");
+    expect(await db.all('SELECT * FROM pomodoro')).toEqual([]);
+  });
+
+  it('회원탈퇴 지우기는 뽀모도로 설정도 지운다', async () => {
+    const db = openNodeDb();
+    await migrate(db, MIGRATIONS);
+    await pomodoroEntry(db);
+    await db.run("INSERT INTO pomodoro VALUES ('p1', 25, 5, 4)");
+    await wipeLocalData(db);
+    expect(await db.all('SELECT * FROM pomodoro')).toEqual([]);
+  });
+});

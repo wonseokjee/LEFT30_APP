@@ -184,9 +184,10 @@ describe('쓰기 입구 하나', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('기록 이전(db/schema.ts)만 entry에 직접 INSERT한다', () => {
+  it('기록 이전(db/schema.ts)과 타이머 세션(record/timerLogic.ts)만 entry에 직접 INSERT한다', () => {
+    const TIMER = join('record', 'timerLogic.ts');
     const offenders = files
-      .filter((f) => !ALLOWED.has(f.slice(ROOT.length + 1)) && !f.endsWith(join('db', 'schema.ts')))
+      .filter((f) => !ALLOWED.has(f.slice(ROOT.length + 1)) && !f.endsWith(join('db', 'schema.ts')) && !f.endsWith(TIMER))
       .filter((f) => /INSERT\s+INTO\s+entry\b/i.test(readFileSync(f, 'utf8')));
     expect(offenders).toEqual([]);
   });

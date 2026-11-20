@@ -10,6 +10,7 @@ import { createScheduler, readPause, readQuiet } from '@/scheduler/scheduler';
 import { ensurePingChannel, expoNotifier } from '@/scheduler/expoNotifier';
 import { deviceTz } from '@/lib/localTime';
 import { settleBlocks } from '@/record/blockLogic';
+import { settleTimer } from '@/record/timerLogic';
 import { loadMissedRun } from '@/record/batchLogic';
 import { takeMorningOffer } from '@/record/morningPlan';
 import { logPingDisplayed, logPingScheduled } from '@/scheduler/pingEvents';
@@ -112,6 +113,20 @@ export async function settleBlocksNow(): Promise<void> {
   }
 }
 
+// 시간이 지난 타이머 세션 정리(뽀모도로 마지막 바퀴 끝, 타이머 끝 뒤 30분 무응답).
+// 끝 시트(endSheet)를 여는 화면은 T5에서 붙인다.
+export async function settleTimerNow(): Promise<{ endSheet: string | null }> {
+  if (!runtime) return { endSheet: null };
+  try {
+    const { endSheet, ended } = await settleTimer(runtime.db, Date.now());
+    if (ended) useAppStore.getState().bumpBlocks();
+    return { endSheet };
+  } catch (e) {
+    console.warn('settle timer failed', e);
+    return { endSheet: null };
+  }
+}
+
 // 그날 첫 진입이 15시 이전이면 아침 계획 제안(E1).
 async function offerMorningPlan(): Promise<void> {
   if (!runtime) return;
@@ -158,6 +173,7 @@ export async function onForeground(): Promise<void> {
   if (!runtime) return;
   await noteTz(runtime.db, deviceTz(), new Date());
   await settleBlocksNow();
+  await settleTimerNow();
   await offerMissedRun();
   await offerMorningPlan();
   await notePings();
@@ -170,6 +186,14 @@ export async function afterBlockChange(): Promise<void> {
   useAppStore.getState().bumpBlocks();
   await rescheduleNow();
   void syncNow();
+}
+
+// 타이머를 시작·일시정지·재개·정지·정지 취소·연장한 뒤: 화면 갱신 → 알림 다시 계산(T3).
+// 정지하면 진행 중 세션이 없어져 다음 :00/:30 알림부터 다시 걸린다(G15, CEO CRITICAL "정지 뒤 재예약").
+// 타이머 기록은 W1에서 서버로 보내지 않아 동기화는 하지 않는다.
+export async function afterTimerChange(): Promise<void> {
+  useAppStore.getState().bumpBlocks();
+  await rescheduleNow();
 }
 
 // DELETE /me 성공 후: 로컬 데이터 전체와 예약된 알림을 지운다.

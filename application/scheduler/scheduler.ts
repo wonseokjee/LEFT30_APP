@@ -6,6 +6,7 @@ import {
   EXPIRY_CONTENT,
   normalizePause,
   normalizeQuiet,
+  PAUSE_KEY,
   pingContent,
   continueCategory,
   continueCategoryId,
@@ -13,8 +14,12 @@ import {
   type Quiet,
   type RecentSlot,
   type ScheduleBlock,
+  type ScheduleTimer,
 } from './plan';
+import { coverUntil, readRunning, signalBody, timerSignals } from '@/record/timerLogic';
 import { SLOT_MS } from '@/lib/localTime';
+
+export { PAUSE_KEY };
 
 /*
  * 알림 예약 재계산(R5).
@@ -38,7 +43,6 @@ export const QUIET_KEY = 'quiet';
 export async function readQuiet(db: Db): Promise<Quiet> {
   return normalizeQuiet(await getSetting<unknown>(db, QUIET_KEY));
 }
-export const PAUSE_KEY = 'pause';
 
 // 알림 일시 중지 값(구현 D25). 없거나 잘못된 값이면 null.
 export async function readPause(db: Db): Promise<Pause | null> {
@@ -62,6 +66,29 @@ export async function readScheduleBlocks(db: Db, at: Date): Promise<ScheduleBloc
     [at.toISOString()],
   );
   return rows.map((r) => ({ id: r.id, category: r.category, startAt: r.start_at, endAt: r.end_at }));
+}
+
+// 우리가 건 타이머 신호: { [key]: "fireAt|body" }. 블록 끝 알림과 같은 방식으로 바뀐 것만 고친다.
+const SIGNALS_KEY = 'scheduled_timer_signals';
+
+export function signalId(key: string): string {
+  return `timer:${key}`;
+}
+
+// 진행 중 타이머를 예약 계산에 넘길 모양으로 읽는다(T3).
+export async function readScheduleTimer(db: Db, at: Date): Promise<ScheduleTimer | null> {
+  const r = await readRunning(db);
+  if (!r) return null;
+  const item = await db.first<{ name: string }>('SELECT name FROM item WHERE id = ?', [r.entry.item_id]);
+  return {
+    startAt: r.entry.start_at,
+    coverUntil: coverUntil(r),
+    signals: timerSignals(r, at.getTime()).map((s) => ({
+      key: s.key,
+      fireAt: new Date(s.fireAt).toISOString(),
+      body: signalBody(s, item?.name ?? '', r.pomodoro),
+    })),
+  };
 }
 
 export interface Notifier {
@@ -104,7 +131,8 @@ export function createScheduler(opts: {
       [new Date(at.getTime() - 3 * SLOT_MS).toISOString()],
     );
     const blocks = await readScheduleBlocks(db, at);
-    const desired = desiredSchedule({ now: at, tz: opts.getTz(), quiet, recent, pause, blocks });
+    const timer = await readScheduleTimer(db, at);
+    const desired = desiredSchedule({ now: at, tz: opts.getTz(), quiet, recent, pause, blocks, timer });
 
     // 아직 울리지 않은 예약만 비교한다.
     const existing = await db.all<ScheduledRow>(
@@ -161,6 +189,26 @@ export function createScheduler(opts: {
       added++;
     }
     await setSetting(db, BLOCK_ENDS_KEY, nextEnds);
+
+    // 타이머 신호(뽀모도로 단계·타이머 끝). 일시정지·재개·정지로 바뀌면 바뀐 것만 다시 건다.
+    const prevSignals = (await getSetting<Record<string, string>>(db, SIGNALS_KEY)) ?? {};
+    const nextSignals: Record<string, string> = {};
+    for (const g of desired.signals) nextSignals[g.key] = `${g.fireAt}|${g.body}`;
+    for (const key of Object.keys(prevSignals)) {
+      if (nextSignals[key] === prevSignals[key]) continue;
+      await notifier.cancel(signalId(key));
+      cancelled++;
+    }
+    for (const g of desired.signals) {
+      if (!rearm && prevSignals[g.key] === nextSignals[g.key]) continue;
+      await notifier.schedule(signalId(g.key), new Date(g.fireAt), {
+        title: 'LEFT30',
+        body: g.body,
+        data: { kind: 'timer_signal', key: g.key },
+      });
+      added++;
+    }
+    await setSetting(db, SIGNALS_KEY, nextSignals);
 
     // 만료 안내는 예약이 연장될 때마다 뒤로 민다.
     const prevExpiry = await getSetting<string>(db, EXPIRY_KEY);

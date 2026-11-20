@@ -16,6 +16,7 @@ export type Quiet = QuietWindow[];
  * until이 null이면 다시 켤 때까지 멈춘다. until이 지났으면 멈춘 상태가 아니다.
  */
 export type Pause = { until: string | null };
+export const PAUSE_KEY = 'pause';
 
 export function normalizePause(raw: unknown): Pause | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -131,9 +132,22 @@ export type DesiredPing = {
   textKind: string; // 'default' | 'context:<category>'
 };
 
+// 진행 중 타이머(T3). [startAt, coverUntil] 안의 30분 알림은 쉬고(D2), 신호(뽀모도로 단계·타이머 끝)를 건다.
+export type ScheduleTimer = {
+  startAt: number;
+  coverUntil: number; // 스톱워치·일시정지 중은 Infinity
+  signals: DesiredSignal[];
+};
+
+export type DesiredSignal = { key: string; fireAt: string; body: string };
+
+// 뽀모도로 신호는 최대 12시간, 방해금지가 시작되기 전까지만 건다(eng 리뷰 1 Section 1).
+export const SIGNAL_HORIZON_MS = 12 * 60 * MINUTE_MS;
+
 export type DesiredSchedule = {
   pings: DesiredPing[];
   blockEnds: DesiredBlockEnd[];
+  signals: DesiredSignal[];
   days: number;
   // 예약 마지막 알림 하루 전에 "알림이 곧 멈춰요" 안내. 예약이 없으면 null.
   expiryAt: string | null;
@@ -149,8 +163,18 @@ export function desiredSchedule(params: {
   recent: RecentSlot[];
   pause?: Pause | null;
   blocks?: ScheduleBlock[]; // 진행 중이거나 예정된 블록(planned·active)
+  timer?: ScheduleTimer | null;
 }): DesiredSchedule {
-  const { now, tz, quiet, pause = null, blocks = [] } = params;
+  const { now, tz, quiet, pause = null, blocks = [], timer = null } = params;
+
+  // 타이머 신호도 예약 몫에서 먼저 뺀다. 일시 중지(D25) 중인 시각, 방해금지 시작 뒤, 12시간 뒤 신호는 걸지 않는다.
+  // 이미 방해금지 안에서 돌고 있으면 사용자가 일부러 켠 것이라 12시간만 본다.
+  const horizon = now.getTime() + SIGNAL_HORIZON_MS;
+  const quietStart = Date.parse(capToQuiet(now.toISOString(), new Date(horizon).toISOString(), tz, quiet));
+  const signalEnd = quietStart > now.getTime() ? quietStart : horizon;
+  const signals = (timer?.signals ?? [])
+    .filter((s) => Date.parse(s.fireAt) > now.getTime() && Date.parse(s.fireAt) <= signalEnd)
+    .filter((s) => !isPaused(pause, new Date(s.fireAt)));
 
   // 끝 알림을 먼저 정해 예약 몫에서 뺀다. 일시 중지 중인 시각의 끝 알림은 걸지 않는다.
   const blockEnds: DesiredBlockEnd[] = blocks
@@ -159,7 +183,7 @@ export function desiredSchedule(params: {
     .sort((a, b) => Date.parse(a.endAt) - Date.parse(b.endAt))
     .slice(0, MAX_PINGS)
     .map((b) => ({ blockId: b.id, fireAt: new Date(b.endAt).toISOString(), body: blockEndBody(b, tz) }));
-  const budget = MAX_PINGS - blockEnds.length;
+  const budget = MAX_PINGS - blockEnds.length - signals.length;
 
   const days = horizonDays(quiet, budget);
   const end = now.getTime() + days * 24 * 60 * MINUTE_MS;
@@ -173,6 +197,7 @@ export function desiredSchedule(params: {
     if (inQuiet(localParts(slotStart, tz), quiet)) continue;
     if (isPaused(pause, fire)) continue;
     if (inBlock(t, blocks)) continue;
+    if (timer && timer.startAt < t && t <= timer.coverUntil) continue;
     pings.push({
       slotStart: slotStart.toISOString(),
       fireAt: fire.toISOString(),
@@ -186,6 +211,7 @@ export function desiredSchedule(params: {
   return {
     pings,
     blockEnds,
+    signals,
     days,
     expiryAt: expiry > now.getTime() ? new Date(expiry).toISOString() : null,
   };
