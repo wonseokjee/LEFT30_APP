@@ -7,6 +7,9 @@ import {
   clockText,
   DEFAULT_PREFS,
   durationText,
+  homeDate,
+  idleState,
+  nextPingSeconds,
   forgotHours,
   readTimerPrefs,
   saveTimerPrefs,
@@ -121,5 +124,29 @@ describe('(T5) 시작 시트 값', () => {
     await startTimer(db, { kind: 'stopwatch', itemId: a.id, now: T0 + 2 * MIN, tz: TZ });
     await stopTimer(db, T0 + 3 * MIN);
     expect((await recentItems(db, 'focus', T0 + 10 * MIN)).map((x) => x.name)).toEqual(['영어', '수학']);
+  });
+});
+
+describe('(T11) 평소 숫자 자리', () => {
+  const at = (hhmm: string, sec = 0) => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return Date.UTC(2026, 10, 21, h - 9, m, sec); // 서울
+  };
+  it('다음 :00/:30까지 남은 초', () => {
+    expect(nextPingSeconds(at('19:47', 35), TZ)).toBe(12 * 60 + 25);
+    expect(nextPingSeconds(at('19:30', 0), TZ)).toBe(30 * 60);
+    expect(nextPingSeconds(at('19:59', 59), TZ)).toBe(1);
+  });
+  it('라벨: 방해금지 > 알림 꺼짐 > 평소, 방해금지는 끝나는 시각과 잠', () => {
+    const quiet = [{ startMin: 23 * 60, endMin: 7 * 60, days: [0, 1, 2, 3, 4, 5, 6] }];
+    expect(idleState({ now: at('20:00'), tz: TZ, quiet, pause: null })).toEqual({ label: '다음 30분 기록 알림까지', sleeping: false });
+    expect(idleState({ now: at('20:00'), tz: TZ, quiet, pause: { until: null } }).label).toBe('30분 기록 알림 꺼짐');
+    expect(idleState({ now: at('23:30'), tz: TZ, quiet, pause: { until: null } })).toEqual({
+      label: '방해금지 · 7:00부터 30분 기록 알림',
+      sleeping: true,
+    });
+  });
+  it('날짜', () => {
+    expect(homeDate(at('19:47'), TZ)).toBe('11월 21일 (토)');
   });
 });

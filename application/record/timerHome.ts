@@ -1,6 +1,7 @@
 import { getSetting, setSetting } from '@/db/records';
 import type { Db, TimerKind } from '@/db/types';
-import { MINUTE_MS } from '@/lib/localTime';
+import { localParts, MINUTE_MS } from '@/lib/localTime';
+import { inQuiet, isPaused, type Pause, type Quiet } from '@/scheduler/plan';
 import { activeMs, openPause, pomodoroPhase, type PomodoroCfg, type Running } from './timerLogic';
 
 /*
@@ -147,4 +148,42 @@ export async function saveTimerPrefs(db: Db, prefs: TimerPrefs): Promise<void> {
 
 export function clamp(n: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, n));
+}
+
+// ── 평소 숫자 자리(visual 4.1 "숫자 자리의 상태", G14·G17·G18) ─────────────────
+
+// 다음 :00/:30까지 남은 초(30분 경계는 현지 시각과 상관없이 UTC 기준 30분 배수와 같다. 반 시간대(+5:30)도 :00/:30).
+export function nextPingSeconds(now: number, tz: string): number {
+  const { minuteOfDay } = localParts(new Date(now), tz);
+  const sec = Math.floor(now / 1000) % 60;
+  const intoSlot = (minuteOfDay % 30) * 60 + sec;
+  return 30 * 60 - intoSlot;
+}
+
+export type IdleState = { label: string; sleeping: boolean };
+
+// 방해금지 > 알림 꺼 둠 > 평소. 방해금지 라벨의 시각은 방해금지가 끝나는 시각.
+export function idleState(p: { now: number; tz: string; quiet: Quiet; pause: Pause | null }): IdleState {
+  const at = new Date(p.now);
+  if (inQuiet(localParts(at, p.tz), p.quiet)) {
+    for (let m = 1; m <= 7 * 24 * 60; m++) {
+      const t = new Date(p.now + m * MINUTE_MS);
+      const parts = localParts(t, p.tz);
+      if (!inQuiet(parts, p.quiet)) {
+        const h = Math.floor(parts.minuteOfDay / 60);
+        const mm = String(parts.minuteOfDay % 60).padStart(2, '0');
+        return { label: `방해금지 · ${h}:${mm}부터 30분 기록 알림`, sleeping: true };
+      }
+    }
+  }
+  if (isPaused(p.pause, at)) return { label: '30분 기록 알림 꺼짐', sleeping: false };
+  return { label: '다음 30분 기록 알림까지', sleeping: false };
+}
+
+const WEEKDAY = ['일', '월', '화', '수', '목', '금', '토'];
+// 맨 위 날짜 "11월 21일 (금)".
+export function homeDate(now: number, tz: string): string {
+  const { date, weekday } = localParts(new Date(now), tz);
+  const [, mo, d] = date.split('-').map(Number);
+  return `${mo}월 ${d}일 (${WEEKDAY[weekday]})`;
 }

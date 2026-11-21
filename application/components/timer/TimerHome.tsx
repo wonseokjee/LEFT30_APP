@@ -1,13 +1,23 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Text } from '@/components/ui/Text';
+import { Image, StyleSheet, TouchableOpacity, View, type LayoutChangeEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-
+import { Text } from '@/components/ui/Text';
 import PlanVsActual from '@/components/home/PlanVsActual';
-import Timer from '@/components/timer/timer';
-import { textOn } from '@/record/categoryStyle';
+import { labelLine, lastDigitShift, roomLayout, COLON_EM, DIGIT_EM, type RoomLayout } from '@/components/home/roomLayout';
+import { deviceTz } from '@/lib/localTime';
 import { getItem } from '@/record/items';
-import { clockText, forgotHours, STOP_LINE_MS, stopLine, timerView } from '@/record/timerHome';
+import {
+  clockSpeech,
+  clockText,
+  forgotHours,
+  homeDate,
+  idleState,
+  nextPingSeconds,
+  STOP_LINE_MS,
+  stopLine,
+  timerView,
+  type IdleState,
+} from '@/record/timerHome';
 import {
   activeMs,
   cancelStop,
@@ -20,13 +30,22 @@ import {
   type Stopped,
 } from '@/record/timerLogic';
 import { afterTimerChange, getRuntime, settleTimerNow } from '@/runtime/appRuntime';
+import { readPause, readQuiet } from '@/scheduler/scheduler';
 import { useAppStore } from '@/store/appStore';
-import ForgotSheet from './ForgotSheet';
-import { MAX_SCALE, useSheet } from './sheetStyle';
-import TimerStartSheet from './TimerStartSheet';
 import { makeStyles, useTheme } from '@/theme/theme';
+import ForgotSheet from './ForgotSheet';
+import { MAX_SCALE } from './sheetStyle';
+import TimerStartSheet from './TimerStartSheet';
 
 const NUMBER_SCALE = 1.3; // D19 큰 숫자 1.3배 상한
+const ROOM = { light: require('@/assets/room/room-light.jpg'), dark: require('@/assets/room/room-dark.jpg') };
+const DESK = require('@/assets/room/desk-light.png'); // 밤 책상은 아직 없다(밝은 가구 먼저, README)
+const CAT = {
+  sit_watch: require('@/assets/cat/calico_sit_watch.png'),
+  loaf: require('@/assets/cat/calico_loaf.png'),
+  sleep: require('@/assets/cat/calico_sleep.png'),
+};
+const CAT_RATIO = { sit_watch: 1392 / 1130, loaf: 1545 / 1018, sleep: 1392 / 1130 };
 
 // "계속"을 누른 세션은 앱이 살아 있는 동안 다시 묻지 않는다(D11).
 const forgotAsked = new Set<string>();
@@ -34,20 +53,21 @@ const forgotAsked = new Set<string>();
 type StopNote = { stopped: Stopped; text: string; pingsBack: boolean };
 
 /*
- * 홈 가운데(T5, visual 4.1·4.3c). 진행 중에는 [시작]과 "오늘 지금까지"를 숨기고 [일시정지] [정지]만(D6).
- *   평소                          진행 중                       일시정지
- *   다음 30분 기록 알림까지        TOEIC RC · 스톱워치             TOEIC RC · 스톱워치
- *   12:41                         1:23                           1:23 (흐리게)
- *   [시작]                        [일시정지] [정지]               일시정지 중  [재개] [정지]
- *   오늘 지금까지
- * [정지]는 확인 없이 바로 정지하고 "집중 1시간 23분 기록함 · 정지 취소"를 5초 띄운다(D8).
- * 글꼴·숫자 칸·선반 배치는 T10·T11에서 바꾼다.
+ * 홈 = 고양이 방(visual 4.1·4.3c, 시안 room/home-desk.html). 방 그림이 화면 전체 배경이고,
+ * 큰 숫자와 고양이는 책상 위, [시작]과 "오늘 지금까지"는 바닥 아래쪽(탭 위 20 기준).
+ *   평소: 라벨 "다음 30분 기록 알림까지"(알림 꺼짐·방해금지면 그 라벨), 숫자 = 다음 알림까지, 고양이 앉아 봄(방해금지면 잠)
+ *   진행 중: 라벨 "제목 · 방식", 숫자 = 타이머, 고양이 식빵, 바닥은 [일시정지] [정지]만(D6)
+ *   일시정지: 숫자 흐리게 멈춤, 버튼 위에 "일시정지 중", [재개](강조) [정지]
+ * [정지]는 확인 없이 바로 정지하고 5초 "집중 1시간 23분 기록함 · 정지 취소"(D8).
  */
 export default function TimerHome({ showBars }: { showBars: boolean }) {
   const styles = useStyles();
+  const t = useTheme();
   const blockVersion = useAppStore((s) => s.blockVersion);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [running, setRunning] = useState<Running | null>(null);
   const [name, setName] = useState('집중');
+  const [idle, setIdle] = useState<IdleState>({ label: '다음 30분 기록 알림까지', sleeping: false });
   const [now, setNow] = useState(() => Date.now());
   const [starting, setStarting] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -60,7 +80,12 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
     readRunning(db)
       .then(async (r) => {
         setRunning(r);
-        if (!r) return setForgot(null);
+        if (!r) {
+          setForgot(null);
+          const [quiet, pause] = await Promise.all([readQuiet(db), readPause(db)]);
+          setIdle(idleState({ now: Date.now(), tz: deviceTz(), quiet, pause }));
+          return;
+        }
         setName((await getItem(db, r.entry.item_id))?.name ?? '집중');
         const h = forgotHours(r, Date.now());
         setForgot(h !== null && !forgotAsked.has(r.entry.id) ? h : null);
@@ -71,17 +96,20 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
   useEffect(load, [load, blockVersion]);
   useFocusEffect(useCallback(load, [load]));
 
-  // 진행 중에는 1초마다 숫자를 다시 그린다.
+  // 숫자는 1초마다. 평소 라벨(방해금지 시작·끝)은 30분 경계마다 다시 읽는다.
   useEffect(() => {
-    if (!running) return;
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [running]);
+    const tick = setInterval(() => {
+      const n = Date.now();
+      setNow(n);
+      if (Math.floor(n / 1000) % 1800 === 0) load();
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [load]);
 
   useEffect(() => {
     if (!note) return;
-    const t = setTimeout(() => setNote(null), STOP_LINE_MS);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setNote(null), STOP_LINE_MS);
+    return () => clearTimeout(timer);
   }, [note]);
 
   const view = running ? timerView(running, name, now) : null;
@@ -127,110 +155,203 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
       await cancelStop(getRuntime().db, s, Date.now());
     });
 
+  const onLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (!size || size.w !== width || size.h !== height) setSize({ w: width, h: height });
+  };
+
+  const L = size ? roomLayout(size.w, size.h) : null;
+  const seconds = view ? view.seconds : nextPingSeconds(now, deviceTz());
+  const label = view ? view.label : idle.label;
+  const speech = view
+    ? view.paused
+      ? `${view.speech}, 일시정지 중`
+      : view.speech
+    : `${idle.label}, ${clockSpeech(seconds)}`;
+  const pose: keyof typeof CAT = view ? 'loaf' : idle.sleeping ? 'sleep' : 'sit_watch';
+
   return (
-    <View style={styles.center}>
-      {view && running ? (
+    <View style={styles.fill} onLayout={onLayout}>
+      {L && (
         <>
-          <Text style={styles.label} maxFontSizeMultiplier={MAX_SCALE}>
-            {view.label}
+          <Image source={t.dark ? ROOM.dark : ROOM.light} style={[styles.abs, L.room]} resizeMode='cover' />
+          <Text style={[styles.date, { left: 22 * L.k }]} maxFontSizeMultiplier={MAX_SCALE}>
+            {homeDate(now, deviceTz())}
           </Text>
-          <Text
-            style={[styles.number, view.paused && styles.dim]}
-            maxFontSizeMultiplier={NUMBER_SCALE}
-            accessibilityLabel={view.paused ? `${view.speech}, 일시정지 중` : view.speech}
-          >
-            {clockText(view.seconds)}
-          </Text>
-          {view.paused && (
-            <Text style={styles.small} maxFontSizeMultiplier={MAX_SCALE}>
-              일시정지 중
-            </Text>
-          )}
-          <View style={styles.row}>
-            {view.paused ? (
-              <Btn primary label='재개' onPress={() => act(() => resumeTimer(getRuntime().db, Date.now()))} />
-            ) : (
-              <Btn label='일시정지' onPress={() => act(() => pauseTimer(getRuntime().db, Date.now()))} />
-            )}
-            <Btn label='정지' onPress={() => act(() => stopAt())} />
-          </View>
-          {forgot !== null && (
-            <ForgotSheet
-              running={running}
-              hours={forgot}
-              onKeep={() => {
-                forgotAsked.add(running.entry.id);
-                setForgot(null);
-              }}
-              onStopAt={async (at) => {
-                forgotAsked.add(running.entry.id);
-                setForgot(null);
-                await act(() => stopAt(at));
-              }}
-            />
-          )}
-        </>
-      ) : (
-        <>
-          <Text style={styles.label} maxFontSizeMultiplier={MAX_SCALE}>
-            다음 30분 기록 알림까지
-          </Text>
-          <Timer />
-          {note && (
-            <View style={styles.note}>
-              <Text style={styles.small} maxFontSizeMultiplier={MAX_SCALE} accessibilityLiveRegion='polite'>
-                {note.text} ·{' '}
-              </Text>
-              <TouchableOpacity onPress={() => undoStop(note.stopped)} accessibilityLabel='정지 취소'>
-                <Text style={styles.link} maxFontSizeMultiplier={MAX_SCALE}>
-                  정지 취소
-                </Text>
-              </TouchableOpacity>
-              {note.pingsBack && (
-                <Text style={styles.tiny} maxFontSizeMultiplier={MAX_SCALE}>
-                  {'  '}30분 알림 다시 켬
+          <Image source={DESK} style={[styles.abs, L.desk]} />
+          <BigNumber L={L} text={clockText(seconds)} label={label} dim={!!view?.paused} speech={speech} />
+          <Image
+            source={CAT[pose]}
+            style={[
+              styles.abs,
+              {
+                right: L.cat.right,
+                height: pose === 'sleep' ? L.cat.sleepHeight : L.cat.height,
+                width: (pose === 'sleep' ? L.cat.sleepHeight : L.cat.height) * CAT_RATIO[pose],
+                top: L.surfaceY - (pose === 'sleep' ? L.cat.sleepHeight : L.cat.height) + 4 * L.k,
+              },
+            ]}
+            accessibilityIgnoresInvertColors
+          />
+
+          {view && running ? (
+            <>
+              {view.paused && (
+                <Text style={[styles.floorNote, { top: L.buttonTop - 30 }]} maxFontSizeMultiplier={MAX_SCALE}>
+                  일시정지 중
                 </Text>
               )}
-            </View>
+              <View style={[styles.buttons, { top: L.buttonTop }]}>
+                {view.paused ? (
+                  <Btn fill label='재개' onPress={() => act(() => resumeTimer(getRuntime().db, Date.now()))} />
+                ) : (
+                  <Btn fill label='일시정지' onPress={() => act(() => pauseTimer(getRuntime().db, Date.now()))} />
+                )}
+                <Btn label='정지' onPress={() => act(() => stopAt())} />
+              </View>
+              {forgot !== null && (
+                <ForgotSheet
+                  running={running}
+                  hours={forgot}
+                  onKeep={() => {
+                    forgotAsked.add(running.entry.id);
+                    setForgot(null);
+                  }}
+                  onStopAt={async (at) => {
+                    forgotAsked.add(running.entry.id);
+                    setForgot(null);
+                    await act(() => stopAt(at));
+                  }}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              {note && (
+                <View style={[styles.note, { top: L.buttonTop - 44 }]}>
+                  <Text style={styles.noteText} maxFontSizeMultiplier={MAX_SCALE} accessibilityLiveRegion='polite'>
+                    {note.text} ·{' '}
+                  </Text>
+                  <TouchableOpacity onPress={() => undoStop(note.stopped)} accessibilityLabel='정지 취소' hitSlop={12}>
+                    <Text style={[styles.noteText, styles.link]} maxFontSizeMultiplier={MAX_SCALE}>
+                      정지 취소
+                    </Text>
+                  </TouchableOpacity>
+                  {note.pingsBack && (
+                    <Text style={styles.noteSmall} maxFontSizeMultiplier={MAX_SCALE}>
+                      {'  '}30분 알림 다시 켬
+                    </Text>
+                  )}
+                </View>
+              )}
+              <View style={[styles.buttons, { top: L.buttonTop }]}>
+                <Btn fill wide label='시작' a11y='타이머 시작' onPress={() => setStarting(true)} />
+              </View>
+              {showBars && (
+                <View style={[styles.bars, { top: L.barsTop }]}>
+                  <PlanVsActual />
+                </View>
+              )}
+              <TimerStartSheet visible={starting} onClose={() => setStarting(false)} />
+            </>
           )}
-          <Btn primary label='시작' a11y='타이머 시작' onPress={() => setStarting(true)} />
-          {showBars && <PlanVsActual />}
-          <TimerStartSheet visible={starting} onClose={() => setStarting(false)} />
         </>
       )}
     </View>
   );
 }
 
-function Btn(p: { label: string; onPress: () => void; primary?: boolean; a11y?: string }) {
+/*
+ * 큰 숫자(G4·G5·G7): 자리마다 같은 폭 칸에 가운데 맞춤, 콜론도 고정 칸. 칸 아래 끝 = 책상 윗면.
+ * 끝 숫자만 칸 오른쪽으로 절반쯤 옮기고, 라벨은 고정선에 오른쪽 끝을 맞춰 매초 움직이지 않는다.
+ */
+function BigNumber(p: { L: RoomLayout; text: string; label: string; dim: boolean; speech: string }) {
   const styles = useStyles();
-  const t = useTheme();
+  const { num } = p.L;
+  const chars = [...p.text];
+  const line = labelLine(p.text, num);
+  return (
+    <View
+      style={[styles.abs, { left: p.L.numLeft, top: p.L.surfaceY - num - 26 }]}
+      accessible
+      accessibilityLabel={p.speech}
+    >
+      <Text
+        style={[styles.label, { position: 'absolute', top: 0, right: undefined, width: 300, left: line - 300, textAlign: 'right' }]}
+        numberOfLines={1}
+        maxFontSizeMultiplier={MAX_SCALE}
+      >
+        {p.label}
+      </Text>
+      <View style={[styles.numRow, { marginTop: 26, height: num }, p.dim && styles.dim]}>
+        {chars.map((ch, i) => (
+          <Text
+            key={i}
+            style={[
+              styles.num,
+              {
+                fontSize: num,
+                lineHeight: num,
+                width: (ch === ':' ? COLON_EM : DIGIT_EM) * num,
+                transform: i === chars.length - 1 ? [{ translateX: lastDigitShift(ch, num) }] : undefined,
+              },
+            ]}
+            maxFontSizeMultiplier={NUMBER_SCALE}
+          >
+            {ch}
+          </Text>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function Btn(p: { label: string; onPress: () => void; fill?: boolean; wide?: boolean; a11y?: string }) {
+  const styles = useStyles();
   return (
     <TouchableOpacity
-      style={[styles.btn, p.primary ? styles.btnPrimary : styles.btnLine]}
+      style={[styles.btn, p.wide ? styles.btnWide : styles.btnHalf, p.fill ? styles.btnFill : styles.btnLine]}
       onPress={p.onPress}
       accessibilityRole='button'
       accessibilityLabel={p.a11y ?? p.label}
     >
-      <Text style={[styles.btnText, p.primary && { color: t.onAcc }]} maxFontSizeMultiplier={MAX_SCALE}>
+      <Text style={[styles.btnText, p.fill && styles.btnTextFill]} maxFontSizeMultiplier={MAX_SCALE}>
         {p.label}
       </Text>
     </TouchableOpacity>
   );
 }
 
-const useStyles = makeStyles((t) => StyleSheet.create({
-  center: { alignItems: 'center', alignSelf: 'stretch', paddingHorizontal: 16, gap: 8 },
-  label: { color: t.sub, fontSize: 15 },
-  number: { color: t.text, fontSize: 110, includeFontPadding: false },
-  dim: { opacity: 0.45 },
-  small: { color: t.sub, fontSize: 15 },
-  tiny: { color: t.sub, fontSize: 13 },
-  link: { color: t.text, fontSize: 15, textDecorationLine: 'underline', paddingVertical: 12 },
-  note: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' },
-  row: { flexDirection: 'row', gap: 16, marginTop: 8 },
-  btn: { minHeight: 48, minWidth: 120, borderRadius: 24, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
-  btnPrimary: { backgroundColor: t.acc },
-  btnLine: { borderWidth: 1, borderColor: t.sub },
-  btnText: { color: t.text, fontSize: 16 },
-}));
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    fill: { flex: 1, overflow: 'hidden', backgroundColor: t.floor },
+    abs: { position: 'absolute' },
+    date: { position: 'absolute', top: 16, color: t.sub, fontSize: 14, lineHeight: 20 },
+    label: { color: t.sub, fontSize: 14, lineHeight: 20 },
+    numRow: { flexDirection: 'row', alignItems: 'flex-end' },
+    num: { color: t.text, textAlign: 'center', includeFontPadding: false },
+    dim: { opacity: 0.45 },
+    floorNote: { position: 'absolute', left: 0, right: 0, textAlign: 'center', color: t.text, fontSize: 14 },
+    note: {
+      position: 'absolute',
+      left: 16,
+      right: 16,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    noteText: { color: t.text, fontSize: 14, lineHeight: 20 },
+    noteSmall: { color: t.text, fontSize: 13 },
+    link: { textDecorationLine: 'underline' },
+    buttons: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 21 },
+    btn: { height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+    btnWide: { width: 150 },
+    btnHalf: { width: 140 },
+    btnFill: { backgroundColor: t.acc },
+    btnLine: { borderWidth: 1.5, borderColor: t.floorBorder },
+    btnText: { color: t.text, fontSize: 17 },
+    btnTextFill: { color: t.onAcc },
+    bars: { position: 'absolute', left: 26, right: 26 },
+  }),
+);
