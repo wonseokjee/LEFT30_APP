@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><title>라벨 끝 맞춤 세 가지</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+body{margin:0;padding:24px;background:#e9e4de;font-family:Jua,sans-serif;color:#3a2c22}
+h1{font-size:20px;font-weight:400;margin:0 0 6px} p{font-size:14px;color:#6b5a4d;margin:0 0 14px;line-height:1.6}
+.row{display:flex;gap:18px;flex-wrap:wrap}
+.box{width:393px}
+.cap{font-size:16px;margin:0 0 4px} .sub{font-size:13px;color:#6b5a4d;margin:0 0 8px;min-height:38px}
+.wall{position:relative;height:150px;border-radius:14px;background:url('./room-light-portrait-flat-v1.png') center 35%/cover;margin-bottom:10px;color:#5A4030}
+.grp{position:absolute;left:23px;top:30px}
+.lab{position:absolute;top:0;font-size:14px;color:#765642;white-space:nowrap}
+.num{margin-top:26px;font-size:80px;line-height:1;display:flex;white-space:nowrap}
+.num i{font-style:normal;display:inline-block;width:.63em;text-align:center}
+.num i.c{width:.30em}
+.v3 .num i:last-child{text-align:right}
+.guide{position:absolute;top:0;bottom:-90px;width:1px;background:rgba(200,60,40,.5)}
+</style></head><body>
+<h1>라벨 끝을 숫자 끝에 맞추는 방법 세 가지 (1초마다 바뀜, 빨간 선 = 라벨 끝)</h1>
+<p>위: 1시간 미만 스톱워치(분:초, 매초). 아래: 대기 중 다음 알림까지(분:초, 매초). 빨간 선은 비교용이라 실제 화면에는 없다.</p>
+<div class="row" id="out"></div>
+<script>
+const V=[
+ ['v1','① 지금: 실제 글자 끝 따라감','라벨이 매초 0~14px 움직임. 끝은 늘 정확히 맞음'],
+ ['v2','② 고정선: 넓은 숫자 끝에 고정','라벨은 안 움직임. 끝 숫자가 1이면 라벨이 숫자보다 약 13px 더 나감'],
+ ['v3','③ 끝 숫자만 칸 오른쪽에 붙임 + 고정선 (권장)','라벨은 안 움직임. 끝 숫자가 1일 때만 약 5px 차이. 끝 숫자는 칸 안에서 몇 px 옮겨질 뿐'],
+];
+const LBL=['TOEIC RC · 스톱워치','다음 30분 기록 알림까지'];
+const cells=t=>[...t].map(c=>c===':'?'<i class="c">:</i>':`<i>${c}</i>`).join('');
+document.getElementById('out').innerHTML=V.map(([k,t,d])=>`<div class="box ${k}"><p class="cap">${t}</p><p class="sub">${d}</p>`+
+  LBL.map((l,j)=>`<div class="wall"><div class="grp"><div class="lab">${l}</div><div class="num" data-j="${j}"></div><div class="guide"></div></div></div>`).join('')+`</div>`).join('');
+// 80 기준 칸(50.4) 왼쪽에서 글자 잉크 오른쪽 끝(주아 파일 값)
+const INK={0:46.5,1:33.4,2:45.4,3:44.0,4:47.1,5:45.1,6:46.7,7:46.1,8:45.1,9:45.6};
+const RSB={0:3.2,1:8.2,2:3.2,3:3.2,4:3.2,5:3.2,6:3.2,7:3.3,8:3.3,9:3.2}; // 오른쪽 붙임일 때 칸 끝에서 잉크까지
+let a=23*60+1, b=12*60+44;
+function draw(){
+  const T=[`${Math.floor(a/60)}:${String(a%60).padStart(2,'0')}`,`${Math.floor(b/60)}:${String(b%60).padStart(2,'0')}`];
+  document.querySelectorAll('.box').forEach(box=>{
+    box.querySelectorAll('.grp').forEach((g,j)=>{
+      const num=g.querySelector('.num'), lab=g.querySelector('.lab'), gd=g.querySelector('.guide');
+      num.innerHTML=cells(T[j]); const last=num.lastElementChild, d=T[j].slice(-1);
+      let end;
+      if(box.classList.contains('v1')) end=last.offsetLeft+INK[d];
+      else if(box.classList.contains('v2')) end=last.offsetLeft+47.1;
+      else end=last.offsetLeft+last.offsetWidth-3.2;
+      lab.style.left=(end-lab.offsetWidth)+'px'; gd.style.left=end+'px';
+    });
+  });
+}
+document.fonts.ready.then(()=>{draw(); setInterval(()=>{a++; b--; draw();},1000);});
+</script></body></html>

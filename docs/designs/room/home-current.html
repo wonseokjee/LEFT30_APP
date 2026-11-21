@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>LEFT30 홈 · 지금까지 정한 모습</title>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:#e9e4de; font-family:"Jua",sans-serif; color:#3a2c22; }
+  h1 { font-size:20px; margin:0 0 4px; font-weight:400; } h2 { font-size:18px; margin:30px 0 4px; font-weight:400; }
+  p.lead { margin:0 0 6px; font-size:14px; color:#6b5a4d; line-height:1.6; max-width:1500px; }
+  .row { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
+  .cap { font-size:14px; margin:0 0 4px; width:393px; color:#6b5a4d; }
+
+  /* 393×852 dp, 낮/밤 색은 6절(밤은 임시) */
+  .ph { --t:#5A4030; --s:#765642; --acc:#4E4842; --onacc:#F3E2D0; --bdw:#8A705E; --bdf:#5A4030; --track:rgba(120,90,70,.18);
+        position:relative; width:393px; height:852px; overflow:hidden; border:6px solid #2d2622; border-radius:30px; color:var(--t); box-sizing:content-box;
+        background:url('./room-light-portrait-flat-v1.png') center/cover; }
+  .ph.night { --t:#F3E8DC; --s:#B8A898; --acc:#D6CEC6; --onacc:#3B3734; --bdw:#8D7F74; --bdf:#F3E8DC; --track:rgba(230,215,200,.16);
+        background-image:url('./room-dark-portrait-flat-v1.png'); }
+  .abs { position:absolute; }
+  .s14 { font-size:14px; line-height:1.4; } .s17 { font-size:17px; line-height:1.4; } .s22 { font-size:22px; line-height:1.4; }
+  .sec { color:var(--s); }
+  /* G4: 자리마다 같은 폭 칸(0 기준 가장 넓은 4 = 0.628em), 콜론 고정 칸 */
+  .num { position:absolute; font-size:80px; line-height:1; white-space:nowrap; display:flex; }
+  .num i { font-style:normal; display:inline-block; width:.63em; text-align:center; }
+  .num i.c { width:.30em; }
+  .num.paused { opacity:.45; }
+  .btn { position:absolute; height:48px; border-radius:24px; display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .btn.fill { background:var(--acc); color:var(--onacc); }
+  .btn.line { border:1.5px solid var(--bdf); }
+  .bars { position:absolute; left:26px; right:26px; }
+  .r { display:flex; align-items:center; gap:10px; height:26px; font-size:14px; }
+  .r b { font-weight:400; width:40px; } .r i { flex:1; height:5px; border-radius:3px; background:var(--track); position:relative; }
+  .r i::after { content:""; position:absolute; left:0; top:0; bottom:0; width:var(--w); background:var(--acc); border-radius:3px; }
+  .r em { font-style:normal; white-space:nowrap; }
+  /* C: 트랙 없는 막대 */
+  .rc { font-size:14px; margin-bottom:8px; } .rc .ln { height:2px; background:var(--acc); width:var(--w); margin-top:3px; border-radius:1px; }
+  .rc .bk { height:1px; background:var(--track); margin-top:-2px; }
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:56px; display:flex; justify-content:space-around; align-items:center; font-size:14px; color:var(--s); }
+  .tabs .on { color:var(--t); }
+  .link { text-decoration:underline; text-underline-offset:4px; text-decoration-thickness:1px; }
+</style>
+</head>
+<body>
+<h1>홈 · 지금까지 정한 모습 (visual 4.1, 바닥 묶음 탭 위 기준)</h1>
+<p class="lead">세 안 모두 디자인 리뷰 3 결정을 따른다: 앱 전체 주아(굵게 없음), 숫자는 자리마다 같은 폭 칸(G4)이고 아래 끝이 선반 윗면(G5), 고양이 키 ≈ 숫자 높이 × 1.2(G13), 라벨 "다음 30분 기록 알림까지"(G14), 바닥 [시작] 하나, 바닥 [정지] 테두리는 본문색(G11), 계획 없음 한 줄(G19), 방해금지 라벨(G18, 밤 색은 임시). 진행 중 숫자는 1초마다 바뀐다(흔들리는지 보기). 고양이가 숫자를 조금 가려도 된다(G23).</p>
+<div id="out"></div>
+<script>
+const ROOM = './';
+const CAT = '../cat/';
+const W = 393, H = 852, FLOOR = Math.round(H * 0.63), SURF = FLOOR - 165, NUM = 80;
+const SHELF_W = 409, SHELF_SURF_OFF = 35;           // 선반 그림에서 윗면까지
+const numTop = SURF - Math.round(NUM * 0.8);        // 주아 ascent 800/1000 → 숫자 바닥 = 선반 윗면
+const PAD = Math.round(80 * (0.63 - 0.56) / 2);  // 숫자 칸 안 여백: 첫 글자 시작·끝 글자 끝을 26 선과 라벨 끝에 맞춤
+const cells = t => [...t].map(ch => ch === ':' ? '<i class="c">:</i>' : `<i>${ch}</i>`).join('');
+const shelf = `<img class="abs" src="${ROOM}floating-shelf-light-mid-v4.svg" style="top:${SURF - SHELF_SURF_OFF}px;left:-8px;width:${SHELF_W}px">`;
+let CATSIDE = 'right';
+const cat = (pose, h = 70) => `<img class="abs" src="${CAT}calico_cat_${pose}.png" style="height:${h}px;${CATSIDE}:10px;top:${SURF - h + 4}px${CATSIDE === 'left' ? ';transform:scaleX(-1)' : ''}">`;
+const tabs = `<div class="tabs"><span>할 일</span><span class="on">홈</span><span>시간표</span></div>`;
+const barsA = `<div class="s14">오늘 지금까지</div>
+  <div class="r"><b>영어</b><i style="--w:67%"></i><em>40분 · 계획 1시간</em></div>
+  <div class="r"><b>집중</b><i style="--w:50%"></i><em>30분 · 계획 1시간</em></div>`;
+const barsC = `<div class="rc">영어 40분 / 계획 1시간<div class="ln" style="--w:67%"></div><div class="bk"></div></div>
+  <div class="rc">집중 30분 / 계획 1시간<div class="ln" style="--w:50%"></div><div class="bk"></div></div>`;
+const noPlan = `<div class="s14"><span class="link">오늘 계획 없음 ›</span></div>`;
+
+const S = {  // 상태별 내용
+  idle:   { night:false, num:'12:41', label:'다음 30분 기록 알림까지', cat:'sit_watch', bottom:'start', bars:true },
+  run:    { night:false, num:'23:05', label:'TOEIC RC · 스톱워치', cat:'loaf', bottom:'run', bars:false, tick:true },
+  runh:   { night:false, num:'1:23', label:'TOEIC RC · 스톱워치', cat:'loaf', bottom:'run', bars:false },
+  pomo:   { night:false, num:'18:40', label:'TOEIC RC · 뽀모도로 1/4바퀴', cat:'loaf', bottom:'run', bars:false },
+  off:    { night:false, num:'12:41', label:'30분 기록 알림 꺼짐', cat:'sit_watch', bottom:'start', bars:true },
+  noplan: { night:false, num:'12:41', label:'다음 30분 기록 알림까지', cat:'sit_watch', bottom:'start', bars:false, noplan:true },
+  dnd:    { night:true,  num:'08:12', label:'방해금지 · 7:00부터 30분 기록 알림', cat:'sleep', bottom:'start', bars:true },
+};
+const NAMES = { idle:'대기 중', run:'스톱워치 · 1시간 미만(분:초)', runh:'스톱워치 · 1시간부터(시:분)', pomo:'뽀모도로 집중 중', off:'30분 알림 꺼 둠(G17)', noplan:'계획 없음', dnd:'방해금지(밤, 색은 임시)' };
+
+function bottom(st, v) {
+  let s = '';
+  const btnTop = (H - 56 - 20) - (70 + 72);  // 탭 위 20에 막대 두 줄 끝이 오게 아래 기준(2026-11-21)
+  if (st.bottom === 'start') s += `<div class="btn fill" style="top:${btnTop}px;left:${(W - 150) / 2}px;width:150px">시작</div>`;
+  else s += `<div class="btn fill" style="top:${btnTop}px;left:46px;width:140px">일시정지</div><div class="btn line" style="top:${btnTop}px;left:${W - 186}px;width:140px">정지</div>`;
+  const y = btnTop + 70;
+  if (st.bars) s += `<div class="bars" style="top:${y}px">${v === 'C' ? barsC : barsA}</div>`;
+  if (st.noplan) s += `<div class="bars" style="top:${y}px">${noPlan}</div>`;
+  return s;
+}
+function phone(v, key) {
+  const st = S[key];
+  let s = `<div class="ph${st.night ? ' night' : ''}">`;
+  const isRun = !!S[key].bottom && S[key].bottom === 'run';
+  if (v === 'A') {
+    s += `<div class="abs s14 sec" style="top:16px;left:22px">11월 18일 (화)</div>`;
+
+  }
+  if (v === 'B') {
+    s += `<div class="abs s14 sec" style="top:${H - 56 - 30}px;left:0;right:0;text-align:center">11월 18일 (화)</div>`;
+    if (!isRun) s += `<div class="abs s14 sec" style="top:${SURF + 70}px;left:26px">${st.label}</div>`;
+  }
+  if (v === 'C') {
+    s += `<div class="abs s22" style="top:${70}px;left:26px;right:26px">11월 18일 화요일<br><span class="sec">${isRun ? '스톱워치' : st.label}</span></div>`;
+  }
+  s += `<div class="abs" style="top:${numTop - 26}px;left:${26 - PAD}px"><div class="s14 sec lab" style="position:absolute;top:0;left:0;white-space:nowrap">${st.label}</div><div class="num${st.tick ? ' tick' : ''}" style="position:static;margin-top:26px">${cells(st.num)}</div></div>`;
+  s += shelf + cat(st.cat, st.cat === 'sleep' ? 52 : 70);
+
+  s += bottom(st, v) + tabs + `</div>`;
+  return `<div><p class="cap">${NAMES[key]}</p>${s}</div>`;
+}
+const V = [['A','right','정한 안: A · 숫자 왼쪽 · 라벨 끝 = 숫자 끝 · 고양이 오른쪽','숫자는 왼쪽(여백 26)에서 시작, 라벨 끝 = 고정선(끝 숫자는 칸 오른쪽으로 절반만 옮김, 라벨은 움직이지 않음). 진행 중 라벨은 「제목 · 방식」만(「30분 알림 쉼」 뺌). 날짜는 맨 위 왼쪽. 고양이가 끝자리를 가려도 됨(G23), 나중에 탭하면 살짝 비킴(nudge). 밤 색은 임시']];
+document.getElementById('out').innerHTML = V.map(v => { CATSIDE = v[1];
+  return `<h2>${v[2]}</h2><p class="lead">${v[3]}</p><div class="row">${['idle','run','runh','pomo','off','noplan','dnd'].map(k => phone(v[0], k)).join('')}</div>`; }).join('');
+
+// 끝 숫자는 가운데에서 칸 오른쪽 쪽으로 절반만 옮김(주아 advance, 80px 칸 50.4)
+const ADV = {0:612,1:411,2:585,3:550,4:628,5:577,6:618,7:605,8:581,9:589};
+function shiftLast(num) { const last = num.lastElementChild, d = last.textContent;
+  last.style.transform = `translateX(${(50.4 - ADV[d] * 0.08) / 4}px)`; }
+function alignLabels() {  // 라벨 끝 = 끝 칸 오른쪽 - 4.1 고정선
+  document.querySelectorAll('.lab').forEach(lab => {
+    const num = lab.nextElementSibling, last = num.lastElementChild; shiftLast(num);
+    lab.style.left = (last.offsetLeft + last.offsetWidth - 4.1 - lab.offsetWidth) + 'px';
+  });
+}
+document.fonts.ready.then(alignLabels);
+let sec = 23 * 60 + 5;
+setInterval(() => { sec++; const t = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  document.querySelectorAll('.tick').forEach(e => { e.innerHTML = cells(t); shiftLast(e); }); }, 1000);
+</script>
+</body>
+</html>
