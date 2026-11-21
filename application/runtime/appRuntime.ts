@@ -15,6 +15,7 @@ import { loadMissedRun } from '@/record/batchLogic';
 import { takeMorningOffer } from '@/record/morningPlan';
 import { logPingDisplayed, logPingScheduled } from '@/scheduler/pingEvents';
 import { useAppStore } from '@/store/appStore';
+import { syncOngoing } from '@/notifications/ongoingTask';
 
 // 앱 전체에서 하나만 쓰는 DB·동기화·스케줄러. 앱 시작 시 bootRuntime()으로 만든다.
 type Runtime = {
@@ -122,6 +123,7 @@ export async function settleTimerNow(): Promise<{ endSheet: string | null }> {
     const store = useAppStore.getState();
     if (ended) {
       store.bumpBlocks();
+      await syncOngoing(runtime.db);
       await rescheduleNow();
     }
     if (endSheet && !store.sheetSlot) store.openTimerSheet(endSheet);
@@ -180,6 +182,7 @@ export async function onForeground(): Promise<void> {
   await noteTz(runtime.db, deviceTz(), new Date());
   await settleBlocksNow();
   await settleTimerNow();
+  await syncOngoing(runtime.db);
   await offerMissedRun();
   await offerMorningPlan();
   await notePings();
@@ -199,6 +202,7 @@ export async function afterBlockChange(): Promise<void> {
 // 타이머 기록은 W1에서 서버로 보내지 않아 동기화는 하지 않는다.
 export async function afterTimerChange(): Promise<void> {
   useAppStore.getState().bumpBlocks();
+  if (runtime) await syncOngoing(runtime.db);
   await rescheduleNow();
 }
 

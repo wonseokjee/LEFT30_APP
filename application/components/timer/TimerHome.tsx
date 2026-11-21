@@ -34,6 +34,7 @@ import {
 import { afterTimerChange, getRuntime, settleTimerNow } from '@/runtime/appRuntime';
 import { readPause, readQuiet } from '@/scheduler/scheduler';
 import { useAppStore } from '@/store/appStore';
+import { syncOngoing } from '@/notifications/ongoingTask';
 import { makeStyles, useTheme } from '@/theme/theme';
 import ForgotSheet from './ForgotSheet';
 import { MAX_SCALE } from './sheetStyle';
@@ -130,6 +131,12 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
     endAsked.current = running.entry.id;
     void settleTimerNow().then(load);
   }, [running, view?.ended, view?.paused, load]);
+
+  // 뽀모도로 단계가 바뀌면(라벨이 바뀜) 고정 알림도 새 단계로 다시 그린다(T8).
+  const phaseKey = view && running?.entry.how === 'pomodoro' ? view.label : null;
+  useEffect(() => {
+    if (phaseKey) void syncOngoing(getRuntime().db);
+  }, [phaseKey]);
 
   // 버튼 잠금은 DB 쓰기 동안만. 알림 재계산(몇 초)은 기다리지 않는다: 기다리면 그사이 [정지 취소]가 막힌다.
   // 재계산은 겹치면 끝난 뒤 한 번 더 돌아(singleFlight) 마지막 상태로 맞춰진다.

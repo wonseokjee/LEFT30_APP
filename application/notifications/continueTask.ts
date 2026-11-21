@@ -1,16 +1,14 @@
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
-import type { Category, Db } from '@/db/types';
+import type { Category } from '@/db/types';
 import { CATEGORIES } from '@/db/types';
-import { openAppDb } from '@/db/expoDb';
-import { initDb } from '@/db/migrate';
-import { MIGRATIONS } from '@/db/schema';
 import { deviceTz } from '@/lib/localTime';
 import { readPingData, saveContinue } from '@/record/continueAction';
 import { CONTINUE_ACTION } from '@/scheduler/plan';
 import { createScheduler } from '@/scheduler/scheduler';
 import { expoNotifier } from '@/scheduler/expoNotifier';
-import { getRuntime, rescheduleNow } from '@/runtime/appRuntime';
+import { rescheduleNow } from '@/runtime/appRuntime';
+import { backgroundDb, liveRuntime } from './backgroundDb';
 import { useAppStore } from '@/store/appStore';
 
 /*
@@ -26,26 +24,6 @@ type ResponsePayload = {
   actionIdentifier?: string;
   notification?: { request?: { identifier?: string; content?: { data?: unknown; dataString?: unknown } } };
 };
-
-let dbPromise: Promise<Db> | null = null;
-// 앱이 꺼져 있을 때만 쓴다. 앱이 떠 있으면 같은 JS에서 돌므로 앱의 연결·스케줄러를 쓴다(getRuntime).
-function backgroundDb(): Promise<Db> {
-  dbPromise ??= (async () => {
-    const db = await openAppDb();
-    const r = await initDb(db, MIGRATIONS);
-    if (!r.ok) throw new Error('db init failed');
-    return db;
-  })();
-  return dbPromise;
-}
-
-function liveRuntime() {
-  try {
-    return getRuntime();
-  } catch {
-    return null;
-  }
-}
 
 TaskManager.defineTask<ResponsePayload>(CONTINUE_TASK, async ({ data, error }) => {
   if (error || !data || data.actionIdentifier !== CONTINUE_ACTION) return;
