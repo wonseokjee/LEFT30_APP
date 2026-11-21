@@ -13,6 +13,7 @@ import { getRuntime } from '@/runtime/appRuntime';
 import DevTools from '@/components/dev/DevTools';
 import PauseSwitch from '@/components/quiet/PauseSwitch';
 import ThemePicker from '@/components/user/ThemePicker';
+import HomeBarsSwitch from '@/components/user/HomeBarsSwitch';
 import { makeStyles } from '@/theme/theme';
 
 export default function UserPage() {
@@ -72,6 +73,7 @@ export default function UserPage() {
         <View style={styles.contentContainer}>
           <Text style={styles.subtitle}>화면</Text>
           <ThemePicker />
+          <HomeBarsSwitch />
         </View>
         <View style={styles.contentContainer}>
           <Text style={styles.subtitle}>회원 탈퇴</Text>

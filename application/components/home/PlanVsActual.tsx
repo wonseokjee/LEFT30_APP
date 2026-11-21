@@ -3,30 +3,26 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { useFocusEffect } from 'expo-router';
 
-import { deviceTz, localParts } from '@/lib/localTime';
-import { ITEM_COLOR } from '@/record/categoryStyle';
-import { loadPva, noteHomeViewed, type Pva } from '@/record/planVsActual';
-import { hours } from '@/record/todoLogic';
+import { deviceTz, localParts, MINUTE_MS } from '@/lib/localTime';
+import { homeBars, loadPva, noteHomeViewed, type Pva } from '@/record/planVsActual';
+import { durationText } from '@/record/timerHome';
 import { getRuntime } from '@/runtime/appRuntime';
 import { readQuiet } from '@/scheduler/scheduler';
 import { useAppStore } from '@/store/appStore';
 import PlanTargetSheet from '@/components/todo/PlanTargetSheet';
-import { makeStyles, useTheme } from '@/theme/theme';
+import { makeStyles } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
-// 목표 막대 투명도(약 30%). 색 결정은 디자인 개편에서.
-const TARGET_ALPHA = '4d';
 
 /*
- * 오늘(홈) 계획 대비 실제(디자인 리뷰 D6·D12). 카드·테두리 없이 타이머 아래 여백으로 나눈다.
- *   업무   ▓▓▓▓░░░░   1h / 4h      ← 목표(연하게) 위에 실제(진하게)
- *   운동   ▓▓░░       0.5h / 1h
- *   오늘 업무 1h · 계획 4h          ← 차이가 가장 큰 카테고리 하나
- * 목표나 기록이 있는 카테고리만 줄로 보인다.
+ * 홈 바닥 "오늘 지금까지"(visual 4.3c D37·G19, 시안 A):
+ *   오늘 지금까지
+ *   영어  ▓▓▓▓▓░░░  40분 · 계획 1시간      ← 목표 줄만, 셋 이상이면 진행률 높은 두 개
+ *   집중  ▓▓▓░░░░░  30분 · 계획 1시간
+ * 목표가 없으면 "오늘 계획 없음 ›" 한 줄(누르면 목표 정하기). 사실만 말하고 재촉하지 않는다.
  */
 export default function PlanVsActual() {
   const styles = useStyles();
-  const t = useTheme();
   const blockVersion = useAppStore((s) => s.blockVersion);
   const lastSaved = useAppStore((s) => s.lastSaved);
   const sheetSlot = useAppStore((s) => s.sheetSlot);
@@ -58,61 +54,41 @@ export default function PlanVsActual() {
   );
 
   if (!pva) return null;
-  const scale = Math.max(1, ...pva.rows.map((r) => Math.max(r.target, r.actual)));
-  const link = (text: string) => (
-    <TouchableOpacity style={styles.linkHit} onPress={() => setPlanning(true)}>
-      <Text style={styles.link} maxFontSizeMultiplier={MAX_SCALE}>
-        {text}
-      </Text>
-    </TouchableOpacity>
-  );
+  const bars = homeBars(pva.rows);
 
   return (
-    <View style={styles.box}>
-      {pva.rows.map((r) => {
-        const color = ITEM_COLOR[r.item] ?? t.sub;
-        return (
-          <View
-            key={r.item}
-            style={styles.row}
-            accessible
-            accessibilityLabel={`${r.name} 실제 ${hours(r.actual)}${r.target > 0 ? `, 계획 ${hours(r.target)}` : ''}`}
-          >
-            <Text style={styles.name} maxFontSizeMultiplier={MAX_SCALE}>
-              {r.name}
-            </Text>
-            <View style={styles.track}>
-              {r.target > 0 && (
-                <View style={[styles.bar, { width: `${(r.target / scale) * 100}%`, backgroundColor: color + TARGET_ALPHA }]} />
-              )}
-              {r.actual > 0 && <View style={[styles.bar, { width: `${(r.actual / scale) * 100}%`, backgroundColor: color }]} />}
-            </View>
-            <Text style={styles.num} maxFontSizeMultiplier={MAX_SCALE}>
-              {hours(r.actual)}
-              {r.target > 0 ? ` / ${hours(r.target)}` : ''}
-            </Text>
-          </View>
-        );
-      })}
-      {pva.state === 'empty' && (
+    <View>
+      {bars ? (
         <>
-          <Text style={styles.line} maxFontSizeMultiplier={MAX_SCALE}>
-            오늘 첫 칸을 기다리는 중
+          <Text style={styles.title} maxFontSizeMultiplier={MAX_SCALE}>
+            오늘 지금까지
           </Text>
-          {link('오늘 계획 세우기')}
+          {bars.map((r) => (
+            <View
+              key={r.item}
+              style={styles.row}
+              accessible
+              accessibilityLabel={`${r.name}, ${minutesText(r.actual)}, 계획 ${minutesText(r.target)}`}
+            >
+              <Text style={styles.name} numberOfLines={1} maxFontSizeMultiplier={MAX_SCALE}>
+                {r.name}
+              </Text>
+              <View style={styles.track}>
+                <View style={[styles.bar, { width: `${Math.min(100, (r.actual / r.target) * 100)}%` }]} />
+              </View>
+              <Text style={styles.num} maxFontSizeMultiplier={MAX_SCALE}>
+                {minutesText(r.actual)} · 계획 {minutesText(r.target)}
+              </Text>
+            </View>
+          ))}
         </>
+      ) : (
+        <TouchableOpacity style={styles.linkHit} onPress={() => setPlanning(true)} accessibilityRole='link'>
+          <Text style={styles.link} maxFontSizeMultiplier={MAX_SCALE}>
+            오늘 계획 없음 ›
+          </Text>
+        </TouchableOpacity>
       )}
-      {pva.state === 'planOnly' && (
-        <Text style={styles.line} maxFontSizeMultiplier={MAX_SCALE}>
-          첫 기록은 다음 알림에서
-        </Text>
-      )}
-      {pva.line && (
-        <Text style={styles.line} maxFontSizeMultiplier={MAX_SCALE}>
-          {pva.line}
-        </Text>
-      )}
-      {pva.state === 'actualOnly' && link('오늘 계획 없음 · 지금 세우기')}
       <PlanTargetSheet
         visible={planning}
         date={localParts(new Date(), deviceTz()).date}
@@ -127,14 +103,21 @@ export default function PlanVsActual() {
   );
 }
 
-const useStyles = makeStyles((t) => StyleSheet.create({
-  box: { alignSelf: 'stretch', paddingHorizontal: 24, marginTop: 32 },
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 28, gap: 10 },
-  name: { color: t.sub, fontSize: 13, width: 56 },
-  track: { flex: 1, height: 10, backgroundColor: t.cell, borderRadius: 2, overflow: 'hidden' },
-  bar: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 2 },
-  num: { color: t.sub, fontSize: 13, minWidth: 72, textAlign: 'right' },
-  line: { color: t.sub, fontSize: 14, marginTop: 12, textAlign: 'center' },
-  linkHit: { minHeight: 44, justifyContent: 'center', alignSelf: 'center' },
-  link: { color: t.text, fontSize: 14, textDecorationLine: 'underline' },
-}));
+// "40분", "1시간", "1시간 30분"(0분도 "0분").
+function minutesText(min: number): string {
+  return min < 1 ? '0분' : durationText(min * MINUTE_MS);
+}
+
+// 바닥 위 글자는 본문색(보조색은 바닥 위 대비가 모자람, 6절). 막대는 트랙 위 강조색.
+const useStyles = makeStyles((t) =>
+  StyleSheet.create({
+    title: { color: t.text, fontSize: 14, lineHeight: 20 },
+    row: { flexDirection: 'row', alignItems: 'center', height: 26, gap: 10 },
+    name: { color: t.text, fontSize: 14, width: 40 },
+    track: { flex: 1, height: 5, borderRadius: 3, backgroundColor: t.track, overflow: 'hidden' },
+    bar: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 3, backgroundColor: t.acc },
+    num: { color: t.text, fontSize: 14 },
+    linkHit: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
+    link: { color: t.text, fontSize: 14, textDecorationLine: 'underline' },
+  }),
+);

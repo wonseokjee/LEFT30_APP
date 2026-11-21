@@ -5,7 +5,9 @@ import { Text } from '@/components/ui/Text';
 import PlanVsActual from '@/components/home/PlanVsActual';
 import { labelLine, lastDigitShift, roomLayout, COLON_EM, DIGIT_EM, type RoomLayout } from '@/components/home/roomLayout';
 import { deviceTz } from '@/lib/localTime';
+import { getSetting } from '@/db/records';
 import { getItem } from '@/record/items';
+import { HOME_BARS_KEY } from '@/record/planVsActual';
 import {
   clockSpeech,
   clockText,
@@ -38,6 +40,8 @@ import { MAX_SCALE } from './sheetStyle';
 import TimerStartSheet from './TimerStartSheet';
 
 const NUMBER_SCALE = 1.3; // D19 큰 숫자 1.3배 상한
+// 주아 글꼴 위 800 / 아래 200(1000 기준). 줄 높이 = 글자 크기면 숫자 아래 끝(기준선)은 위에서 0.8.
+const JUA_ASCENT = 0.8;
 const ROOM = { light: require('@/assets/room/room-light.jpg'), dark: require('@/assets/room/room-dark.jpg') };
 const DESK = require('@/assets/room/desk-light.png'); // 밤 책상은 아직 없다(밝은 가구 먼저, README)
 const CAT = {
@@ -73,10 +77,14 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<StopNote | null>(null);
   const [forgot, setForgot] = useState<number | null>(null);
+  const [barsOn, setBarsOn] = useState(true);
   const endAsked = useRef<string | null>(null);
 
   const load = useCallback(() => {
     const db = getRuntime().db;
+    getSetting<boolean>(db, HOME_BARS_KEY)
+      .then((v) => setBarsOn(v !== false))
+      .catch(() => setBarsOn(true));
     readRunning(db)
       .then(async (r) => {
         setRunning(r);
@@ -247,7 +255,7 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
               <View style={[styles.buttons, { top: L.buttonTop }]}>
                 <Btn fill wide label='시작' a11y='타이머 시작' onPress={() => setStarting(true)} />
               </View>
-              {showBars && (
+              {showBars && barsOn && (
                 <View style={[styles.bars, { top: L.barsTop }]}>
                   <PlanVsActual />
                 </View>
@@ -272,7 +280,7 @@ function BigNumber(p: { L: RoomLayout; text: string; label: string; dim: boolean
   const line = labelLine(p.text, num);
   return (
     <View
-      style={[styles.abs, { left: p.L.numLeft, top: p.L.surfaceY - num - 26 }]}
+      style={[styles.abs, { left: p.L.numLeft, top: p.L.surfaceY - JUA_ASCENT * num - 26 }]}
       accessible
       accessibilityLabel={p.speech}
     >

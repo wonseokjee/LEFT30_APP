@@ -104,3 +104,17 @@ export async function noteHomeViewed(db: Db, now: Date, tz: string, quiet: Quiet
   });
   return true;
 }
+
+// 홈 "오늘 지금까지"(visual 4.3c D37·G19): 목표가 있는 줄만, 셋 이상이면 진행률(실제 ÷ 계획)이 높은 두 개, 같으면 실제가 긴 쪽.
+// 목표가 하나도 없으면 null("오늘 계획 없음 ›" 한 줄).
+export const HOME_BARS_MAX = 2;
+export function homeBars(rows: PvaRow[]): PvaRow[] | null {
+  const goals = rows.filter((r) => r.target > 0);
+  if (goals.length === 0) return null;
+  return [...goals]
+    .sort((a, b) => b.actual / b.target - a.actual / a.target || b.actual - a.actual)
+    .slice(0, HOME_BARS_MAX);
+}
+
+// 홈에 "오늘 지금까지"를 보일지(계정 관리 스위치, G19). 기본은 보임.
+export const HOME_BARS_KEY = 'home_bars';
