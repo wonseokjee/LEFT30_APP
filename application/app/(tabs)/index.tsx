@@ -1,5 +1,4 @@
-import FocusStatus from '@/components/focus/FocusStatus';
-import PlanVsActual from '@/components/home/PlanVsActual';
+import TimerHome from '@/components/timer/TimerHome';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -44,8 +43,7 @@ export default function Index() {
           {isLandscape ? '세로로 전환' : '가로로 전환'}
         </Text>
       </TouchableOpacity>
-      <FocusStatus />
-      {!isLandscape && <PlanVsActual />}
+      <TimerHome showBars={!isLandscape} />
     </View>
   );
 }

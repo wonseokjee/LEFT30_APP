@@ -4,19 +4,7 @@ import { MIGRATIONS } from '@/db/schema';
 import { getBlock, saveBlock, saveSlot } from '@/db/records';
 import type { BlockRow, SlotRow } from '@/db/types';
 import { ALL_DAYS } from '@/scheduler/plan';
-import {
-  activeBlock,
-  answerBlock,
-  blockSlots,
-  conflictingSlots,
-  endFocusNow,
-  extendBlock,
-  focusEnd,
-  nextBoundary,
-  remainingLabel,
-  settleBlocks,
-  startFocus,
-} from './blockLogic';
+import { answerBlock, blockSlots, conflictingSlots, extendBlock, nextBoundary, settleBlocks } from './blockLogic';
 
 const SEOUL = 'Asia/Seoul';
 const NIGHT = [{ startMin: 23 * 60, endMin: 7 * 60, days: ALL_DAYS }];
@@ -35,6 +23,25 @@ async function setup() {
       'SELECT slot_start, category, source FROM slot ORDER BY slot_start',
     );
   return { db, slots };
+}
+
+// 옛 집중 블록(T5부터 새로 만들지 않음, 이전 데이터에만 있다). 13:41에 시작해 다음 경계 + hours.
+async function legacyFocus(db: Parameters<typeof saveBlock>[0], id = 'f1', hours = 1): Promise<BlockRow> {
+  const b: BlockRow = {
+    id,
+    kind: 'focus',
+    category: 'work',
+    title: null,
+    start_at: NOW.toISOString(),
+    end_at: new Date(Date.parse(z('14:00')) + hours * 3_600_000).toISOString(),
+    tz: SEOUL,
+    state: 'active',
+    ended_how: null,
+    deleted: false,
+    client_updated_at: NOW.toISOString(),
+  };
+  await saveBlock(db, b);
+  return b;
 }
 
 function planBlock(extra: Partial<BlockRow> = {}): BlockRow {
@@ -66,42 +73,15 @@ describe('블록 칸과 길이', () => {
     expect(blockSlots({ start_at: z('14:00'), end_at: z('16:00') }, SEOUL)).toHaveLength(4);
   });
 
-  it('(DR-1a) 남은 시간은 단위를 붙여 쓴다', () => {
-    const min = 60_000;
-    expect(remainingLabel(109 * min)).toBe('1시간 49분');
-    expect(remainingLabel(49 * min)).toBe('49분');
-    expect(remainingLabel(120 * min)).toBe('2시간');
-    expect(remainingLabel(30_000)).toBe('1분');
-    expect(remainingLabel(-5)).toBe('0분');
-  });
-
-  it('(DR-8) 길이는 다음 30분 경계부터 세고, 방해금지에서 자른다', () => {
+  it('다음 30분 경계', () => {
     expect(nextBoundary(NOW, SEOUL).toISOString()).toBe(z('14:00'));
-    expect(focusEnd(NOW, 1, SEOUL, NIGHT)!.toISOString()).toBe(z('15:00'));
-    expect(focusEnd(NOW, 3, SEOUL, NIGHT)!.toISOString()).toBe(z('17:00'));
-    // 21:41에 3시간 → 23:00에서 자름
-    const late = new Date(z('21:41'));
-    expect(focusEnd(late, 3, SEOUL, NIGHT)!.toISOString()).toBe(z('23:00'));
-    // 방해금지 안에서는 시작할 수 없다
-    expect(focusEnd(new Date('2026-10-21T15:10:00.000Z'), 1, SEOUL, NIGHT)).toBeNull();
   });
 });
 
-describe('집중 블록', () => {
-  it('시작하면 active로 저장하고 겹친 계획 블록은 cancelled가 된다', async () => {
-    const { db } = await setup();
-    await saveBlock(db, planBlock());
-    const b = (await startFocus(db, { category: 'self_dev', hours: 1, now: NOW, tz: SEOUL, quiet: NIGHT, id: 'f1' }))!;
-    expect(b).toMatchObject({ id: 'f1', kind: 'focus', state: 'active', end_at: z('15:00') });
-    expect(await getBlock(db, 'p1')).toMatchObject({ state: 'cancelled' });
-    expect(await activeBlock(db, NOW)).toMatchObject({ id: 'f1' });
-    const events = await db.all<{ type: string }>('SELECT type FROM event');
-    expect(events.map((e) => e.type)).toEqual(['block_started']);
-  });
-
+describe('옛 집중 블록(이전 데이터)', () => {
   it('(SPEC-1) 칸을 미리 쓰지 않고, 앱을 열 때 끝난 칸만 채운다', async () => {
     const { db, slots } = await setup();
-    await startFocus(db, { category: 'work', hours: 1, now: NOW, tz: SEOUL, quiet: NIGHT, id: 'f1' });
+    await legacyFocus(db);
     expect(await slots()).toEqual([]);
 
     await settleBlocks(db, new Date(z('14:35')));
@@ -109,15 +89,6 @@ describe('집중 블록', () => {
       { slot_start: z('13:30'), category: 'work', source: 'declared' },
       { slot_start: z('14:00'), category: 'work', source: 'declared' },
     ]);
-  });
-
-  it('[끝내기]는 끝난 칸까지만 채우고 진행 중 칸은 남긴다', async () => {
-    const { db, slots } = await setup();
-    const b = (await startFocus(db, { category: 'work', hours: 2, now: NOW, tz: SEOUL, quiet: NIGHT }))!;
-    const ended = await endFocusNow(db, b, new Date(z('14:10')));
-    expect(ended).toMatchObject({ state: 'ended', ended_how: 'end_now' });
-    expect((await slots()).map((s) => s.slot_start)).toEqual([z('13:30')]);
-    expect(await activeBlock(db, new Date(z('14:10')))).toBeNull();
   });
 
   it('이미 기록된 칸은 덮지 않는다', async () => {
@@ -131,14 +102,14 @@ describe('집중 블록', () => {
       answered_at: z('14:30'),
       client_updated_at: z('14:30'),
     });
-    const b = (await startFocus(db, { category: 'work', hours: 1, now: NOW, tz: SEOUL, quiet: NIGHT }))!;
+    const b = await legacyFocus(db);
     await answerBlock(db, b, new Date(z('15:01')));
     expect((await slots()).map((s) => s.category)).toEqual(['work', 'rest', 'work']);
   });
 
   it('끝 시각이 지나면 awaiting이 되어 끝 시트를 띄우고, 다음 30분 알림 시각까지 답이 없으면 no_answer로 끝난다', async () => {
     const { db, slots } = await setup();
-    await startFocus(db, { category: 'work', hours: 1, now: NOW, tz: SEOUL, quiet: NIGHT, id: 'f1' });
+    await legacyFocus(db);
     expect(await settleBlocks(db, new Date(z('15:05')))).toEqual({ endSheet: 'f1' });
     expect(await getBlock(db, 'f1')).toMatchObject({ state: 'awaiting' });
     expect(await slots()).toHaveLength(3);
@@ -149,7 +120,7 @@ describe('집중 블록', () => {
 
   it('[30분 더]는 끝 시각을 늘리고 active로 돌린다. 방해금지에서는 늘리지 않는다', async () => {
     const { db } = await setup();
-    const b = (await startFocus(db, { category: 'work', hours: 1, now: NOW, tz: SEOUL, quiet: NIGHT }))!;
+    const b = await legacyFocus(db);
     await settleBlocks(db, new Date(z('15:02')));
     const awaiting = (await getBlock(db, b.id))!;
     const ext = await extendBlock(db, awaiting, new Date(z('15:02')), NIGHT);

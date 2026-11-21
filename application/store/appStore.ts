@@ -14,6 +14,10 @@ interface AppState {
   sheetBlock: string | null;
   openBlockSheet: (blockId: string) => void;
   closeBlockSheet: () => void;
+  // 타이머 끝 시트가 보고 있는 세션(entry id, T5). 정한 끝에 닿았을 때.
+  sheetTimer: string | null;
+  openTimerSheet: (entryId: string) => void;
+  closeTimerSheet: () => void;
   // 놓친 칸 묶음 시트(UX-3). 칸·블록 끝 시트가 먼저다.
   sheetBatch: MissedRun | null;
   openBatchSheet: (run: MissedRun) => void;
@@ -40,6 +44,9 @@ export const useAppStore = create<AppState>((set) => ({
   sheetBlock: null,
   openBlockSheet: (blockId) => set({ sheetBlock: blockId }),
   closeBlockSheet: () => set({ sheetBlock: null }),
+  sheetTimer: null,
+  openTimerSheet: (entryId) => set({ sheetTimer: entryId }),
+  closeTimerSheet: () => set({ sheetTimer: null }),
   sheetBatch: null,
   openBatchSheet: (run) => set({ sheetBatch: run }),
   closeBatchSheet: () => set({ sheetBatch: null }),

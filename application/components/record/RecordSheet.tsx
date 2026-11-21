@@ -28,6 +28,8 @@ import { CATEGORY_COLOR, GRID_ORDER, textOn } from '@/record/categoryStyle';
 import { afterBlockChange, getRuntime, rescheduleNow, syncNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 
+import TimerEndSheet from '@/components/timer/TimerEndSheet';
+
 const MAX_SCALE = 1.3;
 import { SAVE_FAILED_TEXT } from './texts';
 
@@ -39,13 +41,15 @@ type Loaded = {
   emptyBefore: string | null;
 };
 
-// 기록 시트는 모드가 셋이다(eng D1): 칸 기록(sheetSlot), 블록 끝(sheetBlock, UX-2 A), 놓친 칸 묶음(sheetBatch, UX-3).
-// 칸 기록 → 블록 끝 → 묶음 순서로 먼저 연다.
+// 기록 시트의 모드(eng D1): 칸 기록(sheetSlot), 타이머 끝(sheetTimer, T5), 계획 블록 끝(sheetBlock, UX-2 A),
+// 놓친 칸 묶음(sheetBatch, UX-3), 아침 계획. 이 순서로 먼저 연다.
 export default function RecordSheet() {
   const sheetSlot = useAppStore((s) => s.sheetSlot);
   const sheetBlock = useAppStore((s) => s.sheetBlock);
+  const sheetTimer = useAppStore((s) => s.sheetTimer);
   const sheetBatch = useAppStore((s) => s.sheetBatch);
   const sheetMorning = useAppStore((s) => s.sheetMorning);
+  if (!sheetSlot && sheetTimer) return <TimerEndSheet entryId={sheetTimer} />;
   if (!sheetSlot && sheetBlock) return <BlockEndSheet blockId={sheetBlock} />;
   if (!sheetSlot && sheetBatch) return <BatchSheet run={sheetBatch} />;
   if (!sheetSlot && sheetMorning) return <MorningSheet offer={sheetMorning} />;

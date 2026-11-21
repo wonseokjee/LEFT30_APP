@@ -114,12 +114,18 @@ export async function settleBlocksNow(): Promise<void> {
 }
 
 // 시간이 지난 타이머 세션 정리(뽀모도로 마지막 바퀴 끝, 타이머 끝 뒤 30분 무응답).
-// 끝 시트(endSheet)를 여는 화면은 T5에서 붙인다.
+// 타이머가 정한 끝에 닿았으면 끝 시트를 연다(칸 기록 시트가 먼저).
 export async function settleTimerNow(): Promise<{ endSheet: string | null }> {
   if (!runtime) return { endSheet: null };
   try {
     const { endSheet, ended } = await settleTimer(runtime.db, Date.now());
-    if (ended) useAppStore.getState().bumpBlocks();
+    const store = useAppStore.getState();
+    if (ended) {
+      store.bumpBlocks();
+      await rescheduleNow();
+    }
+    if (endSheet && !store.sheetSlot) store.openTimerSheet(endSheet);
+    else if (!endSheet && store.sheetTimer) store.closeTimerSheet();
     return { endSheet };
   } catch (e) {
     console.warn('settle timer failed', e);
