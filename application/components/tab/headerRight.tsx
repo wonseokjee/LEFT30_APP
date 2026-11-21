@@ -1,14 +1,8 @@
 import { GRAY_0, GRAY_9 } from '@/assets/palette';
 import Entypo from '@expo/vector-icons/build/Entypo';
 import { useState } from 'react';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  Text,
-} from 'react-native';
+import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import LogoutModal from '../user/logoutModal';
 import { useRouter } from 'expo-router';
 

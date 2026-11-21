@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from '@/components/ui/Text';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8 } from '@/assets/palette';
 import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 import { TIMER_HOWS, type TimerKind } from '@/db/types';

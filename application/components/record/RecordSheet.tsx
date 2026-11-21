@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { useRouter } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { CATEGORY_LABEL, type BlockRow, type Category, type SlotRow } from '@/db/types';

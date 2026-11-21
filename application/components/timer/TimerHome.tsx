@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { useFocusEffect } from 'expo-router';
 import { GRAY_0, GRAY_1, GRAY_5 } from '@/assets/palette';
 import PlanVsActual from '@/components/home/PlanVsActual';

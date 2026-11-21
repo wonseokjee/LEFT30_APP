@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Switch, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';

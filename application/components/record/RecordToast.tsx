@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from '@/components/ui/Text';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_8 } from '@/assets/palette';
 import { CATEGORY_LABEL } from '@/db/types';
 import { saveEntry, undoEntry } from '@/record/entries';

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { GRAY_0, GRAY_5, GRAY_9 } from '@/assets/palette';
 import { setSetting } from '@/db/records';
 import { QUIET_KEY } from '@/scheduler/scheduler';

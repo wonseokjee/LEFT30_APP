@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { GRAY_8 } from '@/assets/palette';
 import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 import { MINUTE_MS } from '@/lib/localTime';

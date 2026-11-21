@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { GRAY_0, GRAY_5, GRAY_7, GRAY_9 } from '@/assets/palette';
 import { MAX_QUIET_WINDOWS, WEEKDAYS, type Quiet, type QuietWindow } from '@/scheduler/plan';

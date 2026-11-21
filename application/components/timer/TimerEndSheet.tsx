@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 import { getItem } from '@/record/items';
 import { hhmm } from '@/record/recordLogic';

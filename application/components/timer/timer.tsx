@@ -1,6 +1,7 @@
 import { GRAY_1 } from '@/assets/palette';
 import useTimer from '@/hooks/timer/useTimer';
-import { Text, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from '@/components/ui/Text';
 
 export default function Timer() {
   const { leftMinute, leftSecond } = useTimer();

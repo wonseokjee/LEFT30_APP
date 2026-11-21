@@ -2,7 +2,8 @@ import TimerHome from '@/components/timer/TimerHome';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { GRAY_6 } from '@/assets/palette';
 
 export default function Index() {

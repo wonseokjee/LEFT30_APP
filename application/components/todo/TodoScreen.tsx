@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useFocusEffect } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_6, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';

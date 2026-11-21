@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { handleLogin } from '@/components/login/handleLoginBtn';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -73,7 +74,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
     marginBottom: 20,
     color: 'white',
   },

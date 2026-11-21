@@ -1,11 +1,5 @@
-import {
-  Modal,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-} from 'react-native';
+import { Modal, View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, TextInput } from '@/components/ui/Text';
 import { GRAY_4, GRAY_8, GRAY_9 } from '@/assets/palette';
 
 type SetBasicModalVisibleProps = {
@@ -148,7 +142,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: 'white',
-    fontWeight: 'bold',
   },
 });
 

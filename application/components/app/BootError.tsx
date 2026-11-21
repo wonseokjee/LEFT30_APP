@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { GRAY_0, GRAY_5, GRAY_9 } from '@/assets/palette';
 
 const MAX_SCALE = 1.3;

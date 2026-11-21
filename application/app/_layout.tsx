@@ -16,6 +16,12 @@ import BootError from '@/components/app/BootError';
 import { bootRuntime, getRuntime, onForeground, settleBlocksNow } from '@/runtime/appRuntime';
 import { logPingDisplayed } from '@/scheduler/pingEvents';
 import { useAppStore } from '@/store/appStore';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { setFontReady } from '@/components/ui/Text';
+
+// 주아를 불러올 때까지 스플래시를 유지한다(visual 6.1 G8). 실패하면 시스템 글꼴로 진행.
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_APP_KEY || '';
 
@@ -30,6 +36,13 @@ type BootState = 'loading' | 'ready' | 'failed';
 export default function RootLayout() {
   const [boot, setBoot] = useState<BootState>('loading');
   const lastResponse = Notifications.useLastNotificationResponse();
+  const [fontLoaded, fontError] = useFonts({ Jua: require('@/assets/fonts/Jua-Regular.ttf') });
+  const fontDone = fontLoaded || !!fontError;
+  if (fontDone) setFontReady(fontLoaded);
+  useEffect(() => {
+    if (fontError) console.warn('font load failed', fontError);
+    if (fontDone && boot !== 'loading') void SplashScreen.hideAsync().catch(() => undefined);
+  }, [fontDone, fontError, boot]);
 
   // 1. 로컬 DB를 먼저 연다(R1). 실패하면 데이터를 지우지 않고 오류 화면만 보여준다.
   useEffect(() => {
@@ -82,7 +95,7 @@ export default function RootLayout() {
     void Notifications.clearLastNotificationResponseAsync();
   }, [boot, lastResponse]);
 
-  if (boot === 'loading') return null;
+  if (boot === 'loading' || !fontDone) return null;
   if (boot === 'failed') return <BootError />;
 
   return (

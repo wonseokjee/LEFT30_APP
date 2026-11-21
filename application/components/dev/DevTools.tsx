@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import * as Notifications from 'expo-notifications';
 import { GRAY_5, GRAY_7 } from '@/assets/palette';
 import { deviceTz } from '@/lib/localTime';

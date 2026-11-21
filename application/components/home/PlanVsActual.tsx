@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { useFocusEffect } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_6, GRAY_8 } from '@/assets/palette';
 import { deviceTz, localParts } from '@/lib/localTime';

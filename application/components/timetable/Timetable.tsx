@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View, type GestureResponderEvent } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { useFocusEffect } from 'expo-router';
 import { deviceTz, localParts, MINUTE_MS } from '@/lib/localTime';
 import { hhmm } from '@/record/recordLogic';

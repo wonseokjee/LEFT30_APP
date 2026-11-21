@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import { useRouter } from 'expo-router';
 import { unlink } from '@react-native-kakao/user';
 import * as SecureStore from 'expo-secure-store';
@@ -102,7 +103,6 @@ const styles = StyleSheet.create({
   logoContainer: {},
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 20,
     color: GRAY_1,
     // borderWidth: 1,
@@ -115,7 +115,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    // fontWeight: 'bold',
     color: GRAY_1,
     marginBottom: 20,
   },
@@ -141,7 +140,6 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: GRAY_9,
-    // fontWeight: 'bold',
     fontSize: 16,
   },
 });

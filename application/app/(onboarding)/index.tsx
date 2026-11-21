@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text } from '@/components/ui/Text';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
 import * as IntentLauncher from 'expo-intent-launcher';

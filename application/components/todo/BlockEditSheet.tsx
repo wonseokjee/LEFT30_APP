@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Text, TextInput } from '@/components/ui/Text';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { GRAY_0, GRAY_5, GRAY_6, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
 import { CATEGORY_LABEL, type BlockRow, type Category } from '@/db/types';
