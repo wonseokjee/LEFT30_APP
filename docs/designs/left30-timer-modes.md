@@ -500,10 +500,11 @@ Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유
   - Surfaced by: CEO HOME·FORGOT
   - Files: components/focus/*, app/(tabs)/index.tsx
   - Verify: 실기기
-- [ ] **T6 (P1, human: ~1시간 / CC: ~10분)** — sync — 서버가 모르는 값은 큐에 남기기
+- [x] **T6 (P1, human: ~1시간 / CC: ~10분)** — sync — 서버가 모르는 값은 큐에 남기기
   - Surfaced by: Section 1 발견 1
   - Files: sync/engine.ts
   - Verify: `npx jest sync`
+  - 완료(2026-11-21): `sync/serverKnown.ts`에 지금 서버가 받는 값(카테고리·칸 출처·블록 종류·상태·끝낸 방식·이벤트 종류)을 앱 타입과 따로 둔다. 동기화는 목록에 없는 값을 가진 큐 항목을 보내지 않고 큐에 남기며, 나머지는 그대로 보낸다(dead letter로 빠지지 않음). 목록이 서버 엔티티와 같은지는 테스트가 서버 파일을 읽어 본다. W2에서 서버 값을 늘리면 이 목록도 늘리고, 그때 남아 있던 항목이 올라간다.
 - [ ] **T7 (P2, human: ~1시간 / CC: ~5분)** — types — CATEGORY_ORDER 한 곳 + "공부" 추가 + 포함 테스트
   - Surfaced by: R2(eng D3 A), CEO CAT
   - Files: db/types.ts, record/planVsActual.ts, components/todo/PlanTargetSheet.tsx, record/categoryStyle.ts

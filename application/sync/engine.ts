@@ -2,6 +2,7 @@ import type { Db } from '@/db/types';
 import { logEvent, type QueueKind } from '@/db/records';
 import { singleFlight } from '@/lib/singleFlight';
 import { uuidv4 } from '@/lib/uuid';
+import { serverKnows } from './serverKnown';
 
 /*
  * 동기화 큐(R4, R3). 서버 계약은 server/src/sync/sync.dto.ts와 같다.
@@ -16,6 +17,7 @@ import { uuidv4 } from '@/lib/uuid';
  *    ├ 413 → 배치를 반으로 나눠 재시도 (1건이면 dead-letter)
  *    ├ 400 → 배치 전체 dead-letter (서버는 항목별로 검증하므로 형식 오류일 때만 온다)
  *    └ 네트워크·그 밖의 상태 → retry (큐 보존, 백오프 후 다시)
+ *  서버가 모르는 값(serverKnown.ts)을 가진 항목은 보내지 않고 큐에 남긴다(T6). 서버가 그 값을 받게 되면 올라간다.
  *
  * 응답을 기다리는 동안 같은 칸을 고치면 새 큐 항목이 생긴다. 응답에 없는 그 항목은 지워지지 않고
  * 다음 실행에 보내진다. 서버는 client_updated_at이 더 최신일 때만 덮어쓰므로 최신 값이 남는다.
@@ -182,12 +184,13 @@ export function createSyncEngine(opts: SyncOptions) {
           [kind, cursor, maxItems],
         );
         if (rows.length === 0) break;
-        for (const c of chunk(rows)) {
+        cursor = rows[rows.length - 1].id;
+        const ready = rows.filter((r) => serverKnows(kind, JSON.parse(r.payload)));
+        for (const c of chunk(ready)) {
           const r = await sendChunk(kind, c, false);
           if (r !== 'ok') return { status: r, sent };
           sent += c.length;
         }
-        cursor = rows[rows.length - 1].id;
       }
     }
     return { status: 'done', sent };

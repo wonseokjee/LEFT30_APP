@@ -1,7 +1,7 @@
 import { openNodeDb } from '@/test/nodeDb';
 import { migrate } from '@/db/migrate';
 import { MIGRATIONS } from '@/db/schema';
-import { logEvent, saveBlock, saveSlot } from '@/db/records';
+import { enqueue, logEvent, saveBlock, saveSlot } from '@/db/records';
 import type { SlotRow } from '@/db/types';
 import { backoffMs, createSyncEngine, type Auth, type Transport } from './engine';
 
@@ -134,6 +134,21 @@ describe('동기화 큐', () => {
     server.use(server.accept);
     await engine.requestSync();
     expect(await queueIds()).toEqual([]);
+  });
+
+  it('(T6) 서버가 모르는 값은 보내지 않고 큐에 남긴다. 나머지는 막히지 않는다', async () => {
+    const { db, server, engine, queueIds } = await setup();
+    await saveSlot(db, slot(0));
+    await enqueue(db, 'slot', { ...slot(1), category: 'focus' });
+    await saveSlot(db, slot(2));
+    await enqueue(db, 'event', { id: 'e1', type: 'timer_started', ts: '2026-10-21T00:00:00.000Z' });
+    expect(await engine.requestSync()).toEqual({ status: 'done', sent: 2 });
+    expect(server.calls).toEqual([{ path: '/sync/slots', qids: [1, 3] }]);
+    expect(await queueIds()).toEqual([2, 4]);
+    expect(await db.all('SELECT * FROM sync_dead_letter')).toEqual([]);
+    // 다음 실행에도 그대로 남는다.
+    await engine.requestSync();
+    expect(await queueIds()).toEqual([2, 4]);
   });
 
   it('500건을 넘으면 나눠 보낸다', async () => {
