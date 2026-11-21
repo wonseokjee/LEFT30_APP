@@ -1,62 +1,30 @@
 import React from 'react';
-import Entypo from '@expo/vector-icons/Entypo';
 import { Tabs } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { FONT } from '@/components/ui/Text';
+import { useTheme } from '@/theme/theme';
 
+/*
+ * 탭(visual 4.1 시안, G6): 글자만 "할 일 · 홈 · 시간표", 높이 56. 현재 탭은 본문색, 나머지는 보조색.
+ * 홈은 방 그림 바닥 위에 있어서 탭 바탕을 바닥색으로, 다른 탭은 벽색으로 둔다.
+ */
 export default function TabLayout() {
+  const t = useTheme();
+  const bar = (bg: string) => ({ backgroundColor: bg, height: 56, borderTopWidth: 0, elevation: 0 });
   return (
-    // <NavigationContainer> UI 디자인중.
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: 'white',
-        tabBarStyle: styles.tabBar,
         headerShown: false,
+        tabBarActiveTintColor: t.text,
+        tabBarInactiveTintColor: t.sub,
+        tabBarIconStyle: { display: 'none' },
+        tabBarLabelStyle: { fontFamily: FONT, fontSize: 14, lineHeight: 20 },
+        tabBarItemStyle: { justifyContent: 'center' },
+        tabBarStyle: bar(t.wall),
       }}
     >
-      <Tabs.Screen
-        name='todo'
-        options={{
-          title: 'Todo',
-          tabBarIcon: ({ color }) => (
-            <Entypo size={28} name='check' color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name='index'
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => (
-            <Entypo size={28} name='home' color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name='plan'
-        options={{
-          title: 'Timetable',
-          tabBarIcon: ({ color }) => (
-            <Entypo size={28} name='pie-chart' color={color} />
-          ),
-        }}
-      />
+      <Tabs.Screen name='todo' options={{ title: '할 일' }} />
+      <Tabs.Screen name='index' options={{ title: '홈', tabBarStyle: bar(t.floor) }} />
+      <Tabs.Screen name='plan' options={{ title: '시간표' }} />
     </Tabs>
-    // </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: 'black',
-    borderColor: '#c2c2c2',
-    borderTopWidth: 0.2,
-    borderEndWidth: 0.2,
-    borderStartWidth: 0.2,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-  },
-
-  header: {
-    backgroundColor: 'black',
-  },
-});

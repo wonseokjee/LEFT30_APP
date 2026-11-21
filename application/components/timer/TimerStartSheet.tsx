@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput } from '@/components/ui/Text';
-import { GRAY_0, GRAY_5, GRAY_7, GRAY_8 } from '@/assets/palette';
+
 import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 import { TIMER_HOWS, type TimerKind } from '@/db/types';
 import { deviceTz, MINUTE_MS } from '@/lib/localTime';
@@ -26,7 +26,8 @@ import {
 } from '@/record/timerHome';
 import { startTimer } from '@/record/timerLogic';
 import { afterTimerChange, getRuntime } from '@/runtime/appRuntime';
-import { ACCENT, MAX_SCALE, sheet } from './sheetStyle';
+import { MAX_SCALE, useSheet } from './sheetStyle';
+import { makeStyles, useTheme } from '@/theme/theme';
 
 const FOCUS = 'focus'; // 시작 시트의 카테고리는 늘 집중(CEO 리뷰 2)
 
@@ -41,6 +42,9 @@ const FOCUS = 'focus'; // 시작 시트의 카테고리는 늘 집중(CEO 리뷰
  *   [시작]
  */
 export default function TimerStartSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const sheet = useSheet();
+  const styles = useStyles();
+  const t = useTheme();
   const [prefs, setPrefs] = useState<TimerPrefs | null>(null);
   const [chips, setChips] = useState<ItemChip[]>([]);
   const [adding, setAdding] = useState(false);
@@ -140,7 +144,7 @@ export default function TimerStartSheet({ visible, onClose }: { visible: boolean
                       accessibilityRole='tab'
                       accessibilityState={{ selected: on }}
                     >
-                      <Text style={[sheet.text, on && { color: textOn(GRAY_0) }]} maxFontSizeMultiplier={MAX_SCALE}>
+                      <Text style={[sheet.text, on && { color: t.onAcc }]} maxFontSizeMultiplier={MAX_SCALE}>
                         {KIND_LABEL[k]}
                       </Text>
                     </TouchableOpacity>
@@ -169,7 +173,7 @@ export default function TimerStartSheet({ visible, onClose }: { visible: boolean
                     maxLength={ITEM_NAME_MAX}
                     autoFocus
                     placeholder='새 항목'
-                    placeholderTextColor={GRAY_5}
+                    placeholderTextColor={t.sub}
                     returnKeyType='done'
                     onBlur={addItem}
                     maxFontSizeMultiplier={MAX_SCALE}
@@ -218,7 +222,7 @@ export default function TimerStartSheet({ visible, onClose }: { visible: boolean
               )}
 
               <TouchableOpacity style={sheet.primary} onPress={start} accessibilityLabel={`${KIND_LABEL[prefs.kind]} 시작`}>
-                <Text style={[sheet.text, { color: textOn(ACCENT) }]} maxFontSizeMultiplier={MAX_SCALE}>
+                <Text style={sheet.primaryText} maxFontSizeMultiplier={MAX_SCALE}>
                   시작
                 </Text>
               </TouchableOpacity>
@@ -231,6 +235,9 @@ export default function TimerStartSheet({ visible, onClose }: { visible: boolean
 }
 
 function Chip({ on, onPress, label, a11y }: { on: boolean; onPress: () => void; label: string; a11y?: string }) {
+  const sheet = useSheet();
+  const styles = useStyles();
+  const t = useTheme();
   return (
     <TouchableOpacity
       style={[styles.chip, on && styles.chipOn]}
@@ -238,7 +245,7 @@ function Chip({ on, onPress, label, a11y }: { on: boolean; onPress: () => void; 
       accessibilityState={{ selected: on }}
       accessibilityLabel={a11y ?? label}
     >
-      <Text style={[sheet.text, on && { color: textOn(GRAY_0) }]} maxFontSizeMultiplier={MAX_SCALE}>
+      <Text style={[sheet.text, on && { color: t.onAcc }]} maxFontSizeMultiplier={MAX_SCALE}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -246,6 +253,8 @@ function Chip({ on, onPress, label, a11y }: { on: boolean; onPress: () => void; 
 }
 
 function Stepper(p: { label: string; onMinus: () => void; onPlus: () => void; unit: string }) {
+  const sheet = useSheet();
+  const styles = useStyles();
   return (
     <View style={styles.stepper}>
       <TouchableOpacity style={styles.stepBtn} onPress={p.onMinus} accessibilityLabel={`${p.unit} 줄이기`}>
@@ -261,28 +270,28 @@ function Stepper(p: { label: string; onMinus: () => void; onPlus: () => void; un
   );
 }
 
-const styles = StyleSheet.create({
-  segment: { flexDirection: 'row', backgroundColor: GRAY_8, borderRadius: 8, padding: 2 },
+const useStyles = makeStyles((t) => StyleSheet.create({
+  segment: { flexDirection: 'row', backgroundColor: t.cell, borderRadius: 8, padding: 2 },
   segCell: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 6 },
-  segOn: { backgroundColor: GRAY_0 },
+  segOn: { backgroundColor: t.acc },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     minHeight: 48,
     paddingHorizontal: 14,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: GRAY_7,
+    borderColor: t.line,
     justifyContent: 'center',
   },
-  chipOn: { backgroundColor: GRAY_0, borderColor: GRAY_0 },
+  chipOn: { backgroundColor: t.acc, borderColor: t.acc },
   input: {
     minHeight: 48,
     minWidth: 120,
     paddingHorizontal: 14,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: GRAY_5,
-    color: GRAY_0,
+    borderColor: t.sub,
+    color: t.text,
     fontSize: 16,
   },
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -290,8 +299,8 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: GRAY_8,
+    backgroundColor: t.cell,
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

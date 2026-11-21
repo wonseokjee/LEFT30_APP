@@ -1,12 +1,15 @@
-import { GRAY_0, GRAY_9 } from '@/assets/palette';
+
 import Entypo from '@expo/vector-icons/build/Entypo';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import LogoutModal from '../user/logoutModal';
 import { useRouter } from 'expo-router';
+import { makeStyles, useTheme } from '@/theme/theme';
 
 export default function TabHeaderRight() {
+  const styles = useStyles();
+  const t = useTheme();
   const [visible, setVisible] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const router = useRouter();
@@ -48,7 +51,7 @@ export default function TabHeaderRight() {
         }}
         style={{ marginRight: 10 }}
       >
-        <Entypo name='dots-three-vertical' size={20} color={GRAY_0} />
+        <Entypo name='dots-three-vertical' size={20} color={t.text} />
         {/* Entypo Icon munu or dots-three-vertical */}
       </TouchableOpacity>
       <Modal
@@ -73,17 +76,17 @@ export default function TabHeaderRight() {
     </>
   );
 }
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: t.overlay,
   },
   menu: {
     marginTop: 50, // 헤더 높이에 맞게 조정
     marginRight: 10,
-    backgroundColor: GRAY_0,
+    backgroundColor: t.sheet,
     borderRadius: 2,
     padding: 8,
     minWidth: 120,
@@ -92,6 +95,6 @@ const styles = StyleSheet.create({
   menuItem: {
     paddingVertical: 8,
     paddingHorizontal: 8,
-    color: GRAY_9,
+    color: t.text,
   },
-});
+}));

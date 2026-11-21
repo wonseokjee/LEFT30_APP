@@ -6,7 +6,7 @@ import * as Notifications from 'expo-notifications';
 import * as IntentLauncher from 'expo-intent-launcher';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
-import { GRAY_0, GRAY_5, GRAY_7, GRAY_9 } from '@/assets/palette';
+
 import { getRuntime, rearmNow, rescheduleNow } from '@/runtime/appRuntime';
 import { setSetting } from '@/db/records';
 import {
@@ -17,6 +17,7 @@ import {
 } from '@/components/login/afterLogin';
 import { QUIET_KEY } from '@/scheduler/scheduler';
 import { ALL_DAYS } from '@/scheduler/plan';
+import { makeStyles } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 
@@ -44,6 +45,7 @@ function toSlotMinute(date: Date): number {
 // 온보딩: 취침 시간(D18) → 알림 설명(디자인 리뷰 D8) → Android 14 이상은 정확한 알람(D14).
 // 방해금지를 먼저 정해야 첫 예약부터 자는 시간이 빠진다. 알림을 거부해도 전용 화면은 없다. 오늘(홈) 배너가 안내한다.
 export default function NotificationOnboarding() {
+  const styles = useStyles();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [steps, setSteps] = useState<OnboardingSteps | null>(null);
@@ -195,32 +197,32 @@ export default function NotificationOnboarding() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 16,
-    backgroundColor: GRAY_9,
+    backgroundColor: t.sheet,
   },
   title: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
     marginBottom: 8,
   },
   body: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 16,
     marginBottom: 40,
   },
   button: {
     minHeight: 56,
     borderRadius: 8,
-    backgroundColor: GRAY_0,
+    backgroundColor: t.acc,
     justifyContent: 'center',
     alignItems: 'center',
   },
   buttonText: {
-    color: GRAY_9,
+    color: t.onAcc,
     fontSize: 16,
   },
   timeRow: {
@@ -229,14 +231,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: GRAY_7,
+    borderBottomColor: t.line,
   },
   timeLabel: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 16,
   },
   timeValue: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
   },
   next: {
@@ -249,7 +251,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   laterText: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 13,
   },
-});
+}));

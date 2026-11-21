@@ -4,9 +4,11 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Text } from '@/components/ui/Text';
-import { GRAY_6 } from '@/assets/palette';
+
+import { makeStyles } from '@/theme/theme';
 
 export default function Index() {
+  const styles = useStyles();
   const [isLandscape, setIsLandscape] = useState(false);
 
   useFocusEffect(
@@ -49,24 +51,24 @@ export default function Index() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   appContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'black',
+    backgroundColor: t.wall,
   },
   rotateButton: {
     position: 'absolute',
     top: 10,
     right: 20,
-    backgroundColor: GRAY_6,
+    backgroundColor: t.sub,
     padding: 8,
     borderRadius: 8,
     zIndex: 1,
   },
   buttonText: {
-    color: 'white',
+    color: t.text,
     fontSize: 10,
   },
-});
+}));

@@ -3,12 +3,13 @@ import { Modal, Pressable, StyleSheet, Switch, TouchableOpacity, View } from 're
 import { Text } from '@/components/ui/Text';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useFocusEffect } from 'expo-router';
-import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
+
 import { logEvent, setSetting } from '@/db/records';
 import { uuidv4 } from '@/lib/uuid';
 import { isPaused, type Pause } from '@/scheduler/plan';
 import { PAUSE_KEY, readPause } from '@/scheduler/scheduler';
 import { getRuntime, rescheduleNow } from '@/runtime/appRuntime';
+import { makeStyles, useTheme } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 const HOUR_MS = 60 * 60 * 1000;
@@ -43,6 +44,8 @@ function statusText(pause: Pause, now: Date): string {
 // 알림 일시 중지(구현 D25). 스위치를 끄면 기간을 고르고, 켜면 바로 다시 묻는다.
 // 꺼져 있는 동안 다른 화면에 배너는 띄우지 않는다.
 export default function PauseSwitch() {
+  const styles = useStyles();
+  const t = useTheme();
   const [pause, setPause] = useState<Pause | null>(null);
   const [choosing, setChoosing] = useState(false);
   const [picking, setPicking] = useState<'date' | 'time' | null>(null);
@@ -95,8 +98,8 @@ export default function PauseSwitch() {
         <Switch
           value={!paused}
           onValueChange={onToggle}
-          trackColor={{ false: GRAY_7, true: GRAY_5 }}
-          thumbColor={GRAY_0}
+          trackColor={{ false: t.line, true: t.sub }}
+          thumbColor={t.text}
           accessibilityLabel={paused ? '알림 꺼짐, 켜기' : '알림 켜짐, 잠시 끄기'}
         />
       </View>
@@ -155,7 +158,7 @@ export default function PauseSwitch() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   row: {
     minHeight: 56,
     flexDirection: 'row',
@@ -166,21 +169,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
   },
   status: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 13,
     marginTop: 2,
   },
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: t.overlay,
   },
   sheet: {
-    backgroundColor: GRAY_9,
+    backgroundColor: t.sheet,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingHorizontal: 16,
@@ -192,11 +195,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: GRAY_7,
+    backgroundColor: t.line,
     marginBottom: 12,
   },
   header: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
     marginBottom: 8,
   },
@@ -204,10 +207,10 @@ const styles = StyleSheet.create({
     minHeight: 56,
     justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: GRAY_8,
+    borderBottomColor: t.cell,
   },
   choiceText: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
   },
-});
+}));

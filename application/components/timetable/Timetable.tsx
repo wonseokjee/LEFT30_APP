@@ -18,6 +18,7 @@ import {
 import { planBlocksOn } from '@/record/todoLogic';
 import { getRuntime } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
+import { makeStyles, type Theme } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 // 1분 = 1.1dp(30분 = 33dp, 4.3a)
@@ -30,17 +31,19 @@ const GAP = 8;
 const NOW_BOX = 20;
 const BLOCK_GAP = 2;
 
-// 4.3a 밤 색(임시 중립색). 낮·밤 테마는 디자인 개편(고양이 방)에서 한 곳으로 모은다.
-const C = {
-  bg: '#000000',
-  text: '#F3E8DC',
-  sub: '#B8A898',
-  acc: '#D6CEC6',
-  line: '#8D7F74',
-  fill: '#57504A',
-  soft: '#48423E',
-  grid: 'rgba(255,255,255,0.08)',
-};
+// 4.3a 시간표 색. 블록 채움·옅은 구간·눈금은 테마에서 만든 시간표 전용 값(폰에서 다시 본다).
+function palette(t: Theme) {
+  return {
+    bg: t.wall,
+    text: t.text,
+    sub: t.sub,
+    acc: t.acc,
+    line: t.border,
+    fill: t.dark ? '#57504A' : '#E6D4C1',
+    soft: t.dark ? '#48423E' : '#EEE1D3',
+    grid: t.dark ? 'rgba(255,255,255,0.08)' : 'rgba(90,64,48,0.10)',
+  };
+}
 
 const HOW_LABEL: Record<string, string> = { stopwatch: '스톱워치', pomodoro: '뽀모도로', timer: '타이머' };
 
@@ -56,6 +59,7 @@ type Loaded = { yesterday: Day; today: Day };
  * 빈 곳 시작·끝 고르기(D29)와 짧은 블록 고르는 시트(G12)는 아직 없다.
  */
 export default function Timetable() {
+  const styles = useStyles();
   const sheetSlot = useAppStore((s) => s.sheetSlot);
   const lastSaved = useAppStore((s) => s.lastSaved);
   const openSheet = useAppStore((s) => s.openSheet);
@@ -221,6 +225,7 @@ export default function Timetable() {
 
 // 5분 이상 멈춘 틈: 앞뒤 조각을 잇는 점선(PAUSE).
 function Dots({ from, to }: { from: number; to: number }) {
+  const styles = useStyles();
   const top = from * MIN_DP;
   const height = (to - from) * MIN_DP;
   const count = Math.max(1, Math.floor(height / 5));
@@ -235,6 +240,7 @@ function Dots({ from, to }: { from: number; to: number }) {
 
 // 타이머 블록 시트: 이름·방식·시각(4.3a 블록 누름). 고치기는 끝 시각 고치기와 함께 나중에.
 function BlockSheet({ block, tz, onClose }: { block: TimelineBlock | null; tz: string; onClose: () => void }) {
+  const styles = useStyles();
   if (!block) return null;
   const range = `${hhmm(new Date(block.startAt), tz)}–${block.running ? '지금' : hhmm(new Date(block.endAt), tz)}`;
   return (
@@ -255,7 +261,9 @@ function BlockSheet({ block, tz, onClose }: { block: TimelineBlock | null; tz: s
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => {
+  const C = palette(t);
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   headerText: { flex: 1, color: C.sub, fontSize: 13, textAlign: 'center' },
@@ -317,3 +325,5 @@ const styles = StyleSheet.create({
   sheetTitle: { color: C.text, fontSize: 18, marginBottom: 8 },
   sheetLine: { color: C.sub, fontSize: 14 },
 });
+});
+

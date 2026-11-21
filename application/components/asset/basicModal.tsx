@@ -1,6 +1,7 @@
 import { Modal, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, TextInput } from '@/components/ui/Text';
-import { GRAY_4, GRAY_8, GRAY_9 } from '@/assets/palette';
+
+import { makeStyles, useTheme } from '@/theme/theme';
 
 type SetBasicModalVisibleProps = {
   setBasicModalVisible: (visible: boolean) => void;
@@ -25,6 +26,8 @@ const BasicModal: React.FC<SetBasicModalVisibleProps> = ({
   setInputValue, // textInput의 값을 관리하는 상태와 상태 변경 함수를 props로 받음
   inputValuePlaceholder,
 }) => {
+  const t = useTheme();
+  const styles = useStyles();
   //확인 및 취소 함수를 props로 받음
 
   return (
@@ -48,7 +51,7 @@ const BasicModal: React.FC<SetBasicModalVisibleProps> = ({
                 placeholder={inputValuePlaceholder}
                 value={inputValue}
                 onChangeText={setInputValue}
-                placeholderTextColor={GRAY_4}
+                placeholderTextColor={t.line}
               />
             ) : null}
 
@@ -76,7 +79,7 @@ const BasicModal: React.FC<SetBasicModalVisibleProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   container: {
     // flex: 1,
     justifyContent: 'center',
@@ -86,12 +89,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: t.overlay,
   },
   modalBox: {
     width: 300,
     padding: 20,
-    backgroundColor: 'white',
+    backgroundColor: t.sheet,
     borderRadius: 5,
   },
   modalTitle: {
@@ -100,20 +103,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     // marginBottom: 10,
     paddingBottom: 10,
-    color: GRAY_8,
+    color: t.text,
   },
   modalSubtitle: {
     fontSize: 14,
     width: '100%',
     textAlign: 'center',
     paddingBottom: 10,
-    color: GRAY_8,
+    color: t.text,
   },
 
   input: {
     width: '100%',
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: t.line,
     borderRadius: 5,
     padding: 10,
     marginBottom: 20,
@@ -135,14 +138,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: GRAY_4,
+    backgroundColor: t.line,
   },
   confirmButton: {
-    backgroundColor: GRAY_9,
+    backgroundColor: t.cell,
   },
   buttonText: {
-    color: 'white',
+    color: t.text,
   },
-});
+}));
 
 export default BasicModal;

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { useFocusEffect } from 'expo-router';
-import { GRAY_0, GRAY_1, GRAY_5 } from '@/assets/palette';
+
 import PlanVsActual from '@/components/home/PlanVsActual';
 import Timer from '@/components/timer/timer';
 import { textOn } from '@/record/categoryStyle';
@@ -22,8 +22,9 @@ import {
 import { afterTimerChange, getRuntime, settleTimerNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 import ForgotSheet from './ForgotSheet';
-import { ACCENT, MAX_SCALE } from './sheetStyle';
+import { MAX_SCALE, useSheet } from './sheetStyle';
 import TimerStartSheet from './TimerStartSheet';
+import { makeStyles, useTheme } from '@/theme/theme';
 
 const NUMBER_SCALE = 1.3; // D19 큰 숫자 1.3배 상한
 
@@ -43,6 +44,7 @@ type StopNote = { stopped: Stopped; text: string; pingsBack: boolean };
  * 글꼴·숫자 칸·선반 배치는 T10·T11에서 바꾼다.
  */
 export default function TimerHome({ showBars }: { showBars: boolean }) {
+  const styles = useStyles();
   const blockVersion = useAppStore((s) => s.blockVersion);
   const [running, setRunning] = useState<Running | null>(null);
   const [name, setName] = useState('집중');
@@ -201,6 +203,8 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
 }
 
 function Btn(p: { label: string; onPress: () => void; primary?: boolean; a11y?: string }) {
+  const styles = useStyles();
+  const t = useTheme();
   return (
     <TouchableOpacity
       style={[styles.btn, p.primary ? styles.btnPrimary : styles.btnLine]}
@@ -208,25 +212,25 @@ function Btn(p: { label: string; onPress: () => void; primary?: boolean; a11y?: 
       accessibilityRole='button'
       accessibilityLabel={p.a11y ?? p.label}
     >
-      <Text style={[styles.btnText, p.primary && { color: textOn(ACCENT) }]} maxFontSizeMultiplier={MAX_SCALE}>
+      <Text style={[styles.btnText, p.primary && { color: t.onAcc }]} maxFontSizeMultiplier={MAX_SCALE}>
         {p.label}
       </Text>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   center: { alignItems: 'center', alignSelf: 'stretch', paddingHorizontal: 16, gap: 8 },
-  label: { color: GRAY_5, fontSize: 15 },
-  number: { color: GRAY_1, fontSize: 110, includeFontPadding: false },
+  label: { color: t.sub, fontSize: 15 },
+  number: { color: t.text, fontSize: 110, includeFontPadding: false },
   dim: { opacity: 0.45 },
-  small: { color: GRAY_5, fontSize: 15 },
-  tiny: { color: GRAY_5, fontSize: 13 },
-  link: { color: GRAY_0, fontSize: 15, textDecorationLine: 'underline', paddingVertical: 12 },
+  small: { color: t.sub, fontSize: 15 },
+  tiny: { color: t.sub, fontSize: 13 },
+  link: { color: t.text, fontSize: 15, textDecorationLine: 'underline', paddingVertical: 12 },
   note: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' },
   row: { flexDirection: 'row', gap: 16, marginTop: 8 },
   btn: { minHeight: 48, minWidth: 120, borderRadius: 24, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' },
-  btnPrimary: { backgroundColor: ACCENT },
-  btnLine: { borderWidth: 1, borderColor: GRAY_5 },
-  btnText: { color: GRAY_0, fontSize: 16 },
-});
+  btnPrimary: { backgroundColor: t.acc },
+  btnLine: { borderWidth: 1, borderColor: t.sub },
+  btnText: { color: t.text, fontSize: 16 },
+}));

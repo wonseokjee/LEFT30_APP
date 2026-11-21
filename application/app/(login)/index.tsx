@@ -5,8 +5,10 @@ import { handleLogin } from '@/components/login/handleLoginBtn';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { afterLogin } from '@/components/login/afterLogin';
+import { makeStyles } from '@/theme/theme';
 
 export default function LoginPage() {
+  const styles = useStyles();
   const [showLoginButton, setShowLoginButton] = useState(false);
   // 로그인 중에는 다시 누르지 못하게 하고, 실패하면 한 줄로 알린다.
   const [busy, setBusy] = useState(false);
@@ -65,17 +67,17 @@ export default function LoginPage() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'black',
+    backgroundColor: t.wall,
   },
   title: {
     fontSize: 24,
     marginBottom: 20,
-    color: 'white',
+    color: t.text,
   },
   loginImage: {
     width: 160,
@@ -98,7 +100,7 @@ const styles = StyleSheet.create({
   },
   failedText: {
     marginTop: 12,
-    color: '#adb5bd',
+    color: t.sub,
     fontSize: 13,
   },
   devButton: {
@@ -107,8 +109,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   devText: {
-    color: '#adb5bd',
+    color: t.sub,
     fontSize: 13,
     textDecorationLine: 'underline',
   },
-});
+}));

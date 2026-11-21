@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
-import { GRAY_0, GRAY_5, GRAY_9 } from '@/assets/palette';
+
 import { setSetting } from '@/db/records';
 import { QUIET_KEY } from '@/scheduler/scheduler';
 import type { Quiet } from '@/scheduler/plan';
 import { getRuntime, rescheduleNow } from '@/runtime/appRuntime';
 import QuietEditor from '@/components/quiet/QuietEditor';
+import { makeStyles } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 
@@ -17,6 +18,7 @@ type SetQuietTimeModalProps = {
 
 // 방해금지 시간 목록은 앱 로컬에만 저장한다(구현 D1, D19). 온보딩과 같은 편집기를 쓴다.
 const QuietTimeModal: React.FC<SetQuietTimeModalProps> = ({ initial, setModalVisible }) => {
+  const styles = useStyles();
   const [quiet, setQuiet] = useState<Quiet>(initial);
 
   const handleConfirm = async () => {
@@ -53,10 +55,10 @@ const QuietTimeModal: React.FC<SetQuietTimeModalProps> = ({ initial, setModalVis
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: GRAY_9,
+    backgroundColor: t.sheet,
   },
   content: {
     flexGrow: 1,
@@ -65,12 +67,12 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   title: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
     marginBottom: 8,
   },
   body: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 16,
     marginBottom: 24,
   },
@@ -86,21 +88,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelText: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 16,
   },
   save: {
     flex: 1,
     minHeight: 56,
     borderRadius: 8,
-    backgroundColor: GRAY_0,
+    backgroundColor: t.acc,
     justifyContent: 'center',
     alignItems: 'center',
   },
   saveText: {
-    color: GRAY_9,
+    color: t.onAcc,
     fontSize: 16,
   },
-});
+}));
 
 export default QuietTimeModal;

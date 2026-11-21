@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
-import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
+
 import { CATEGORY_LABEL, type Category } from '@/db/types';
 import { logEvent, savePlan } from '@/db/records';
 import { uuidv4 } from '@/lib/uuid';
@@ -9,6 +9,7 @@ import { CATEGORY_COLOR } from '@/record/categoryStyle';
 import { DAY_MIN, hours, planRowsOn, shiftDate } from '@/record/todoLogic';
 import { getRuntime, syncNow } from '@/runtime/appRuntime';
 import { SAVE_FAILED_TEXT } from '@/components/record/texts';
+import { makeStyles } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 // 디자인 리뷰 D11 순서: 업무·휴식·관계·운동·자기개발·수면
@@ -33,6 +34,7 @@ export default function PlanTargetSheet({
   onSaved: () => void;
   from?: 'todo' | 'home' | 'morning';
 }) {
+  const styles = useStyles();
   const [targets, setTargets] = useState<Partial<Record<Category, number>>>({});
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -134,27 +136,27 @@ export default function PlanTargetSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+const useStyles = makeStyles((t) => StyleSheet.create({
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: t.overlay },
   sheet: {
-    backgroundColor: GRAY_9,
+    backgroundColor: t.sheet,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 24,
   },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: GRAY_7, marginBottom: 12 },
-  header: { color: GRAY_0, fontSize: 16, marginBottom: 8 },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: t.line, marginBottom: 12 },
+  header: { color: t.text, fontSize: 16, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 52, gap: 10 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  name: { color: GRAY_0, fontSize: 16, flex: 1 },
-  stepBtn: { width: 44, height: 44, borderRadius: 8, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center' },
+  name: { color: t.text, fontSize: 16, flex: 1 },
+  stepBtn: { width: 44, height: 44, borderRadius: 8, backgroundColor: t.cell, alignItems: 'center', justifyContent: 'center' },
   off: { opacity: 0.4 },
-  stepText: { color: GRAY_0, fontSize: 22 },
-  value: { color: GRAY_0, fontSize: 16, minWidth: 48, textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false },
-  total: { color: GRAY_5, fontSize: 15, marginTop: 8 },
-  error: { color: GRAY_5, fontSize: 13, marginTop: 8 },
-  save: { minHeight: 52, borderRadius: 8, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  saveText: { color: GRAY_0, fontSize: 16 },
-});
+  stepText: { color: t.text, fontSize: 22 },
+  value: { color: t.text, fontSize: 16, minWidth: 48, textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false },
+  total: { color: t.sub, fontSize: 15, marginTop: 8 },
+  error: { color: t.sub, fontSize: 13, marginTop: 8 },
+  save: { minHeight: 52, borderRadius: 8, backgroundColor: t.cell, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  saveText: { color: t.text, fontSize: 16 },
+}));

@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from
 import { Text } from '@/components/ui/Text';
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useFocusEffect } from 'expo-router';
-import { GRAY_0, GRAY_5, GRAY_6, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
+
 import { CATEGORY_LABEL, type BlockRow, type SlotRow } from '@/db/types';
 import { deviceTz, localParts, SLOT_MS } from '@/lib/localTime';
 import { conflictingSlots } from '@/record/blockLogic';
@@ -31,6 +31,7 @@ import { useAppStore } from '@/store/appStore';
 import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 import BlockEditSheet from './BlockEditSheet';
 import PlanTargetSheet from './PlanTargetSheet';
+import { makeStyles } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 const TOAST_MS = 3000;
@@ -48,6 +49,7 @@ type Toast = { text: string; undo?: () => Promise<void> };
  * + 추가
  */
 export default function TodoScreen() {
+  const styles = useStyles();
   const blockVersion = useAppStore((s) => s.blockVersion);
   const [now, setNow] = useState(() => new Date());
   const tz = deviceTz();
@@ -346,6 +348,7 @@ function ConflictSheet({
   onPick: (overwrite: boolean) => void;
   onClose: () => void;
 }) {
+  const styles = useStyles();
   const label = CATEGORY_LABEL[block.category];
   const first = slots[0];
   const firstRange = `${hhmm(new Date(first.slot_start), tz)}–${hhmm(new Date(Date.parse(first.slot_start) + SLOT_MS), tz)}`;
@@ -378,60 +381,60 @@ function ConflictSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'black', paddingHorizontal: 16, paddingTop: 16 },
-  date: { color: GRAY_0, fontSize: 18 },
+const useStyles = makeStyles((t) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: t.wall, paddingHorizontal: 16, paddingTop: 16 },
+  date: { color: t.text, fontSize: 18 },
   totals: { minHeight: 44, justifyContent: 'center', marginBottom: 8 },
-  totalsText: { color: GRAY_6, fontSize: 14 },
-  bar: { height: 12, backgroundColor: GRAY_8, borderRadius: 2, marginTop: 8, marginBottom: 6 },
+  totalsText: { color: t.sub, fontSize: 14 },
+  bar: { height: 12, backgroundColor: t.cell, borderRadius: 2, marginTop: 8, marginBottom: 6 },
   barBlock: { position: 'absolute', top: 0, bottom: 0 },
-  nowLine: { position: 'absolute', top: -4, bottom: -4, width: 2, backgroundColor: GRAY_0 },
+  nowLine: { position: 'absolute', top: -4, bottom: -4, width: 2, backgroundColor: t.text },
   barLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  barLabel: { color: GRAY_6, fontSize: 13 },
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 52, backgroundColor: 'black' },
+  barLabel: { color: t.sub, fontSize: 13 },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 52, backgroundColor: t.wall },
   checkHit: { width: 48, height: 52, justifyContent: 'center' },
   check: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: GRAY_5,
+    borderColor: t.sub,
     alignItems: 'center',
     justifyContent: 'center',
   },
   body: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52 },
-  time: { color: GRAY_5, fontSize: 15 },
+  time: { color: t.sub, fontSize: 15 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  title: { color: GRAY_0, fontSize: 16, flex: 1 },
-  dim: { color: GRAY_6 },
-  swipeDel: { width: 88, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center' },
-  swipeText: { color: GRAY_0, fontSize: 15 },
+  title: { color: t.text, fontSize: 16, flex: 1 },
+  dim: { color: t.sub },
+  swipeDel: { width: 88, backgroundColor: t.cell, alignItems: 'center', justifyContent: 'center' },
+  swipeText: { color: t.text, fontSize: 15 },
   linkHit: { minHeight: 48, justifyContent: 'center', marginTop: 8 },
-  link: { color: GRAY_0, fontSize: 16, textDecorationLine: 'underline' },
+  link: { color: t.text, fontSize: 16, textDecorationLine: 'underline' },
   empty: { marginTop: 80, alignItems: 'center', gap: 8 },
-  emptyText: { color: GRAY_5, fontSize: 16 },
+  emptyText: { color: t.sub, fontSize: 16 },
   emptyLinks: { flexDirection: 'row', gap: 24 },
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: t.overlay },
   sheet: {
-    backgroundColor: GRAY_9,
+    backgroundColor: t.sheet,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 24,
   },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: GRAY_7, marginBottom: 12 },
-  sheetHeader: { color: GRAY_0, fontSize: 16, marginBottom: 8 },
-  sheetBody: { color: GRAY_5, fontSize: 15, marginBottom: 16 },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: t.line, marginBottom: 12 },
+  sheetHeader: { color: t.text, fontSize: 16, marginBottom: 8 },
+  sheetBody: { color: t.sub, fontSize: 15, marginBottom: 16 },
   sheetBtn: {
     minHeight: 52,
     borderRadius: 8,
-    backgroundColor: GRAY_8,
+    backgroundColor: t.cell,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
-  sheetBtnText: { color: GRAY_0, fontSize: 16 },
+  sheetBtnText: { color: t.text, fontSize: 16 },
   toast: {
     position: 'absolute',
     left: 16,
@@ -439,12 +442,12 @@ const styles = StyleSheet.create({
     bottom: 96,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: GRAY_8,
+    backgroundColor: t.cell,
     borderRadius: 8,
     paddingHorizontal: 16,
     minHeight: 48,
   },
-  toastText: { flex: 1, color: GRAY_0, fontSize: 13 },
+  toastText: { flex: 1, color: t.text, fontSize: 13 },
   toastAction: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 8 },
-  toastActionText: { color: GRAY_0, fontSize: 13, textDecorationLine: 'underline', textDecorationColor: GRAY_7 },
-});
+  toastActionText: { color: t.text, fontSize: 13, textDecorationLine: 'underline', textDecorationColor: t.line },
+}));

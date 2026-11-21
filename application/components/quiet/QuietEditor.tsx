@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { GRAY_0, GRAY_5, GRAY_7, GRAY_9 } from '@/assets/palette';
+
 import { MAX_QUIET_WINDOWS, WEEKDAYS, type Quiet, type QuietWindow } from '@/scheduler/plan';
+import { makeStyles } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -31,6 +32,7 @@ type Props = { value: Quiet; onChange: (quiet: Quiet) => void };
 
 // 방해금지 시간 목록 편집기(D19). 온보딩과 계정 관리가 함께 쓴다. 어두운 배경 위에 그린다.
 export default function QuietEditor({ value, onChange }: Props) {
+  const styles = useStyles();
   const [picking, setPicking] = useState<{ index: number; key: 'startMin' | 'endMin' } | null>(null);
 
   const update = (index: number, patch: Partial<QuietWindow>) =>
@@ -118,11 +120,11 @@ export default function QuietEditor({ value, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   window: {
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: GRAY_7,
+    borderBottomColor: t.line,
   },
   timeRow: {
     flexDirection: 'row',
@@ -133,11 +135,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   timeText: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 20,
   },
   tilde: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 16,
     marginHorizontal: 12,
   },
@@ -148,7 +150,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   removeText: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 13,
   },
   days: {
@@ -161,27 +163,27 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: GRAY_7,
+    borderColor: t.line,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dayOn: {
-    backgroundColor: GRAY_0,
-    borderColor: GRAY_0,
+    backgroundColor: t.acc,
+    borderColor: t.acc,
   },
   dayText: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 13,
   },
   dayTextOn: {
-    color: GRAY_9,
+    color: t.onAcc,
   },
   add: {
     minHeight: 48,
     justifyContent: 'center',
   },
   addText: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
   },
-});
+}));

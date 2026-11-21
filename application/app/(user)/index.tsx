@@ -4,7 +4,7 @@ import { Text } from '@/components/ui/Text';
 import { useRouter } from 'expo-router';
 import { unlink } from '@react-native-kakao/user';
 import * as SecureStore from 'expo-secure-store';
-import { GRAY_1, GRAY_9 } from '@/assets/palette';
+
 import QuietTimeModal from '@/components/user/quietTimeModal';
 import WithdrawalModal from '@/components/user/withdrawalModal';
 import { readQuiet } from '@/scheduler/scheduler';
@@ -12,8 +12,11 @@ import type { Quiet } from '@/scheduler/plan';
 import { getRuntime } from '@/runtime/appRuntime';
 import DevTools from '@/components/dev/DevTools';
 import PauseSwitch from '@/components/quiet/PauseSwitch';
+import ThemePicker from '@/components/user/ThemePicker';
+import { makeStyles } from '@/theme/theme';
 
 export default function UserPage() {
+  const styles = useStyles();
   const router = useRouter();
   const [quietModalVisible, setQuietModalVisible] = useState(false);
   const [quiet, setQuiet] = useState<Quiet>([]);
@@ -67,6 +70,10 @@ export default function UserPage() {
           <PauseSwitch />
         </View>
         <View style={styles.contentContainer}>
+          <Text style={styles.subtitle}>화면</Text>
+          <ThemePicker />
+        </View>
+        <View style={styles.contentContainer}>
           <Text style={styles.subtitle}>회원 탈퇴</Text>
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -92,30 +99,30 @@ export default function UserPage() {
 }
 //kakao_login_medium_narrow
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   container: {
     flex: 1,
     // justifyContent: 'center',
     // alignItems: 'center',
-    backgroundColor: 'black',
+    backgroundColor: t.wall,
     padding: '2%',
   },
   logoContainer: {},
   title: {
     fontSize: 18,
     marginBottom: 20,
-    color: GRAY_1,
+    color: t.text,
     // borderWidth: 1,
-    // borderColor: 'white',
+    // borderColor: t.text,
   },
   contentContainer: {
     // borderWidth: 1,
-    // borderColor: GRAY_1,
+    // borderColor: t.text,
     marginBottom: 20,
   },
   subtitle: {
     fontSize: 16,
-    color: GRAY_1,
+    color: t.text,
     marginBottom: 20,
   },
   buttonContainer: {
@@ -136,10 +143,10 @@ const styles = StyleSheet.create({
     width: '50%',
     borderRadius: 5,
     alignItems: 'center',
-    backgroundColor: GRAY_1,
+    backgroundColor: t.acc,
   },
   buttonText: {
-    color: GRAY_9,
+    color: t.onAcc,
     fontSize: 16,
   },
-});
+}));

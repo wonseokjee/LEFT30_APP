@@ -5,10 +5,9 @@ import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 import { getItem } from '@/record/items';
 import { hhmm } from '@/record/recordLogic';
 import { extendTimer, readRunning, stopTimer, type Running } from '@/record/timerLogic';
-import { textOn } from '@/record/categoryStyle';
 import { afterTimerChange, getRuntime } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
-import { ACCENT, MAX_SCALE, sheet } from './sheetStyle';
+import { MAX_SCALE, useSheet } from './sheetStyle';
 
 /*
  * 타이머 끝 시트(옛 집중 블록 끝 시트 A안, timer-modes 타이머):
@@ -18,6 +17,7 @@ import { ACCENT, MAX_SCALE, sheet } from './sheetStyle';
  * 바깥을 누르면 답 없이 닫힌다. 30분 안에 답이 없으면 앱을 열 때 정한 끝 시각에 끝낸다(settleTimer).
  */
 export default function TimerEndSheet({ entryId }: { entryId: string }) {
+  const sheet = useSheet();
   const close = useAppStore((s) => s.closeTimerSheet);
   const [r, setR] = useState<Running | null>(null);
   const [name, setName] = useState('');
@@ -74,7 +74,7 @@ export default function TimerEndSheet({ entryId }: { entryId: string }) {
             onPress={() => act(() => extendTimer(db, Date.now()))}
             accessibilityLabel={`${name} 30분 더`}
           >
-            <Text style={[sheet.text, { color: textOn(ACCENT) }]} maxFontSizeMultiplier={MAX_SCALE}>
+            <Text style={sheet.primaryText} maxFontSizeMultiplier={MAX_SCALE}>
               30분 더
             </Text>
           </TouchableOpacity>

@@ -19,6 +19,8 @@ import { useAppStore } from '@/store/appStore';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { setFontReady } from '@/components/ui/Text';
+import { THEME_KEY, useTheme, useThemeMode, type ThemeMode } from '@/theme/theme';
+import { getSetting } from '@/db/records';
 
 // 주아를 불러올 때까지 스플래시를 유지한다(visual 6.1 G8). 실패하면 시스템 글꼴로 진행.
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -34,6 +36,7 @@ Notifications.setNotificationHandler({
 type BootState = 'loading' | 'ready' | 'failed';
 
 export default function RootLayout() {
+  const t = useTheme();
   const [boot, setBoot] = useState<BootState>('loading');
   const lastResponse = Notifications.useLastNotificationResponse();
   const [fontLoaded, fontError] = useFonts({ Jua: require('@/assets/fonts/Jua-Regular.ttf') });
@@ -47,7 +50,14 @@ export default function RootLayout() {
   // 1. 로컬 DB를 먼저 연다(R1). 실패하면 데이터를 지우지 않고 오류 화면만 보여준다.
   useEffect(() => {
     bootRuntime()
-      .then((result) => setBoot(result.ok ? 'ready' : 'failed'))
+      .then(async (result) => {
+        // 앱 안 화면 선택(D15)을 첫 화면 전에 읽는다.
+        if (result.ok) {
+          const mode = await getSetting<ThemeMode>(getRuntime().db, THEME_KEY).catch(() => null);
+          if (mode) useThemeMode.getState().setMode(mode);
+        }
+        setBoot(result.ok ? 'ready' : 'failed');
+      })
       .catch((e) => {
         console.warn('boot failed', e);
         setBoot('failed');
@@ -104,8 +114,8 @@ export default function RootLayout() {
         <Stack
           initialRouteName='(login)/index' // Set the login page as the initial screen
           screenOptions={{
-            headerStyle: { backgroundColor: 'black' },
-            headerTintColor: 'white',
+            headerStyle: { backgroundColor: t.wall },
+            headerTintColor: t.text,
             headerTitle: () => <TabHeaderTitle />,
             headerRight: () => <TabHeaderRight />,
           }}
@@ -126,7 +136,7 @@ export default function RootLayout() {
             name='(tabs)'
             options={{
               headerShown: true,
-              contentStyle: { backgroundColor: 'black' },
+              contentStyle: { backgroundColor: t.wall },
             }}
           />
           <Stack.Screen
@@ -141,8 +151,8 @@ export default function RootLayout() {
         <LoginExpiredAlertModal />
         <StatusBar
           // react-native의 StatusBar
-          backgroundColor='black' // 배경색을 검정으로
-          barStyle='light-content' // 아이콘/글씨를 밝게
+          backgroundColor={t.wall}
+          barStyle={t.dark ? 'light-content' : 'dark-content'}
           translucent={false} // StatusBar 아래로 내용이 내려오지 않게
         />
       </GestureHandlerRootView>

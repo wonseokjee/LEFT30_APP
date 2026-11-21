@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput } from '@/components/ui/Text';
-import { GRAY_0, GRAY_5, GRAY_7, GRAY_8 } from '@/assets/palette';
+
 import { CATEGORY_LABEL } from '@/db/types';
 import { saveEntry, undoEntry } from '@/record/entries';
 import { withRo } from '@/record/recordLogic';
 import { getRuntime, rescheduleNow, syncNow } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 import { SAVE_FAILED_TEXT } from './texts';
+import { makeStyles, useTheme } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 const VISIBLE_MS = 3000;
@@ -16,6 +17,8 @@ const MEMO_MAX = 500;
 // 저장 후 3초 토스트: "업무로 기록 · 메모 추가 · 되돌리기". 메모는 여기서만 입력한다.
 // 닫힐 때 동기화한다. 그래서 되돌리기 전에 서버로 먼저 나가지 않는다.
 export default function RecordToast() {
+  const styles = useStyles();
+  const t = useTheme();
   const lastSaved = useAppStore((s) => s.lastSaved);
   const setLastSaved = useAppStore((s) => s.setLastSaved);
   const [editing, setEditing] = useState(false);
@@ -85,7 +88,7 @@ export default function RecordToast() {
           onChangeText={setMemo}
           maxLength={MEMO_MAX}
           placeholder='메모'
-          placeholderTextColor={GRAY_5}
+          placeholderTextColor={t.sub}
           autoFocus
           multiline
           maxFontSizeMultiplier={MAX_SCALE}
@@ -124,7 +127,7 @@ export default function RecordToast() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   toast: {
     position: 'absolute',
     left: 16,
@@ -132,24 +135,24 @@ const styles = StyleSheet.create({
     bottom: 96,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: GRAY_8,
+    backgroundColor: t.cell,
     borderRadius: 8,
     paddingHorizontal: 16,
   },
   text: {
     flex: 1,
-    color: GRAY_0,
+    color: t.text,
     fontSize: 13,
   },
   failedText: {
-    color: GRAY_5,
+    color: t.sub,
   },
   wrap: {
     flexWrap: 'wrap',
   },
   failedLine: {
     width: '100%',
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 13,
     paddingTop: 8,
   },
@@ -159,15 +162,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   actionText: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 13,
     textDecorationLine: 'underline',
-    textDecorationColor: GRAY_7,
+    textDecorationColor: t.line,
   },
   input: {
     flex: 1,
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
     paddingVertical: 12,
   },
-});
+}));

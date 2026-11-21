@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
-import { GRAY_8 } from '@/assets/palette';
+
 import { SAVE_FAILED_TEXT } from '@/components/record/texts';
 import { MINUTE_MS } from '@/lib/localTime';
 import { textOn } from '@/record/categoryStyle';
 import { hhmm } from '@/record/recordLogic';
 import { clamp } from '@/record/timerHome';
 import type { Running } from '@/record/timerLogic';
-import { ACCENT, MAX_SCALE, sheet } from './sheetStyle';
+import { MAX_SCALE, useSheet } from './sheetStyle';
+import { makeStyles } from '@/theme/theme';
 
 /*
  * FORGOT B(디자인 리뷰 D11): 스톱워치가 3시간 넘게 돌면 앱을 열 때 한 번 묻는다.
@@ -22,6 +23,8 @@ export default function ForgotSheet(p: {
   onKeep: () => void;
   onStopAt: (at: number) => Promise<void>;
 }) {
+  const styles = useStyles();
+  const sheet = useSheet();
   const start = p.running.entry.start_at;
   const tz = p.running.entry.tz;
   const [editing, setEditing] = useState(false);
@@ -88,7 +91,7 @@ export default function ForgotSheet(p: {
                 ))}
               </View>
               <TouchableOpacity style={sheet.primary} onPress={stop} accessibilityLabel={`${hhmm(new Date(at), tz)}에 정지`}>
-                <Text style={[sheet.text, { color: textOn(ACCENT) }]} maxFontSizeMultiplier={MAX_SCALE}>
+                <Text style={sheet.primaryText} maxFontSizeMultiplier={MAX_SCALE}>
                   이 시각에 정지
                 </Text>
               </TouchableOpacity>
@@ -101,6 +104,8 @@ export default function ForgotSheet(p: {
 }
 
 function Step({ min, onPress }: { min: number; onPress: () => void }) {
+  const sheet = useSheet();
+  const styles = useStyles();
   const text = Math.abs(min) === 60 ? '1시간' : `${Math.abs(min)}분`;
   return (
     <TouchableOpacity style={styles.step} onPress={onPress} accessibilityLabel={`${text} ${min < 0 ? '앞으로' : '뒤로'}`}>
@@ -112,8 +117,8 @@ function Step({ min, onPress }: { min: number; onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  time: { color: sheet.text.color, fontSize: 24 },
-  step: { minWidth: 56, minHeight: 48, borderRadius: 8, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center' },
-});
+  time: { color: t.text, fontSize: 24 },
+  step: { minWidth: 56, minHeight: 48, borderRadius: 8, backgroundColor: t.cell, alignItems: 'center', justifyContent: 'center' },
+}));

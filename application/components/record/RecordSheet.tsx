@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { useRouter } from 'expo-router';
-import { GRAY_0, GRAY_5, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
+
 import { CATEGORY_LABEL, type BlockRow, type Category, type SlotRow } from '@/db/types';
 import { getBlock, tzAt } from '@/db/records';
 import { saveEntry } from '@/record/entries';
@@ -33,6 +33,7 @@ import TimerEndSheet from '@/components/timer/TimerEndSheet';
 
 const MAX_SCALE = 1.3;
 import { SAVE_FAILED_TEXT } from './texts';
+import { makeStyles } from '@/theme/theme';
 
 type Loaded = {
   slotStart: string;
@@ -66,6 +67,7 @@ export default function RecordSheet() {
  * 어제 값이 없으면 바로 새로 짜기 시트. 바깥을 누르면 닫히고 그날은 다시 묻지 않는다.
  */
 function MorningSheet({ offer }: { offer: MorningOffer }) {
+  const styles = useStyles();
   const close = useAppStore((s) => s.closeMorningSheet);
   const [custom, setCustom] = useState(offer.kind === 'new');
   const [failed, setFailed] = useState(false);
@@ -138,6 +140,7 @@ function MorningSheet({ offer }: { offer: MorningOffer }) {
  * 바깥을 누르면 그냥 닫힌다(다음에 앱을 열 때 다시 묻는다).
  */
 function BatchSheet({ run }: { run: MissedRun }) {
+  const styles = useStyles();
   const close = useAppStore((s) => s.closeBatchSheet);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -235,6 +238,7 @@ function BatchSheet({ run }: { run: MissedRun }) {
  * 바깥을 누르면 답 없이 닫힌다(다음 30분 알림 시각에 no_answer).
  */
 function BlockEndSheet({ blockId }: { blockId: string }) {
+  const styles = useStyles();
   const close = useAppStore((s) => s.closeBlockSheet);
   const router = useRouter();
   const [block, setBlock] = useState<BlockRow | null>(null);
@@ -331,6 +335,7 @@ function BlockEndSheet({ blockId }: { blockId: string }) {
 
 // 기록 모달(디자인 리뷰 D4): 어두운 바텀 시트, 카테고리를 누르면 바로 저장하고 닫힌다. 확인 버튼은 없다.
 function SlotSheet() {
+  const styles = useStyles();
   const sheetSlot = useAppStore((s) => s.sheetSlot);
   const openSheet = useAppStore((s) => s.openSheet);
   const closeSheet = useAppStore((s) => s.closeSheet);
@@ -486,14 +491,14 @@ function SlotSheet() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: t.overlay,
   },
   sheet: {
-    backgroundColor: GRAY_9,
+    backgroundColor: t.sheet,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingHorizontal: 16,
@@ -505,21 +510,21 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: GRAY_7,
+    backgroundColor: t.line,
     marginBottom: 12,
   },
   header: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
     marginBottom: 12,
   },
   summary: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 15,
     marginBottom: 16,
   },
   error: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 13,
     marginTop: -4,
     marginBottom: 12,
@@ -537,7 +542,7 @@ const styles = StyleSheet.create({
   endButton: {
     minHeight: 56,
     borderRadius: 8,
-    backgroundColor: GRAY_8,
+    backgroundColor: t.cell,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -551,7 +556,7 @@ const styles = StyleSheet.create({
     width: '32%',
     minHeight: 56,
     borderRadius: 8,
-    backgroundColor: GRAY_8,
+    backgroundColor: t.cell,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -563,12 +568,12 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   cellText: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: GRAY_7,
+    backgroundColor: t.line,
     marginTop: 16,
   },
   emptyRow: {
@@ -578,11 +583,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: GRAY_5,
+    color: t.sub,
     fontSize: 13,
   },
   emptyAction: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 13,
   },
-});
+}));

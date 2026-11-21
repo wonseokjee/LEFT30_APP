@@ -1,9 +1,11 @@
-import { GRAY_1 } from '@/assets/palette';
+
 import useTimer from '@/hooks/timer/useTimer';
 import { View, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { makeStyles } from '@/theme/theme';
 
 export default function Timer() {
+  const styles = useStyles();
   const { leftMinute, leftSecond } = useTimer();
   return (
     <View>
@@ -15,14 +17,14 @@ export default function Timer() {
     </View>
   );
 }
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   timerContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
   timer: {
-    color: GRAY_1,
+    color: t.text,
     fontSize: 110,
     // marginBottom: 10,
   },
-});
+}));

@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text, TextInput } from '@/components/ui/Text';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { GRAY_0, GRAY_5, GRAY_6, GRAY_7, GRAY_8, GRAY_9 } from '@/assets/palette';
+
 import { CATEGORY_LABEL, type BlockRow, type Category } from '@/db/types';
 import { CATEGORY_COLOR, GRID_ORDER, textOn } from '@/record/categoryStyle';
 import { hhmm } from '@/record/recordLogic';
 import { BLOCK_TITLE_MAX, DAY_MIN, hm, minuteOf, savePlanBlock, setEnd, setStart } from '@/record/todoLogic';
 import { getRuntime } from '@/runtime/appRuntime';
 import { SAVE_FAILED_TEXT } from '@/components/record/texts';
+import { makeStyles, useTheme } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 
@@ -40,6 +41,8 @@ export default function BlockEditSheet({
   onSaved: () => void;
   onDelete: (b: BlockRow) => void;
 }) {
+  const t = useTheme();
+  const styles = useStyles();
   const [range, setRange] = useState(initial);
   const [cat, setCat] = useState<Category | null>(null);
   const [title, setTitle] = useState('');
@@ -162,7 +165,7 @@ export default function BlockEditSheet({
           </View>
           <TextInput
             style={styles.input}
-            placeholderTextColor={GRAY_6}
+            placeholderTextColor={t.sub}
             placeholder='이름 (선택) 예: 보고서 쓰기'
             value={title}
             onChangeText={setTitle}
@@ -192,27 +195,27 @@ export default function BlockEditSheet({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+const useStyles = makeStyles((t) => StyleSheet.create({
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: t.overlay },
   sheet: {
-    backgroundColor: GRAY_9,
+    backgroundColor: t.sheet,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 24,
   },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: GRAY_7, marginBottom: 12 },
-  header: { color: GRAY_0, fontSize: 16, marginBottom: 12 },
-  label: { color: GRAY_5, fontSize: 13, marginBottom: 6 },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: t.line, marginBottom: 12 },
+  header: { color: t.text, fontSize: 16, marginBottom: 12 },
+  label: { color: t.sub, fontSize: 13, marginBottom: 6 },
   range: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   stepCol: { alignItems: 'center' },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  stepBtn: { width: 40, height: 44, borderRadius: 8, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center' },
-  stepText: { color: GRAY_0, fontSize: 22 },
-  dash: { color: GRAY_5, fontSize: 18, marginTop: 20 },
+  stepBtn: { width: 40, height: 44, borderRadius: 8, backgroundColor: t.cell, alignItems: 'center', justifyContent: 'center' },
+  stepText: { color: t.text, fontSize: 22 },
+  dash: { color: t.sub, fontSize: 18, marginTop: 20 },
   stepValue: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 18,
     minWidth: 58,
     textAlign: 'center',
@@ -224,26 +227,26 @@ const styles = StyleSheet.create({
     width: '32%',
     minHeight: 52,
     borderRadius: 8,
-    backgroundColor: GRAY_8,
+    backgroundColor: t.cell,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  cellText: { color: GRAY_0, fontSize: 15 },
+  cellText: { color: t.text, fontSize: 15 },
   input: {
-    color: GRAY_0,
+    color: t.text,
     fontSize: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: GRAY_7,
+    borderColor: t.line,
     paddingVertical: 10,
     marginVertical: 8,
   },
-  error: { color: GRAY_5, fontSize: 13, marginTop: 4 },
-  save: { minHeight: 52, borderRadius: 8, backgroundColor: GRAY_8, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
+  error: { color: t.sub, fontSize: 13, marginTop: 4 },
+  save: { minHeight: 52, borderRadius: 8, backgroundColor: t.cell, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   off: { opacity: 0.4 },
-  saveText: { color: GRAY_0, fontSize: 16 },
+  saveText: { color: t.text, fontSize: 16 },
   delete: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  deleteText: { color: GRAY_5, fontSize: 15, textDecorationLine: 'underline' },
-});
+  deleteText: { color: t.sub, fontSize: 15, textDecorationLine: 'underline' },
+}));

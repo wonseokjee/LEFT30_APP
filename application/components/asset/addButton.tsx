@@ -1,13 +1,15 @@
-import { GRAY_1, GRAY_8 } from '@/assets/palette';
+
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/Text';
+import { makeStyles } from '@/theme/theme';
 
 type Props = {
   setAddModalVisible: (visible: boolean) => void;
 };
 
 const AddButton: React.FC<Props> = ({ setAddModalVisible }) => {
+  const styles = useStyles();
   return (
     <>
       <TouchableOpacity
@@ -20,12 +22,12 @@ const AddButton: React.FC<Props> = ({ setAddModalVisible }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   addButton: {
     position: 'absolute',
     bottom: 25,
     right: 25,
-    backgroundColor: GRAY_8, 
+    backgroundColor: t.cell, 
     width: 45,
     height: 45,
     borderRadius: 30,
@@ -34,13 +36,13 @@ const styles = StyleSheet.create({
     // opacity: 0.9,
   },
   addButtonText: {
-    color: GRAY_1,
+    color: t.text,
     fontSize: 30,
     textAlign: 'center',
     justifyContent: 'center',
     alignItems: 'center',
     lineHeight: 30, // 텍스트가 버튼 중앙에 오도록 조정
   },
-});
+}));
 
 export default AddButton;

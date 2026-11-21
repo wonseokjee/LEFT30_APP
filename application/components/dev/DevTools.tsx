@@ -2,15 +2,17 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import * as Notifications from 'expo-notifications';
-import { GRAY_5, GRAY_7 } from '@/assets/palette';
+
 import { deviceTz } from '@/lib/localTime';
 import { lastEndedSlot } from '@/record/recordLogic';
 import { PING_CHANNEL } from '@/scheduler/expoNotifier';
 import { rescheduleNow } from '@/runtime/appRuntime';
 import { continueCategoryId } from '@/scheduler/plan';
+import { makeStyles } from '@/theme/theme';
 
 // 개발 빌드(__DEV__)에서만 그린다. 실기기 확인용: 테스트 알림, 예약 개수·다음 알림 시각.
 export default function DevTools() {
+  const styles = useStyles();
   const [info, setInfo] = useState('');
 
   const refresh = useCallback(async () => {
@@ -89,15 +91,15 @@ export default function DevTools() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   box: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: GRAY_7,
+    borderColor: t.line,
     paddingTop: 12,
     marginTop: 12,
   },
-  title: { color: GRAY_5, fontSize: 13, marginBottom: 4 },
-  info: { color: GRAY_5, fontSize: 13, marginBottom: 8 },
+  title: { color: t.sub, fontSize: 13, marginBottom: 4 },
+  info: { color: t.sub, fontSize: 13, marginBottom: 8 },
   button: { minHeight: 48, justifyContent: 'center' },
-  text: { color: GRAY_5, fontSize: 13, textDecorationLine: 'underline' },
-});
+  text: { color: t.sub, fontSize: 13, textDecorationLine: 'underline' },
+}));

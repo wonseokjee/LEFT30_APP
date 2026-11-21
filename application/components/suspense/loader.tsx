@@ -1,9 +1,12 @@
 import React from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import Entypo from '@expo/vector-icons/Entypo';
-import { GRAY_1 } from '@/assets/palette';
+
+import { makeStyles, useTheme } from '@/theme/theme';
 
 export default function Loader() {
+  const styles = useStyles();
+  const t = useTheme();
   const spinValue = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -25,17 +28,17 @@ export default function Loader() {
   return (
     <View style={styles.container}>
       <Animated.View style={{ transform: [{ rotate: spin }] }}>
-        <Entypo name='cycle' size={48} color={GRAY_1} />
+        <Entypo name='cycle' size={48} color={t.text} />
       </Animated.View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'black', // 로딩 배경색
+    backgroundColor: t.wall, // 로딩 배경색
   },
-});
+}));

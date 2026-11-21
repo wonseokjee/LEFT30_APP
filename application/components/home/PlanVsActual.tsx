@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { useFocusEffect } from 'expo-router';
-import { GRAY_0, GRAY_5, GRAY_6, GRAY_8 } from '@/assets/palette';
+
 import { deviceTz, localParts } from '@/lib/localTime';
 import { ITEM_COLOR } from '@/record/categoryStyle';
 import { loadPva, noteHomeViewed, type Pva } from '@/record/planVsActual';
@@ -11,6 +11,7 @@ import { getRuntime } from '@/runtime/appRuntime';
 import { readQuiet } from '@/scheduler/scheduler';
 import { useAppStore } from '@/store/appStore';
 import PlanTargetSheet from '@/components/todo/PlanTargetSheet';
+import { makeStyles, useTheme } from '@/theme/theme';
 
 const MAX_SCALE = 1.3;
 // 목표 막대 투명도(약 30%). 색 결정은 디자인 개편에서.
@@ -24,6 +25,8 @@ const TARGET_ALPHA = '4d';
  * 목표나 기록이 있는 카테고리만 줄로 보인다.
  */
 export default function PlanVsActual() {
+  const styles = useStyles();
+  const t = useTheme();
   const blockVersion = useAppStore((s) => s.blockVersion);
   const lastSaved = useAppStore((s) => s.lastSaved);
   const sheetSlot = useAppStore((s) => s.sheetSlot);
@@ -67,7 +70,7 @@ export default function PlanVsActual() {
   return (
     <View style={styles.box}>
       {pva.rows.map((r) => {
-        const color = ITEM_COLOR[r.item] ?? GRAY_5;
+        const color = ITEM_COLOR[r.item] ?? t.sub;
         return (
           <View
             key={r.item}
@@ -124,14 +127,14 @@ export default function PlanVsActual() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((t) => StyleSheet.create({
   box: { alignSelf: 'stretch', paddingHorizontal: 24, marginTop: 32 },
   row: { flexDirection: 'row', alignItems: 'center', minHeight: 28, gap: 10 },
-  name: { color: GRAY_5, fontSize: 13, width: 56 },
-  track: { flex: 1, height: 10, backgroundColor: GRAY_8, borderRadius: 2, overflow: 'hidden' },
+  name: { color: t.sub, fontSize: 13, width: 56 },
+  track: { flex: 1, height: 10, backgroundColor: t.cell, borderRadius: 2, overflow: 'hidden' },
   bar: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 2 },
-  num: { color: GRAY_6, fontSize: 13, minWidth: 72, textAlign: 'right' },
-  line: { color: GRAY_5, fontSize: 14, marginTop: 12, textAlign: 'center' },
+  num: { color: t.sub, fontSize: 13, minWidth: 72, textAlign: 'right' },
+  line: { color: t.sub, fontSize: 14, marginTop: 12, textAlign: 'center' },
   linkHit: { minHeight: 44, justifyContent: 'center', alignSelf: 'center' },
-  link: { color: GRAY_0, fontSize: 14, textDecorationLine: 'underline' },
-});
+  link: { color: t.text, fontSize: 14, textDecorationLine: 'underline' },
+}));
