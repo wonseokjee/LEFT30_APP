@@ -19,6 +19,7 @@ import { planBlocksOn } from '@/record/todoLogic';
 import { getRuntime } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 import { makeStyles, type Theme } from '@/theme/theme';
+import { STRIP_H } from '@/components/home/CatStrip';
 
 const MAX_SCALE = 1.3;
 // 1분 = 1.1dp(30분 = 33dp, 4.3a)
@@ -31,7 +32,7 @@ const GAP = 8;
 const NOW_BOX = 20;
 const BLOCK_GAP = 2;
 
-// 4.3a 시간표 색. 블록 채움·옅은 구간·눈금은 테마에서 만든 시간표 전용 값(폰에서 다시 본다).
+// 4.3a 시간표 색. 블록 채움(낮 #E0CCB7·밤 #57504A)과 옅은 구간(#E9D9C7·#48423E)은 4.3a 값, 눈금은 폰에서 다시 본다.
 function palette(t: Theme) {
   return {
     bg: t.wall,
@@ -39,8 +40,8 @@ function palette(t: Theme) {
     sub: t.sub,
     acc: t.acc,
     line: t.border,
-    fill: t.dark ? '#57504A' : '#E6D4C1',
-    soft: t.dark ? '#48423E' : '#EEE1D3',
+    fill: t.dark ? '#57504A' : '#E0CCB7',
+    soft: t.dark ? '#48423E' : '#E9D9C7',
     grid: t.dark ? 'rgba(255,255,255,0.08)' : 'rgba(90,64,48,0.10)',
   };
 }
@@ -67,6 +68,7 @@ export default function Timetable() {
   const [now, setNow] = useState(() => new Date());
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [info, setInfo] = useState<TimelineBlock | null>(null);
+  const [failed, setFailed] = useState(false);
   const scrolled = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -102,7 +104,12 @@ export default function Timetable() {
   );
   useEffect(() => {
     if (sheetSlot) return;
-    load().catch((e) => console.warn('timetable load failed', e));
+    load()
+      .then(() => setFailed(false))
+      .catch((e) => {
+        console.warn('timetable load failed', e);
+        setFailed(true);
+      });
   }, [load, sheetSlot, lastSaved, blockVersion, now]);
 
   const nowTop = localParts(now, tz).minuteOfDay * MIN_DP;
@@ -114,6 +121,24 @@ export default function Timetable() {
     scrollRef.current?.scrollTo({ y: Math.max(0, nowTop - 200), animated: false });
   }, [loaded, nowTop]);
 
+  // 읽기 실패(D30): 그 자리에 한 줄 + [다시 시도]. 불러오는 중에는 아무것도 그리지 않는다(D32).
+  if (failed && !loaded) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <Text style={styles.sheetTitle} maxFontSizeMultiplier={MAX_SCALE}>
+          시간표를 불러오지 못했어요
+        </Text>
+        <Text style={styles.sheetLine} maxFontSizeMultiplier={MAX_SCALE}>
+          기록은 지워지지 않았어요
+        </Text>
+        <Pressable style={styles.retry} onPress={() => setNow(new Date())} accessibilityRole='button'>
+          <Text style={styles.retryText} maxFontSizeMultiplier={MAX_SCALE}>
+            다시 시도
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
   if (!loaded) return <View style={styles.container} />;
 
   // 누른 자리의 30분 칸 기록 시트. 지금 칸과 미래는 반응하지 않는다.
@@ -265,10 +290,13 @@ const useStyles = makeStyles((t) => {
   const C = palette(t);
   return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
+  center: { alignItems: 'center', justifyContent: 'center', gap: 4 },
+  retry: { marginTop: 12, minHeight: 48, paddingHorizontal: 24, borderRadius: 24, borderWidth: 1.5, borderColor: C.line, justifyContent: 'center' },
+  retryText: { color: C.text, fontSize: 17 },
   header: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   headerText: { flex: 1, color: C.sub, fontSize: 13, textAlign: 'center' },
   headerOn: { color: C.text },
-  body: { flexDirection: 'row', paddingHorizontal: PAD, paddingTop: PAD_TOP, paddingBottom: 24, gap: GAP },
+  body: { flexDirection: 'row', paddingHorizontal: PAD, paddingTop: PAD_TOP, paddingBottom: 24 + STRIP_H, gap: GAP },
   hourLine: {
     position: 'absolute',
     left: PAD + LABEL_WIDTH + GAP,

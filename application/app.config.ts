@@ -14,7 +14,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   slug: 'left30app',
   version: '1.0.0',
   orientation: 'portrait',
-  icon: './assets/images/left30_logo.png',
+  // 아이콘·스플래시·알림 아이콘은 앉은 고양이 한 컷(visual 4.4). 바탕은 낮 벽색.
+  icon: './assets/images/icon.png',
   scheme: IS_RELEASE ? 'left30' : 'myapp',
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
@@ -27,8 +28,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // 사용자가 설정의 "알람 및 리마인더"에서 켜는 권한이다(USE_EXACT_ALARM은 쓰지 않는다, ENG-1).
     permissions: ['android.permission.SCHEDULE_EXACT_ALARM'],
     adaptiveIcon: {
-      foregroundImage: './assets/images/left30_logo.png',
-      backgroundColor: '#ffffff',
+      foregroundImage: './assets/images/adaptive-icon.png',
+      backgroundColor: '#F3E2D0',
     },
   },
   web: {
@@ -43,10 +44,18 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       'expo-splash-screen',
       {
-        image: './assets/images/left30_logo.png',
-        imageWidth: 200,
+        image: './assets/images/splash-cat.png',
+        imageWidth: 160,
         resizeMode: 'contain',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#F3E2D0',
+        dark: { image: './assets/images/splash-cat.png', backgroundColor: '#3B3734' },
+      },
+    ],
+    [
+      'expo-notifications',
+      {
+        icon: './assets/images/notification-icon.png',
+        color: '#5A4030',
       },
     ],
     [

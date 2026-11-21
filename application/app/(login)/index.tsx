@@ -41,11 +41,10 @@ export default function LoginPage() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.logoContainer}>
-        <Image
-          source={require('@/assets/images/left30_logo.png')}
-          style={styles.logo}
-        />
+      {/* 로그인 화면 고양이: 앉아서 지켜봄(visual 4.4). 옛 로고는 검은 바탕이 박힌 그림이라 밝은 바탕에 맞지 않는다. */}
+      <View style={styles.logoContainer} accessible accessibilityLabel='LEFT30'>
+        <Image source={require('@/assets/cat/calico_sit_watch.png')} style={styles.cat} resizeMode='contain' />
+        <Text style={styles.title}>LEFT30</Text>
       </View>
       {showLoginButton && (
         <TouchableOpacity onPress={onLoginPress} disabled={busy} style={busy && styles.busy}>
@@ -75,8 +74,9 @@ const useStyles = makeStyles((t) => StyleSheet.create({
     backgroundColor: t.wall,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 20,
+    fontSize: 34,
+    lineHeight: 44,
+    marginTop: 12,
     color: t.text,
   },
   loginImage: {
@@ -84,16 +84,12 @@ const useStyles = makeStyles((t) => StyleSheet.create({
     height: 40,
   },
   logoContainer: {
-    width: '60%',
-    height: '30%',
-    // height: 100,
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 40,
   },
-  logo: {
-    width: '80%',
-    height: '80%',
+  cat: {
+    width: 120 * (1392 / 1130),
+    height: 120,
   },
   busy: {
     opacity: 0.5,

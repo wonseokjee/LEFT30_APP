@@ -63,6 +63,7 @@ export default function TodoScreen() {
   const [toast, setToast] = useState<Toast | null>(null);
   const busy = useRef(false);
 
+  const [failed, setFailed] = useState(false);
   const load = useCallback(() => {
     const db = getRuntime().db;
     const at = new Date();
@@ -77,7 +78,11 @@ export default function TodoScreen() {
         const yesterday = new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10);
         setHasYesterday((await planBlocksOn(db, yesterday, tz)).length > 0);
       }
-    })().catch((e) => console.warn('todo load failed', e));
+      setFailed(false);
+    })().catch((e) => {
+      console.warn('todo load failed', e);
+      setFailed(true);
+    });
   }, [tz]);
 
   useEffect(load, [load, blockVersion]);
@@ -220,7 +225,19 @@ export default function TodoScreen() {
         </Text>
       </TouchableOpacity>
 
-      {blocks.length === 0 ? (
+      {failed ? (
+        // 읽기 실패(D30): 그 자리에 한 줄 + [다시 시도]
+        <View style={styles.empty}>
+          <Text style={styles.emptyText} maxFontSizeMultiplier={MAX_SCALE}>
+            할 일을 불러오지 못했어요
+          </Text>
+          <TouchableOpacity style={styles.linkHit} onPress={load}>
+            <Text style={styles.link} maxFontSizeMultiplier={MAX_SCALE}>
+              다시 시도
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : blocks.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyText} maxFontSizeMultiplier={MAX_SCALE}>
             오늘 계획 블록이 없어요

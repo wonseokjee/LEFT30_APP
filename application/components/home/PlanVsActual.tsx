@@ -29,12 +29,19 @@ export default function PlanVsActual() {
   const sheetBatch = useAppStore((s) => s.sheetBatch);
   const [pva, setPva] = useState<Pva | null>(null);
   const [planning, setPlanning] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const load = useCallback(() => {
     const db = getRuntime().db;
     loadPva(db, new Date(), deviceTz())
-      .then(setPva)
-      .catch((e) => console.warn('plan vs actual failed', e));
+      .then((p) => {
+        setPva(p);
+        setFailed(false);
+      })
+      .catch((e) => {
+        console.warn('plan vs actual failed', e);
+        setFailed(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -53,6 +60,16 @@ export default function PlanVsActual() {
     }, [load]),
   );
 
+  // 읽기 실패(D30): 막대 자리만 한 줄로. 숫자·버튼·고양이는 그대로.
+  if (failed && !pva) {
+    return (
+      <TouchableOpacity style={styles.linkHit} onPress={load} accessibilityRole='button'>
+        <Text style={styles.link} maxFontSizeMultiplier={MAX_SCALE}>
+          불러오지 못했어요 · 다시 시도
+        </Text>
+      </TouchableOpacity>
+    );
+  }
   if (!pva) return null;
   const bars = homeBars(pva.rows);
 
