@@ -1,6 +1,6 @@
 import type { BlockRow, Category, Db, SlotRow } from '@/db/types';
 import { blocksBetween, getSetting, logEvent, setSetting } from '@/db/records';
-import { saveEntry } from './entries';
+import { coveredSlots, saveEntry } from './entries';
 import { localParts, SLOT_MS } from '@/lib/localTime';
 import { uuidv4 } from '@/lib/uuid';
 import { inQuiet, isPaused, type Pause, type Quiet } from '@/scheduler/plan';
@@ -14,7 +14,7 @@ import { lastEndedSlot } from './recordLogic';
  *   [6칸 카테고리]
  *   중간에 바뀌었어요 · 따로 채울게요               ← 닫고, 같은 칸은 다시 묻지 않음
  * 최근 10칸(5시간) 안에서 가장 최근의 연속 빈칸 묶음. 방해금지·일시 중지·집중 블록·진행 중 계획 블록·
- * 기록된 칸·따로 채울게요 칸에서 끊긴다. 답 없이 끝난 계획 블록 칸은 넣고 맨 위 버튼을 [계획대로]로 한다.
+ * 기록된 칸(타이머 세션이 조금이라도 겹친 칸 포함, 타이머 개편 GAP)·따로 채울게요 칸에서 끊긴다. 답 없이 끝난 계획 블록 칸은 넣고 맨 위 버튼을 [계획대로]로 한다.
  */
 
 export const BATCH_MAX = 10;
@@ -34,7 +34,8 @@ export function findMissedRun(params: {
   tz: string;
   quiet: Quiet;
   pause: Pause | null;
-  filled: Map<string, Category>;
+  filled: Map<string, Category>; // 옛 칸 기록(바로 앞 칸의 그대로 계속 후보)
+  covered?: Set<string>; // 기록(entry)이 겹치는 칸. 타이머 구간은 빈 시간이 아니다(GAP)
   skip: Set<string>;
   planSlots: Map<string, Category>;
 }): MissedRun | null {
@@ -42,7 +43,7 @@ export function findMissedRun(params: {
   const newest = Date.parse(lastEndedSlot(now, tz));
   const usable = (t: number) => {
     const iso = new Date(t).toISOString();
-    if (params.filled.has(iso) || params.skip.has(iso)) return false;
+    if (params.filled.has(iso) || params.covered?.has(iso) || params.skip.has(iso)) return false;
     if (inQuiet(localParts(new Date(t), tz), params.quiet)) return false;
     return !isPaused(params.pause, new Date(t + SLOT_MS));
   };
@@ -73,6 +74,9 @@ export async function loadMissedRun(
     [from, to],
   );
   const filled = new Map(rows.map((r) => [r.slot_start, r.category]));
+  const window: string[] = [];
+  for (let t = Date.parse(from); t < Date.parse(to); t += SLOT_MS) window.push(new Date(t).toISOString());
+  const covered = await coveredSlots(db, window);
   const skip = new Set(await deferredSlots(db));
   const planSlots = new Map<string, Category>();
   for (const b of await blocksBetween(db, from, to)) {
@@ -83,7 +87,7 @@ export async function loadMissedRun(
       else skip.add(s);
     }
   }
-  return findMissedRun({ now, tz, quiet, pause, filled, skip, planSlots });
+  return findMissedRun({ now, tz, quiet, pause, filled, covered, skip, planSlots });
 }
 
 // 답 없이 끝난 계획 블록만 묶음에 넣는다. 집중 블록과 진행 중·답한 계획 블록 칸은 블록이 맡는다.
@@ -95,14 +99,15 @@ function isMissedPlan(b: BlockRow): boolean {
 // 시트가 떠 있는 동안 다른 길로 기록된 칸은 덮지 않는다.
 export async function fillRun(db: Db, run: MissedRun, category: Category, now: Date): Promise<void> {
   const at = now.toISOString();
-  const taken = new Set(
-    (
+  const taken = new Set([
+    ...(
       await db.all<{ slot_start: string }>(
         `SELECT slot_start FROM slot WHERE slot_start IN (${run.slots.map(() => '?').join(',')})`,
         run.slots,
       )
     ).map((r) => r.slot_start),
-  );
+    ...(await coveredSlots(db, run.slots)),
+  ]);
   await saveEntry(
     db,
     run.slots.filter((s) => !taken.has(s)).map((slot_start) => ({

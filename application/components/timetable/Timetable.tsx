@@ -1,37 +1,59 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { GRAY_0, GRAY_5, GRAY_8 } from '@/assets/palette';
-import { CATEGORY_LABEL, type SlotRow } from '@/db/types';
 import { deviceTz, localParts, MINUTE_MS } from '@/lib/localTime';
-import { CATEGORY_COLOR, textOn } from '@/record/categoryStyle';
 import { hhmm } from '@/record/recordLogic';
-import { dayColumn, daySlots, isPastSlot, ROWS_PER_DAY, shiftDate, type Cell, type PlanCells } from '@/record/timetable';
-import { blockSlots } from '@/record/blockLogic';
+import { isPastSlot, shiftDate, slotAtMinute } from '@/record/timetable';
+import {
+  blockAt,
+  buildColumn,
+  dayBounds,
+  DAY_MIN,
+  loadTimelineEntries,
+  planLabel,
+  type TimelineBlock,
+  type TimelineColumn,
+} from '@/record/timeline';
 import { planBlocksOn } from '@/record/todoLogic';
 import { getRuntime } from '@/runtime/appRuntime';
 import { useAppStore } from '@/store/appStore';
 
 const MAX_SCALE = 1.3;
-const ROW = 28;
+// 1분 = 1.1dp(30분 = 33dp, 4.3a)
+const MIN_DP = 1.1;
+const HEIGHT = DAY_MIN * MIN_DP;
 const LABEL_WIDTH = 44;
 const PAD = 16;
 const PAD_TOP = 8;
 const GAP = 8;
 const NOW_BOX = 20;
-// 계획 레이어 투명도(약 30%). 색 결정은 디자인 개편에서(DR-6, Pass 5).
-const PLAN_ALPHA = '4d';
+const BLOCK_GAP = 2;
 
-type Loaded = { yesterday: Cell[]; today: Cell[] };
+// 4.3a 밤 색(임시 중립색). 낮·밤 테마는 디자인 개편(고양이 방)에서 한 곳으로 모은다.
+const C = {
+  bg: '#000000',
+  text: '#F3E8DC',
+  sub: '#B8A898',
+  acc: '#D6CEC6',
+  line: '#8D7F74',
+  fill: '#57504A',
+  soft: '#48423E',
+  grid: 'rgba(255,255,255,0.08)',
+};
 
-function rowLabel(row: number): string {
-  const h = Math.floor(row / 2);
-  return row % 2 === 0 ? `${h}시 칸` : `${h}시 30분 칸`;
-}
+const HOW_LABEL: Record<string, string> = { stopwatch: '스톱워치', pomodoro: '뽀모도로', timer: '타이머' };
 
-// 시간표(디자인 리뷰 D7, D21, D24): 어제·오늘 두 열과 그 사이 세로줄. 채운 칸의 카테고리 색 블록, 1시간마다 얇은 가로줄,
-// 두 열을 가로지르는 흰 '지금' 선과 그 옆 지금 시각.
-// 끝난 칸을 누르면 기록 시트가 열린다. 60분이 지난 칸은 late로 저장된다(sourceFor).
+type Day = { date: string; column: TimelineColumn };
+type Loaded = { yesterday: Day; today: Day };
+
+/*
+ * 시간표 = 구간 타임라인(left30-visual.md 4.3a, 타이머 개편 T4). 어제·오늘 두 열.
+ *   블록: 같은 채움 + 왼쪽 강조선, 이름은 위쪽(15분 미만은 이름 없음), 사이 2dp 틈.
+ *   멈춤 1~5분·뽀모도로 휴식은 옅게, 5분 이상 멈춤은 빈 틈 + 점선. 진행 중은 지금까지 자란다.
+ *   계획: 기록이 없는 곳에만 점선 상자 "계획 업무".
+ * 누르기: 알림 답 블록·지난 빈 곳 → 그 30분 칸의 기록 시트(빈 부분만 채움). 타이머 블록 → 그 기록 시트(이름·방식·시각).
+ * 빈 곳 시작·끝 고르기(D29)와 짧은 블록 고르는 시트(G12)는 아직 없다.
+ */
 export default function Timetable() {
   const sheetSlot = useAppStore((s) => s.sheetSlot);
   const lastSaved = useAppStore((s) => s.lastSaved);
@@ -39,6 +61,7 @@ export default function Timetable() {
   const blockVersion = useAppStore((s) => s.blockVersion);
   const [now, setNow] = useState(() => new Date());
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [info, setInfo] = useState<TimelineBlock | null>(null);
   const scrolled = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
 
@@ -47,28 +70,24 @@ export default function Timetable() {
   const yesterday = shiftDate(today, -1);
 
   const load = useCallback(async () => {
-    const from = daySlots(yesterday, tz)[0];
-    const todaySlots = daySlots(today, tz);
-    const to = todaySlots[todaySlots.length - 1];
-    if (!from || !to) return;
-    const slots = await getRuntime().db.all<SlotRow>(
-      'SELECT * FROM slot WHERE slot_start >= ? AND slot_start <= ?',
-      [from, to],
-    );
-    // DR-6: 오늘 열에만 계획 블록을 옅게 깐다. 실제 기록이 있으면 기록이 이긴다.
-    const plans: PlanCells = new Map();
-    for (const b of await planBlocksOn(getRuntime().db, today, tz)) {
-      blockSlots(b, b.tz).forEach((s, i) =>
-        plans.set(s, { category: b.category, label: i === 0 ? CATEGORY_LABEL[b.category] + (b.title ? ` · ${b.title}` : '') : null }),
-      );
-    }
+    const db = getRuntime().db;
+    const at = Date.now();
+    const yDay = dayBounds(yesterday, tz);
+    const tDay = dayBounds(today, tz);
+    const entries = await loadTimelineEntries(db, yDay[0], tDay[1]);
+    const plans = (await planBlocksOn(db, today, tz)).map((b) => ({
+      start: Date.parse(b.start_at),
+      end: Date.parse(b.end_at),
+      label: planLabel(b),
+    }));
     setLoaded({
-      yesterday: dayColumn(yesterday, tz, slots),
-      today: dayColumn(today, tz, slots, plans),
+      yesterday: { date: yesterday, column: buildColumn({ day: yDay, tz, now: at, entries }) },
+      // 계획 상자는 오늘 열에만(D27)
+      today: { date: today, column: buildColumn({ day: tDay, tz, now: at, entries, plans }) },
     });
   }, [today, yesterday, tz]);
 
-  // 탭에 들어올 때마다, 그리고 기록 시트가 닫히거나 저장·되돌리기가 있을 때 다시 읽는다.
+  // 탭에 들어올 때마다, 1분마다(진행 중 블록이 자란다), 기록 시트가 닫히거나 저장·되돌리기가 있을 때 다시 읽는다.
   useFocusEffect(
     useCallback(() => {
       setNow(new Date());
@@ -79,73 +98,86 @@ export default function Timetable() {
   useEffect(() => {
     if (sheetSlot) return;
     load().catch((e) => console.warn('timetable load failed', e));
-  }, [load, sheetSlot, lastSaved, blockVersion]);
+  }, [load, sheetSlot, lastSaved, blockVersion, now]);
 
-  const nowTop = (localParts(now, tz).minuteOfDay / 30) * ROW;
+  const nowTop = localParts(now, tz).minuteOfDay * MIN_DP;
 
   // 처음 그릴 때 '지금' 선이 화면 위쪽 1/3쯤 오도록 내린다.
   useEffect(() => {
     if (!loaded || scrolled.current) return;
     scrolled.current = true;
-    scrollRef.current?.scrollTo({ y: Math.max(0, nowTop - 6 * ROW), animated: false });
+    scrollRef.current?.scrollTo({ y: Math.max(0, nowTop - 200), animated: false });
   }, [loaded, nowTop]);
 
   if (!loaded) return <View style={styles.container} />;
 
-  const column = (cells: Cell[]) => (
-    <View style={styles.column}>
-      {cells.map((cell) => {
-        const next = cells[cell.row + 1];
-        const runEnd = cell.category !== null && next?.category !== cell.category;
-        const tappable = cell.slotStart !== null && isPastSlot(cell.slotStart, now);
-        const color = cell.category ? CATEGORY_COLOR[cell.category] : undefined;
-        const planOnly = !color && cell.plan;
-        const planNext = next && !next.category && next.plan?.category === cell.plan?.category && !next.plan?.label;
-        return (
-          <Pressable
-            key={cell.row}
-            style={styles.cell}
-            disabled={!tappable}
-            onPress={() => cell.slotStart && openSheet(cell.slotStart)}
-            accessibilityLabel={`${rowLabel(cell.row)}, ${cell.category ? CATEGORY_LABEL[cell.category] : '비어 있음'}${cell.plan ? `, 계획 ${CATEGORY_LABEL[cell.plan.category]}` : ''}`}
+  // 누른 자리의 30분 칸 기록 시트. 지금 칸과 미래는 반응하지 않는다.
+  const openAt = (date: string, minute: number) => {
+    const slot = slotAtMinute(date, tz, minute);
+    if (slot && isPastSlot(slot, new Date())) openSheet(slot);
+  };
+
+  const onEmpty = (day: Day) => (e: GestureResponderEvent) => {
+    const minute = e.nativeEvent.locationY / MIN_DP;
+    if (!blockAt(day.column, minute)) openAt(day.date, minute);
+  };
+
+  const onBlock = (day: Day, b: TimelineBlock) => (e: GestureResponderEvent) => {
+    if (b.timer) setInfo(b);
+    else openAt(day.date, b.from + e.nativeEvent.locationY / MIN_DP);
+  };
+
+  const column = (day: Day) => {
+    const byKey = new Map(day.column.blocks.map((b) => [b.key, b]));
+    return (
+      <Pressable style={styles.column} onPress={onEmpty(day)} accessible={false}>
+        {day.column.plans.map((p, i) => (
+          <View
+            key={`plan${i}`}
+            pointerEvents='none'
+            style={[styles.plan, { top: p.from * MIN_DP, height: (p.to - p.from) * MIN_DP - BLOCK_GAP }]}
           >
-            {planOnly && cell.plan && (
-              <View
+            <Text style={styles.planText} maxFontSizeMultiplier={MAX_SCALE} numberOfLines={1}>
+              {p.label}
+            </Text>
+          </View>
+        ))}
+        {day.column.blocks.map((b) => {
+          const [id, idx] = b.key.split(':');
+          const prev = b.linked ? byKey.get(`${id}:${Number(idx) - 1}`) : undefined;
+          return (
+            <React.Fragment key={b.key}>
+              {prev && <Dots from={prev.to} to={b.from} />}
+              <Pressable
+                onPress={onBlock(day, b)}
                 style={[
                   styles.block,
-                  { backgroundColor: CATEGORY_COLOR[cell.plan.category] + PLAN_ALPHA },
-                  cell.plan.label !== null && styles.blockTop,
-                  !planNext && styles.blockBottom,
+                  { top: b.from * MIN_DP, height: Math.max(2, (b.to - b.from) * MIN_DP - (b.running ? 0 : BLOCK_GAP)) },
+                  b.running && styles.blockLive,
                 ]}
+                accessibilityRole='button'
+                accessibilityLabel={`${b.name}${b.running ? ' 진행 중' : ''}, ${hhmm(new Date(b.startAt), tz)}부터 ${hhmm(new Date(b.endAt), tz)}까지`}
               >
-                {cell.plan.label && (
-                  <Text style={styles.planText} maxFontSizeMultiplier={MAX_SCALE} numberOfLines={1}>
-                    {cell.plan.label}
+                {b.soft.map(([s, t], i) => (
+                  <View
+                    key={i}
+                    pointerEvents='none'
+                    style={[styles.soft, { top: (s - b.from) * MIN_DP, height: (t - s) * MIN_DP }]}
+                  />
+                ))}
+                {b.showName && (
+                  <Text style={styles.blockText} maxFontSizeMultiplier={MAX_SCALE} numberOfLines={1}>
+                    {b.name}
+                    {b.running ? ' 진행 중' : ''}
                   </Text>
                 )}
-              </View>
-            )}
-            {color && (
-              <View
-                style={[
-                  styles.block,
-                  { backgroundColor: color },
-                  cell.runStart && styles.blockTop,
-                  runEnd && styles.blockBottom,
-                ]}
-              >
-                {cell.runStart && cell.category && (
-                  <Text style={[styles.blockText, { color: textOn(color) }]} maxFontSizeMultiplier={MAX_SCALE} numberOfLines={1}>
-                    {CATEGORY_LABEL[cell.category]}
-                  </Text>
-                )}
-              </View>
-            )}
-          </Pressable>
-        );
-      })}
-    </View>
-  );
+              </Pressable>
+            </React.Fragment>
+          );
+        })}
+      </Pressable>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -154,20 +186,20 @@ export default function Timetable() {
         <Text style={styles.headerText} maxFontSizeMultiplier={MAX_SCALE}>
           어제
         </Text>
-        <Text style={styles.headerText} maxFontSizeMultiplier={MAX_SCALE}>
+        <Text style={[styles.headerText, styles.headerOn]} maxFontSizeMultiplier={MAX_SCALE}>
           오늘
         </Text>
       </View>
       <ScrollView ref={scrollRef} contentContainerStyle={styles.body}>
         <View style={styles.hours}>
-          {Array.from({ length: ROWS_PER_DAY / 2 }, (_, h) => (
+          {Array.from({ length: 24 }, (_, h) => (
             <Text key={h} style={styles.hour} maxFontSizeMultiplier={MAX_SCALE}>
               {`${String(h).padStart(2, '0')}:00`}
             </Text>
           ))}
         </View>
-        {Array.from({ length: ROWS_PER_DAY / 2 }, (_, h) => (
-          <View key={h} pointerEvents='none' style={[styles.hourLine, { top: PAD_TOP + h * 2 * ROW }]} />
+        {Array.from({ length: 24 }, (_, h) => (
+          <View key={h} pointerEvents='none' style={[styles.hourLine, { top: PAD_TOP + h * 60 * MIN_DP }]} />
         ))}
         <View style={styles.columns}>
           {column(loaded.yesterday)}
@@ -181,107 +213,106 @@ export default function Timetable() {
           <View style={styles.nowLine} />
         </View>
       </ScrollView>
+      <BlockSheet block={info} tz={tz} onClose={() => setInfo(null)} />
     </View>
   );
 }
 
+// 5분 이상 멈춘 틈: 앞뒤 조각을 잇는 점선(PAUSE).
+function Dots({ from, to }: { from: number; to: number }) {
+  const top = from * MIN_DP;
+  const height = (to - from) * MIN_DP;
+  const count = Math.max(1, Math.floor(height / 5));
+  return (
+    <View pointerEvents='none' style={[styles.dots, { top, height }]}>
+      {Array.from({ length: count }, (_, i) => (
+        <View key={i} style={styles.dot} />
+      ))}
+    </View>
+  );
+}
+
+// 타이머 블록 시트: 이름·방식·시각(4.3a 블록 누름). 고치기는 끝 시각 고치기와 함께 나중에.
+function BlockSheet({ block, tz, onClose }: { block: TimelineBlock | null; tz: string; onClose: () => void }) {
+  if (!block) return null;
+  const range = `${hhmm(new Date(block.startAt), tz)}–${block.running ? '지금' : hhmm(new Date(block.endAt), tz)}`;
+  return (
+    <Modal visible transparent animationType='slide' onRequestClose={onClose}>
+      <Pressable style={styles.overlay} onPress={onClose}>
+        <Pressable style={styles.sheet} onPress={() => undefined}>
+          <View style={styles.handle} />
+          <Text style={styles.sheetTitle} maxFontSizeMultiplier={MAX_SCALE}>
+            {block.name}
+          </Text>
+          <Text style={styles.sheetLine} maxFontSizeMultiplier={MAX_SCALE}>
+            {HOW_LABEL[block.how] ?? block.how} · {range}
+            {block.running ? ' · 진행 중' : ''}
+          </Text>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'black',
-  },
-  header: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  headerText: {
-    flex: 1,
-    color: GRAY_5,
-    fontSize: 13,
-  },
-  body: {
-    flexDirection: 'row',
-    paddingHorizontal: PAD,
-    paddingTop: PAD_TOP,
-    paddingBottom: 24,
-    gap: GAP,
-  },
+  container: { flex: 1, backgroundColor: C.bg },
+  header: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
+  headerText: { flex: 1, color: C.sub, fontSize: 13, textAlign: 'center' },
+  headerOn: { color: C.text },
+  body: { flexDirection: 'row', paddingHorizontal: PAD, paddingTop: PAD_TOP, paddingBottom: 24, gap: GAP },
   hourLine: {
     position: 'absolute',
     left: PAD + LABEL_WIDTH + GAP,
     right: PAD,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: GRAY_8,
+    backgroundColor: C.grid,
   },
-  hours: {
-    width: LABEL_WIDTH,
-    marginTop: -8, // 숫자 가운데를 그 시각 경계에 맞춘다
-  },
-  hour: {
-    height: ROW * 2,
-    color: GRAY_5,
-    fontSize: 13,
-  },
-  columns: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  // 어제·오늘 사이 세로줄. 1시간 가로줄과 같은 색과 두께.
-  divider: {
-    width: StyleSheet.hairlineWidth,
-    marginHorizontal: GAP / 2,
-    backgroundColor: GRAY_8,
-  },
-  column: {
-    flex: 1,
-  },
-  cell: {
-    height: ROW,
-  },
+  hours: { width: LABEL_WIDTH, marginTop: -8 },
+  hour: { height: 60 * MIN_DP, color: C.sub, fontSize: 13 },
+  columns: { flex: 1, flexDirection: 'row', height: HEIGHT },
+  divider: { width: StyleSheet.hairlineWidth, marginHorizontal: GAP / 2, backgroundColor: C.grid },
+  column: { flex: 1, height: HEIGHT },
   block: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  blockTop: {
-    marginTop: 1,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-  },
-  blockBottom: {
-    marginBottom: 1,
-    borderBottomLeftRadius: 4,
-    borderBottomRightRadius: 4,
-  },
-  blockText: {
-    fontSize: 13,
-  },
-  planText: {
-    color: GRAY_0,
-    fontSize: 13,
-  },
-  now: {
     position: 'absolute',
-    left: PAD,
-    right: PAD,
-    height: NOW_BOX,
-    flexDirection: 'row',
-    alignItems: 'center',
+    left: 0,
+    right: 0,
+    backgroundColor: C.fill,
+    borderLeftWidth: 3,
+    borderLeftColor: C.acc,
+    borderRadius: 3,
+    paddingHorizontal: 6,
+    overflow: 'hidden',
   },
-  // 검은 바탕으로 그 자리의 시각 숫자를 가린다.
+  blockLive: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, opacity: 0.85 },
+  soft: { position: 'absolute', left: 0, right: 0, backgroundColor: C.soft },
+  blockText: { color: C.text, fontSize: 12, marginTop: 2 },
+  plan: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    borderWidth: 1.4,
+    borderStyle: 'dashed',
+    borderColor: C.line,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+  },
+  planText: { color: C.sub, fontSize: 12, marginTop: 2 },
+  dots: { position: 'absolute', left: 1, width: 2, justifyContent: 'space-between', overflow: 'hidden' },
+  dot: { width: 2, height: 2, borderRadius: 1, backgroundColor: C.acc },
+  now: { position: 'absolute', left: PAD, right: PAD, height: NOW_BOX, flexDirection: 'row', alignItems: 'center' },
+  // 바탕색으로 그 자리의 시각 숫자를 가린다.
   nowText: {
     width: LABEL_WIDTH + GAP,
     height: NOW_BOX,
     lineHeight: NOW_BOX,
-    backgroundColor: 'black',
-    color: GRAY_0,
+    backgroundColor: C.bg,
+    color: C.text,
     fontSize: 13,
   },
-  nowLine: {
-    flex: 1,
-    height: 2,
-    backgroundColor: GRAY_0,
-  },
+  nowLine: { flex: 1, height: 2, backgroundColor: C.acc },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
+  sheet: { backgroundColor: '#1c1a18', paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32, borderTopLeftRadius: 16, borderTopRightRadius: 16 },
+  handle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: C.line, marginBottom: 16 },
+  sheetTitle: { color: C.text, fontSize: 18, marginBottom: 8 },
+  sheetLine: { color: C.sub, fontSize: 14 },
 });

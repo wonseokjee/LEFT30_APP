@@ -1,4 +1,4 @@
-import { calm_summer, GRAY_0, GRAY_9 } from '@/assets/palette';
+import { calm_summer, GRAY_0, GRAY_5, GRAY_9 } from '@/assets/palette';
 import type { Category } from '@/db/types';
 
 // 디자인 토큰(D13): calm_summer 6색, 순서는 업무·휴식·관계·운동·자기개발·수면. 색 지정 자체는 연기(D14).
@@ -9,6 +9,16 @@ export const CATEGORY_COLOR: Record<Category, string> = {
   exercise: calm_summer[3],
   self_dev: calm_summer[4],
   sleep: calm_summer[5],
+};
+
+// 카테고리 항목의 막대 색(옛 카테고리 색을 빌림). 기타는 회색. 색 지정은 디자인 개편에서.
+export const ITEM_COLOR: Record<string, string> = {
+  focus: CATEGORY_COLOR.work,
+  exercise: CATEGORY_COLOR.exercise,
+  rest: CATEGORY_COLOR.rest,
+  relationship: CATEGORY_COLOR.relationship,
+  sleep: CATEGORY_COLOR.sleep,
+  other: GRAY_5,
 };
 
 // 기록 시트 3x2 그리드 순서

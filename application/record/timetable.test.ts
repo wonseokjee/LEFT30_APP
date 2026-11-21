@@ -1,20 +1,7 @@
-import type { SlotRow } from '@/db/types';
-import { dayColumn, daySlots, isPastSlot, shiftDate } from './timetable';
+import { daySlots, isPastSlot, shiftDate, slotAtMinute } from './timetable';
 
 const SEOUL = 'Asia/Seoul';
 const NY = 'America/New_York';
-
-function row(slotStart: string, category: SlotRow['category']): SlotRow {
-  return {
-    slot_start: slotStart,
-    tz: SEOUL,
-    category,
-    note: null,
-    source: 'answered',
-    answered_at: slotStart,
-    client_updated_at: slotStart,
-  };
-}
 
 describe('시간표 칸', () => {
   it('어제 날짜는 달·해가 바뀌어도 맞다', () => {
@@ -41,40 +28,9 @@ describe('시간표 칸', () => {
     expect(slots[0]).toBe('2026-11-07T18:15:00.000Z');
   });
 
-  it('기록은 현지 시각 행에 놓이고, 같은 카테고리가 이어지면 첫 칸에만 이름을 쓴다', () => {
-    const cells = dayColumn('2026-11-08', SEOUL, [
-      row('2026-11-08T00:00:00.000Z', 'work'), // 09:00
-      row('2026-11-08T00:30:00.000Z', 'work'), // 09:30
-      row('2026-11-08T01:00:00.000Z', 'rest'), // 10:00
-      row('2026-11-09T00:00:00.000Z', 'work'), // 다음 날이라 빠진다
-    ]);
-    expect(cells).toHaveLength(48);
-    expect(cells[18]).toMatchObject({ category: 'work', runStart: true });
-    expect(cells[19]).toMatchObject({ category: 'work', runStart: false });
-    expect(cells[20]).toMatchObject({ category: 'rest', runStart: true });
-    expect(cells[21]).toMatchObject({ category: null, runStart: false, slotStart: '2026-11-08T01:30:00.000Z' });
-    expect(cells.filter((c) => c.category)).toHaveLength(3);
-  });
-
-  it('(DR-6) 계획 블록 칸은 기록과 따로 계획을 들고, 기록이 있어도 계획은 남는다', () => {
-    const plans = new Map([
-      ['2026-11-08T05:00:00.000Z', { category: 'work' as const, label: '업무 · 보고서' }], // 14:00
-      ['2026-11-08T05:30:00.000Z', { category: 'work' as const, label: null }], // 14:30
-    ]);
-    const cells = dayColumn('2026-11-08', SEOUL, [row('2026-11-08T05:30:00.000Z', 'rest')], plans);
-    expect(cells[28]).toMatchObject({ category: null, plan: { category: 'work', label: '업무 · 보고서' } });
-    expect(cells[29]).toMatchObject({ category: 'rest', plan: { category: 'work', label: null } });
-    expect(cells[30].plan).toBeNull();
-  });
-
-  it('서머타임으로 사라진 시각은 칸이 없고, 두 번 오는 시각은 기록된 쪽을 보여준다', () => {
-    // 2026-03-08 뉴욕 02:00~03:00이 없다
-    const spring = dayColumn('2026-03-08', NY, []);
-    expect(spring[4].slotStart).toBeNull();
-    expect(spring[5].slotStart).toBeNull();
-    // 2026-11-01 뉴욕 01:00~02:00이 두 번. 두 번째 01:00(06:00Z)만 기록됨
-    const fall = dayColumn('2026-11-01', NY, [{ ...row('2026-11-01T06:00:00.000Z', 'sleep'), tz: NY }]);
-    expect(fall[2]).toMatchObject({ slotStart: '2026-11-01T06:00:00.000Z', category: 'sleep' });
+  it('누른 자리의 30분 칸, 서머타임으로 사라진 시각은 없음', () => {
+    expect(slotAtMinute('2026-11-08', SEOUL, 9 * 60 + 47)).toBe('2026-11-08T00:30:00.000Z'); // 09:30 칸
+    expect(slotAtMinute('2026-03-08', NY, 2 * 60 + 10)).toBeNull();
   });
 
   it('끝난 칸만 탭할 수 있다', () => {

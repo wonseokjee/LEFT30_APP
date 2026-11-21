@@ -488,10 +488,14 @@ Lane A: 1 → 2 → 4. Lane B: 3(1 뒤). 1 끝나고 A·B 병행, record/ 공유
   - Surfaced by: NOTIF
   - Files: application/modules/ongoing-timer(새, Kotlin), record/timerLogic.ts
   - Verify: 실기기(앱 꺼진 상태에서 버튼, 뽀모도로 단계 전환)
-- [ ] **T4 (P1, human: ~2일 / CC: ~2시간)** — UI — 시간표 구간 타임라인, 계획 대비 실제 분 단위, 묶어 채우기 창 기준
+- [x] **T4 (P1, human: ~2일 / CC: ~2시간)** — UI — 시간표 구간 타임라인, 계획 대비 실제 분 단위, 묶어 채우기 창 기준
   - Surfaced by: CEO TIMELINE·GAP
   - Files: record/timetable.ts, components/timetable/Timetable.tsx, record/planVsActual.ts, record/batchLogic.ts
   - Verify: jest + 실기기
+  - 완료(2026-11-21): `record/timeline.ts`가 entry·pause·pomodoro를 읽어 열마다 블록을 계산한다(left30-visual.md 4.3a). 알림 답이 같은 항목으로 맞닿으면 한 덩어리, 출처가 다르면 따로. 멈춤 1분 미만 없음·1~5분 옅게·5분 이상 끊고 점선, 뽀모도로 휴식 옅게(BREAK A), 15분 미만 이름 없음, 진행 중은 지금까지, 자정에서 자름, 서머타임 날에도 현지 시각 자리. 계획 상자는 기록 없는 곳에 15분 이상 남을 때만. 시간표 화면은 1분 = 1.1dp 구간 타임라인으로 다시 그렸다(색은 시안의 밤 중립색을 임시로). 알림 답 블록·지난 빈 곳을 누르면 그 30분 칸 기록 시트(빈 부분만 채움), 타이머 블록은 이름·방식·시각 시트. 계획 대비 실제는 entry 분 단위(멈춘 시간 뺌, 휴식 포함, 진행 중 포함, 오늘 몫만)이고 줄은 카테고리 항목(옛 업무·자기개발 계획은 집중으로 합침). 묶어 채우기는 기록이 조금이라도 겹친 칸을 빈 시간으로 보지 않는다(GAP), 시트가 떠 있는 동안 생긴 타이머 칸도 덮지 않는다.
+  - 남긴 것: **빈 곳 시작·끝 고르기(D29)** 는 시간 고르는 시트와 임의 구간 저장(`saveEntry`가 30분 칸만 받음)이 필요해 T4b로 나눔. 짧은 블록 고르는 시트는 left30-visual.md T12. 타이머 기록 고치기(끝 시각)는 FORGOT 확인 화면과 T5. **기록 시트·스케줄러 맥락 문구·[그대로 계속]은 아직 옛 slot을 읽는다**: 읽는 것은 알림 답뿐이라 slot 사본과 같고, entry에서 읽으면 항목 → 카테고리가 손실된다(집중 = 업무 + 자기개발). 알림 답 고르기가 항목 기준으로 바뀔 때(CEO 리뷰 2 D3·D4 기타·카테고리 정리) 같이 옮긴다.
+- [ ] **T4b (P2, human: ~4시간 / CC: ~30분)** — UI — 시간표 빈 곳 누름 = 시작·끝 고르기(D29), 처음 값은 누른 빈 구간 전체, 다른 기록과 겹치지 않게. `saveEntry`에 임의 구간 저장
+  - Surfaced by: T4에서 나눔
 - [ ] **T5 (P1, human: ~1일 / CC: ~1시간)** — UI — 홈 [시작] 버튼과 시작 시트(D38), 진행 중 큰 숫자, 스톱워치 오래 진행 확인
   - Surfaced by: CEO HOME·FORGOT
   - Files: components/focus/*, app/(tabs)/index.tsx

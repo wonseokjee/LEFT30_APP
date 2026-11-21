@@ -2,9 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { GRAY_0, GRAY_5, GRAY_6, GRAY_8 } from '@/assets/palette';
-import { CATEGORY_LABEL } from '@/db/types';
 import { deviceTz, localParts } from '@/lib/localTime';
-import { CATEGORY_COLOR } from '@/record/categoryStyle';
+import { ITEM_COLOR } from '@/record/categoryStyle';
 import { loadPva, noteHomeViewed, type Pva } from '@/record/planVsActual';
 import { hours } from '@/record/todoLogic';
 import { getRuntime } from '@/runtime/appRuntime';
@@ -67,16 +66,16 @@ export default function PlanVsActual() {
   return (
     <View style={styles.box}>
       {pva.rows.map((r) => {
-        const color = CATEGORY_COLOR[r.category];
+        const color = ITEM_COLOR[r.item] ?? GRAY_5;
         return (
           <View
-            key={r.category}
+            key={r.item}
             style={styles.row}
             accessible
-            accessibilityLabel={`${CATEGORY_LABEL[r.category]} 실제 ${hours(r.actual)}${r.target > 0 ? `, 계획 ${hours(r.target)}` : ''}`}
+            accessibilityLabel={`${r.name} 실제 ${hours(r.actual)}${r.target > 0 ? `, 계획 ${hours(r.target)}` : ''}`}
           >
             <Text style={styles.name} maxFontSizeMultiplier={MAX_SCALE}>
-              {CATEGORY_LABEL[r.category]}
+              {r.name}
             </Text>
             <View style={styles.track}>
               {r.target > 0 && (

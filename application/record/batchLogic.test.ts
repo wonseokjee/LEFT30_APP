@@ -5,6 +5,7 @@ import { saveBlock, saveSlot } from '@/db/records';
 import type { BlockRow, Category } from '@/db/types';
 import { ALL_DAYS } from '@/scheduler/plan';
 import { deferRun, fillRun, findMissedRun, loadMissedRun } from './batchLogic';
+import { startTimer, stopTimer } from './timerLogic';
 import { answeredPeriods } from './s1';
 
 const SEOUL = 'Asia/Seoul';
@@ -128,6 +129,21 @@ describe('놓친 칸 묶음 저장', () => {
     expect(next.slots[next.slots.length - 1]).toBe(z('15:30'));
     const events = await db2.all<{ props: string }>("SELECT props FROM event WHERE type = 'batch_filled'");
     expect(JSON.parse(events[0].props)).toEqual({ count: 3, deferred: true });
+  });
+
+  it('(GAP) 타이머가 조금이라도 겹친 칸은 빈 시간이 아니고, 시트가 떠 있는 동안 생긴 타이머 칸도 덮지 않는다', async () => {
+    const { db, slot } = await setup();
+    await slot('14:30', 'work');
+    // 15:10–16:47 타이머: 15:00·15:30·16:00·16:30 칸이 겹친다
+    await startTimer(db, { kind: 'timer', itemId: 'focus', now: Date.parse(z('15:10')), tz: SEOUL, minutes: 97 });
+    await stopTimer(db, Date.parse(z('16:47')));
+    const run = (await loadMissedRun(db, NOW, SEOUL, NIGHT, null))!;
+    expect(run.slots).toEqual([z('17:00'), z('17:30')]);
+
+    await startTimer(db, { kind: 'stopwatch', itemId: 'focus', now: Date.parse(z('17:40')), tz: SEOUL });
+    await stopTimer(db, Date.parse(z('17:50')));
+    await fillRun(db, run, 'rest', NOW);
+    expect(await db.all('SELECT slot_start FROM slot WHERE source = ?', ['batch'])).toEqual([{ slot_start: z('17:00') }]);
   });
 });
 

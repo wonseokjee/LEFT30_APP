@@ -91,6 +91,25 @@ async function timerCover(tx: Db, start: number, end: number): Promise<Span[]> {
   return cover;
 }
 
+// 칸들(UTC ISO 시작) 중 지우지 않은 기록이 조금이라도 겹치는 칸(GAP: 타이머 구간은 빈 시간이 아니다).
+// 타이머 끝과 다음 알림 사이 자투리(15:47–16:00)는 다음 알림 답이 채우므로 겹친 칸은 묶음에 넣지 않는다.
+export async function coveredSlots(db: Db, slots: string[]): Promise<Set<string>> {
+  if (slots.length === 0) return new Set();
+  const starts = slots.map(isoToMs);
+  const from = Math.min(...starts);
+  const to = Math.max(...starts) + SLOT_MS;
+  const rows = await db.all<{ start_at: number; end_at: number | null }>(
+    'SELECT start_at, end_at FROM entry WHERE deleted = 0 AND start_at < ? AND (end_at IS NULL OR end_at > ?)',
+    [to, from],
+  );
+  return new Set(
+    slots.filter((iso) => {
+      const s = isoToMs(iso);
+      return rows.some((r) => r.start_at < s + SLOT_MS && (r.end_at === null || r.end_at > s));
+    }),
+  );
+}
+
 // span에서 cut 구간들을 뺀 나머지 조각들(시작 순). 길이 0인 조각은 버린다.
 export function emptyParts(span: Span, cut: Span[]): Span[] {
   const sorted = [...cut].sort((a, b) => a[0] - b[0]);
