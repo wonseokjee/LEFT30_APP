@@ -43,7 +43,6 @@ type StopNote = { stopped: Stopped; text: string; pingsBack: boolean };
  */
 export default function TimerHome({ showBars }: { showBars: boolean }) {
   const blockVersion = useAppStore((s) => s.blockVersion);
-  const openTimerSheet = useAppStore((s) => s.openTimerSheet);
   const [running, setRunning] = useState<Running | null>(null);
   const [name, setName] = useState('집중');
   const [now, setNow] = useState(() => Date.now());
@@ -84,20 +83,22 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
 
   const view = running ? timerView(running, name, now) : null;
 
-  // 앱이 열려 있는 동안 끝에 닿으면: 타이머는 끝 시트, 뽀모도로는 마지막 바퀴 끝에 정리.
+  // 앱이 열려 있는 동안 끝에 닿으면 정리에 맡긴다(타이머는 끝 시트, 30분 넘게 지났거나 뽀모도로면 끝냄).
+  // 시트를 여기서 직접 열면 앱 열 때 정리와 순서가 엇갈려 이미 끝난 세션의 시트가 남는다.
   useEffect(() => {
     if (!running || !view?.ended || view.paused || endAsked.current === running.entry.id) return;
     endAsked.current = running.entry.id;
-    if (running.entry.how === 'timer') openTimerSheet(running.entry.id);
-    else void settleTimerNow();
-  }, [running, view?.ended, view?.paused, openTimerSheet]);
+    void settleTimerNow().then(load);
+  }, [running, view?.ended, view?.paused, load]);
 
+  // 버튼 잠금은 DB 쓰기 동안만. 알림 재계산(몇 초)은 기다리지 않는다: 기다리면 그사이 [정지 취소]가 막힌다.
+  // 재계산은 겹치면 끝난 뒤 한 번 더 돌아(singleFlight) 마지막 상태로 맞춰진다.
   const act = async (fn: () => Promise<unknown>) => {
     if (busy) return;
     setBusy(true);
     try {
       await fn();
-      await afterTimerChange();
+      void afterTimerChange();
     } catch (e) {
       console.warn('timer action failed', e);
     } finally {
