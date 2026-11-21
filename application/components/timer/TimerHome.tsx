@@ -62,7 +62,8 @@ type StopNote = { stopped: Stopped; text: string; pingsBack: boolean };
  *   평소: 라벨 "다음 30분 기록 알림까지"(알림 꺼짐·방해금지면 그 라벨), 숫자 = 다음 알림까지, 고양이 앉아 봄(방해금지면 잠)
  *   진행 중: 라벨 "제목 · 방식", 숫자 = 타이머, 고양이 식빵, 바닥은 [일시정지] [정지]만(D6)
  *   일시정지: 숫자 흐리게 멈춤, 버튼 위에 "일시정지 중", [재개](강조) [정지]
- * [정지]는 확인 없이 바로 정지하고 5초 "집중 1시간 23분 기록함 · 정지 취소"(D8).
+ * [정지]는 확인 없이 바로 정지하고 5초 "집중 1시간 23분 기록함 · 정지 취소"(D8). 그 5초 동안은 "오늘 지금까지" 자리에
+ * 보인다(버튼 위에 두면 책상 다리와 겹친다).
  */
 export default function TimerHome({ showBars }: { showBars: boolean }) {
   const styles = useStyles();
@@ -236,7 +237,7 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
           ) : (
             <>
               {note && (
-                <View style={[styles.note, { top: L.buttonTop - 44 }]}>
+                <View style={[styles.note, { top: L.barsTop }]}>
                   <Text style={styles.noteText} maxFontSizeMultiplier={MAX_SCALE} accessibilityLiveRegion='polite'>
                     {note.text} ·{' '}
                   </Text>
@@ -247,7 +248,7 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
                   </TouchableOpacity>
                   {note.pingsBack && (
                     <Text style={styles.noteSmall} maxFontSizeMultiplier={MAX_SCALE}>
-                      {'  '}30분 알림 다시 켬
+                      30분 알림 다시 켬
                     </Text>
                   )}
                 </View>
@@ -255,7 +256,7 @@ export default function TimerHome({ showBars }: { showBars: boolean }) {
               <View style={[styles.buttons, { top: L.buttonTop }]}>
                 <Btn fill wide label='시작' a11y='타이머 시작' onPress={() => setStarting(true)} />
               </View>
-              {showBars && barsOn && (
+              {showBars && barsOn && !note && (
                 <View style={[styles.bars, { top: L.barsTop }]}>
                   <PlanVsActual />
                 </View>
@@ -301,7 +302,8 @@ function BigNumber(p: { L: RoomLayout; text: string; label: string; dim: boolean
                 fontSize: num,
                 lineHeight: num,
                 width: (ch === ':' ? COLON_EM : DIGIT_EM) * num,
-                transform: i === chars.length - 1 ? [{ translateX: lastDigitShift(ch, num) }] : undefined,
+                // 늘 배열을 준다: undefined로 바뀌면 안드로이드 렌더러가 null transform에서 멈춘다.
+                transform: [{ translateX: i === chars.length - 1 ? lastDigitShift(ch, num) : 0 }],
               },
             ]}
             maxFontSizeMultiplier={NUMBER_SCALE}
@@ -342,15 +344,14 @@ const useStyles = makeStyles((t) =>
     floorNote: { position: 'absolute', left: 0, right: 0, textAlign: 'center', color: t.text, fontSize: 14 },
     note: {
       position: 'absolute',
-      left: 16,
-      right: 16,
+      left: 26,
+      right: 26,
       flexDirection: 'row',
       flexWrap: 'wrap',
       alignItems: 'center',
-      justifyContent: 'center',
     },
     noteText: { color: t.text, fontSize: 14, lineHeight: 20 },
-    noteSmall: { color: t.text, fontSize: 13 },
+    noteSmall: { width: '100%', color: t.text, fontSize: 13, lineHeight: 18 },
     link: { textDecorationLine: 'underline' },
     buttons: { position: 'absolute', left: 0, right: 0, flexDirection: 'row', justifyContent: 'center', gap: 21 },
     btn: { height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
